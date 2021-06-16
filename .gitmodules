@@ -1,0 +1,12 @@
+[submodule "external/OpenXR-SDK"]
+	path = external/OpenXR-SDK
+	url = https://github.com/KhronosGroup/OpenXR-SDK.git
+[submodule "external/FFXIVClientStructs"]
+	path = external/FFXIVClientStructs
+	url = https://github.com/aers/FFXIVClientStructs.git
+[submodule "external/minhook"]
+	path = external/minhook
+	url = https://github.com/TsudaKageyu/minhook.git
+[submodule "external/fmt"]
+	path = external/fmt
+	url = https://github.com/fmtlib/fmt.git

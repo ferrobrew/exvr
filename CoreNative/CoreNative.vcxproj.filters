@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\xr">
+      <UniqueIdentifier>{1f667436-bdee-4059-b8d3-0fba4ce04bfa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\game">
+      <UniqueIdentifier>{bd059dc6-ffcf-4a36-bd9e-993ea2534cfb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\game\graphics">
+      <UniqueIdentifier>{eccb0c7f-8249-46db-8380-6da007c10160}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\game\graphics\kernel">
+      <UniqueIdentifier>{0c8e0818-ea2b-4a70-a557-4d5c482f49dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\debug">
+      <UniqueIdentifier>{18f0c398-d6d0-4ea3-af64-c737d4b01a5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\fmt">
+      <UniqueIdentifier>{526fb61a-e97c-49e9-a5a9-b094acfa8953}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\game\system">
+      <UniqueIdentifier>{70e2929d-73dc-4f30-a336-0310a82473d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\game\system\framework">
+      <UniqueIdentifier>{0a618a4c-4759-451b-a85e-e27d3fdeebf6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xr\InputManager.cpp">
+      <Filter>Source Files\xr</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xr\Session.cpp">
+      <Filter>Source Files\xr</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xr\SessionManager.cpp">
+      <Filter>Source Files\xr</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xr\StereoRender.cpp">
+      <Filter>Source Files\xr</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xr\Swapchain.cpp">
+      <Filter>Source Files\xr</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xr\XR.cpp">
+      <Filter>Source Files\xr</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xr\XRUtils.cpp">
+      <Filter>Source Files\xr</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\debug\CaptureCallstack.cpp">
+      <Filter>Source Files\debug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\fmt\src\format.cc">
+      <Filter>Source Files\fmt</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\xr\InputManager.h">
+      <Filter>Source Files\xr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\xr\Session.h">
+      <Filter>Source Files\xr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\xr\SessionManager.h">
+      <Filter>Source Files\xr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\xr\StereoRender.h">
+      <Filter>Source Files\xr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\xr\Swapchain.h">
+      <Filter>Source Files\xr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\xr\XR.h">
+      <Filter>Source Files\xr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\xr\XRLinear.h">
+      <Filter>Source Files\xr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\xr\XRUtils.h">
+      <Filter>Source Files\xr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Log.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\Addresses.h">
+      <Filter>Source Files\game</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\Util.h">
+      <Filter>Source Files\game</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\graphics\kernel\Device.h">
+      <Filter>Source Files\game\graphics\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\graphics\kernel\SwapChain.h">
+      <Filter>Source Files\game\graphics\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\debug\CaptureCallstack.h">
+      <Filter>Source Files\debug</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\system\framework\Framework.h">
+      <Filter>Source Files\game\system\framework</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
