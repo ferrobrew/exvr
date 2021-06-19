@@ -27,7 +27,8 @@ public:
 		// AdjustWindowRect gives these negative values, so we move them to the size
 		r.bottom -= r.top;
 		r.right -= r.left;
-		SetWindowPos(Handle(), 0, 0, 0, r.right, r.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
+		SetWindowPos(Handle(), 0, 0, 0, r.right, r.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOZORDER | SWP_FRAMECHANGED);
+		SendMessage(Handle(), WM_EXITSIZEMOVE, 0, 0);
 	}
 
 	void SetResizingEnabled(bool resizable)
