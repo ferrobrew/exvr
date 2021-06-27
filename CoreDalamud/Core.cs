@@ -23,11 +23,17 @@ namespace XIVR
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void LogDelegate(string s);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public struct LoadParameters
     {
         public LogDelegate logger;
+        // TODO: move to native
         public IntPtr baseAddress;
+        // TODO: move sigscanning to native
+        public IntPtr contextPushBackEventPtr;
+        // TODO: consider moving to native
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string dirPath;
     }
 
     public class Core : IDalamudPlugin
@@ -148,7 +154,9 @@ namespace XIVR
             ModuleFunction<LoadType>("XIVR_Load")(new LoadParameters
             {
                 logger = (s) => PluginLog.Information("native: {0:l}", s),
-                baseAddress = Process.GetCurrentProcess().MainModule.BaseAddress
+                baseAddress = Process.GetCurrentProcess().MainModule.BaseAddress,
+                contextPushBackEventPtr = this.pi.TargetModuleScanner.ScanText("83 41 30 FF"),
+                dirPath = DirPath,
             });
             this.ReloadQueued = false;
         }

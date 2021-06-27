@@ -8,7 +8,7 @@ using XrSwapchainImage = struct XrSwapchainImageD3D11KHR;
 
 namespace xr
 {
-using ImageHandle = uint32_t;
+using ImageHandle = ID3D11Texture2D*;
 
 class Swapchain
 {

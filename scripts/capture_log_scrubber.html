@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Capture Log Scrubber!</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x"
+      crossorigin="anonymous"
+    />
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Capture Log Scrubber!</h1>
+      <div id="react-container"></div>
+    </div>
+
+    <script
+      src="https://unpkg.com/react@17/umd/react.development.js"
+      crossorigin
+    ></script>
+    <script
+      src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"
+      crossorigin
+    ></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <script type="text/babel">
+      "use strict";
+      const ShaderCommandType = {
+        SetRenderTargets: 0,
+        SetViewport: 1,
+        SetScissorRect: 3,
+        Clear: 4,
+        Draw: 5,
+        DrawIndexed: 6,
+        DrawIndexedInstanced: 7,
+        DispatchComputeShader: 8,
+        CopyTexture: 0x0a,
+        UnknownDraw: 0x0b,
+        CopyResource: 0x0c,
+        ResetRendererMaybe: 0x0d,
+        SomeSubresourceCopy: 0x10,
+      };
+
+      const ShaderCommandTypeLookup = Object.fromEntries(
+        Object.entries(ShaderCommandType).map((a) => a.reverse())
+      );
+
+      const ShaderCommandTypeHue = Object.fromEntries(
+        (() => {
+          const indices = Object.values(ShaderCommandType);
+          return indices.map((v, i) => [v, (i / indices.length) * 360]);
+        })()
+      );
+
+      const CommandColour = (cmd, isActive, highlightingActive) => {
+        const hue = ShaderCommandTypeHue[cmd.type];
+        const saturation = highlightingActive
+          ? cmd.highlighted
+            ? "100%"
+            : "20%"
+          : "70%";
+        const lightness = isActive ? "40%" : "70%";
+        return `hsl(${hue}, ${saturation}, ${lightness})`;
+      };
+
+      const FilterLink = ({ value, setFilter }) => (
+        <a onClick={() => setFilter(value)}>{value}</a>
+      );
+
+      const HexFilterLink = ({ value, setFilter }) => (
+        <FilterLink value={"0x" + value.toString(16)} setFilter={setFilter} />
+      );
+
+      const CommandViewForType = {
+        [ShaderCommandType.SetRenderTargets]: ({ cmd, setFilter }) => (
+          <div>
+            <h4>Render Targets:</h4>
+            <ol>
+              {cmd.renderTargets.map((a, i) => (
+                <li key={i}>
+                  <HexFilterLink value={a} setFilter={setFilter} />
+                </li>
+              ))}
+            </ol>
+          </div>
+        ),
+        [ShaderCommandType.SetViewport]: ({ cmd, setFilter }) => (
+          <div>
+            <h4>Parameters:</h4>
+            <ul>
+              <li>
+                <em>bounds:</em> {JSON.stringify(cmd["bounds"])}
+              </li>
+              <li>
+                <em>minDepth:</em> {cmd["minDepth"]}
+              </li>
+              <li>
+                <em>maxDepth:</em> {cmd["maxDepth"]}
+              </li>
+            </ul>
+          </div>
+        ),
+        [ShaderCommandType.SetScissorRect]: ({ cmd, setFilter }) => (
+          <div>
+            <h4>Parameters:</h4>
+            <ul>
+              <li>
+                <em>rect:</em> {JSON.stringify(cmd["rect"])}
+              </li>
+            </ul>
+          </div>
+        ),
+        [ShaderCommandType.Clear]: ({ cmd, setFilter }) => (
+          <div>
+            <h4>Parameters:</h4>
+            <ul>
+              <li>
+                <em>clearFlags:</em> {cmd["clearFlags"]}
+              </li>
+              <li>
+                <em>colour:</em> {JSON.stringify(cmd["colour"])}
+              </li>
+            </ul>
+          </div>
+        ),
+        [ShaderCommandType.Draw]: ({ cmd, setFilter }) => (
+          <div>
+            <h4>Parameters:</h4>
+            <ul>
+              <li>
+                <em>startVertexLocation:</em> {cmd["startVertexLocation"]}
+              </li>
+              <li>
+                <em>vertexCount:</em> {cmd["vertexCount"]}
+              </li>
+            </ul>
+          </div>
+        ),
+        [ShaderCommandType.DrawIndexed]: ({ cmd, setFilter }) => (
+          <div>
+            <h4>Parameters:</h4>
+            <ul>
+              <li>
+                <em>baseVertexLocation:</em> {cmd["baseVertexLocation"]}
+              </li>
+              <li>
+                <em>startIndexLocation:</em> {cmd["startIndexLocation"]}
+              </li>
+              <li>
+                <em>indexCount:</em> {cmd["indexCount"]}
+              </li>
+            </ul>
+          </div>
+        ),
+        [ShaderCommandType.DrawIndexedInstanced]: ({ cmd, setFilter }) => (
+          <div>
+            <h4>Parameters:</h4>
+            <ul>
+              <li>
+                <em>baseVertexLocation:</em> {cmd["baseVertexLocation"]}
+              </li>
+              <li>
+                <em>startIndexLocation:</em> {cmd["startIndexLocation"]}
+              </li>
+              <li>
+                <em>indexCountPerInstance:</em> {cmd["indexCountPerInstance"]}
+              </li>
+              <li>
+                <em>instanceCount:</em> {cmd["instanceCount"]}
+              </li>
+            </ul>
+          </div>
+        ),
+        [ShaderCommandType.DispatchComputeShader]: ({ cmd, setFilter }) => (
+          <div>
+            <h4>Parameters:</h4>
+            <ul>
+              <li>
+                <em>threadGroupCountX:</em> {cmd["threadGroupCountX"]}
+              </li>
+              <li>
+                <em>threadGroupCountY:</em> {cmd["threadGroupCountY"]}
+              </li>
+              <li>
+                <em>threadGroupCountZ:</em> {cmd["threadGroupCountZ"]}
+              </li>
+            </ul>
+          </div>
+        ),
+        [ShaderCommandType.CopyTexture]: ({ cmd, setFilter }) => (
+          <div>
+            <h4>Parameters:</h4>
+            <ul>
+              <li>
+                <em>dstResource:</em>{" "}
+                <HexFilterLink value={cmd.dstResource} setFilter={setFilter} />
+              </li>
+              <li>
+                <em>dstSubresource:</em> {cmd["dstSubresource"]}
+              </li>
+              <li>
+                <em>dstXY:</em> {JSON.stringify(cmd["dstXY"])}
+              </li>
+              <li>
+                <em>srcResource:</em>{" "}
+                <HexFilterLink value={cmd.srcResource} setFilter={setFilter} />
+              </li>
+              <li>
+                <em>srcSubresource:</em> {cmd["srcSubresource"]}
+              </li>
+              <li>
+                <em>useSuppliedRect:</em> {cmd["useSuppliedRect"]}
+              </li>
+              <li>
+                <em>rect:</em> {JSON.stringify(cmd["rect"])}
+              </li>
+            </ul>
+          </div>
+        ),
+        [ShaderCommandType.UnknownDraw]: ({ cmd, setFilter }) => (
+          <div>
+            <h4>Parameters:</h4>
+            <ul>
+              <li>
+                <em>texture:</em>{" "}
+                <HexFilterLink value={cmd.texture} setFilter={setFilter} />
+              </li>
+            </ul>
+          </div>
+        ),
+        [ShaderCommandType.ResetRendererMaybe]: ({ cmd, setFilter }) => (
+          <div>
+            <h4>Parameters:</h4>
+            <ul>
+              <li>
+                <em>callback:</em>{" "}
+                <HexFilterLink value={cmd.callback} setFilter={setFilter} />
+              </li>
+            </ul>
+          </div>
+        ),
+      };
+
+      const hexArrayIncludes = (arr, filter) =>
+        arr.some((a) => ("0x" + a.toString(16)).includes(filter));
+
+      const CommandFilterForType = {
+        [ShaderCommandType.SetRenderTargets]: (cmd, filter) =>
+          hexArrayIncludes(cmd.renderTargets, filter),
+        [ShaderCommandType.CopyTexture]: (cmd, filter) =>
+          hexArrayIncludes([cmd.dstResource, cmd.srcResource], filter),
+        [ShaderCommandType.UnknownDraw]: (cmd, filter) =>
+          hexArrayIncludes([cmd.texture], filter),
+        [ShaderCommandType.ResetRendererMaybe]: (cmd, filter) =>
+          hexArrayIncludes([cmd.callback], filter),
+      };
+
+      const CommandList = ({
+        commands,
+        activeItemRef,
+        index,
+        setIndex,
+        highlightingActive,
+      }) => (
+        <ul className="list-group overflow-scroll" style={{ height: "75vh" }}>
+          {commands.map((a) => {
+            const isActive = a.index == index;
+            return (
+              <li
+                className={"list-group-item " + (isActive ? "active" : "")}
+                key={a.index}
+                ref={isActive ? activeItemRef : null}
+                onClick={(e) => {
+                  setIndex(a.index);
+                }}
+                style={{
+                  backgroundColor: CommandColour(
+                    a,
+                    isActive,
+                    highlightingActive
+                  ),
+                }}
+              >
+                #{a.index}: {ShaderCommandTypeLookup[a.type]}
+              </li>
+            );
+          })}
+        </ul>
+      );
+
+      const CommandView = ({ index, cmd, setFilter }) => {
+        const CommandViewForCmd = CommandViewForType[cmd.type] || (() => null);
+
+        return (
+          <div>
+            <h3 style={{ fontWeight: cmd.highlighted ? "700" : "400" }}>
+              #{index}: {ShaderCommandTypeLookup[cmd.type]}
+            </h3>
+
+            <div>
+              <h4>Callstack:</h4>
+              <ul>
+                {cmd.callstack.map((a, i) => (
+                  <li key={i}>
+                    {a.module || "unk"}:{a.address.toString(16)} (
+                    {a.symbol || "unk"})
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <CommandViewForCmd cmd={cmd} setFilter={setFilter} />
+          </div>
+        );
+      };
+
+      const Scrubber = ({ commands }) => {
+        const [index, setIndex] = React.useState(0);
+        const [filter, setFilter] = React.useState("");
+        const [highlightOrFilter, setHighlightOrFilter] = React.useState(false);
+        const activeItemRef = React.useRef(null);
+
+        let processedCommands;
+        if (highlightOrFilter) {
+          processedCommands = commands.filter((a) => {
+            if (!filter) return true;
+
+            const filterFn = CommandFilterForType[a.type];
+            if (!filterFn) return false;
+
+            return filterFn(a, filter);
+          });
+        } else {
+          processedCommands = commands.map((a) => {
+            if (!filter) return a;
+
+            const filterFn = CommandFilterForType[a.type];
+            if (!filterFn) return a;
+
+            return { ...a, highlighted: filterFn(a, filter) };
+          });
+        }
+        const highlightingActive = !highlightOrFilter && filter;
+
+        React.useEffect(() => {
+          activeItemRef.current.scrollIntoView({
+            block: "center",
+            behavior: "smooth",
+          });
+        }, [index, filter]);
+
+        const currentCmd = processedCommands.find((a) => a.index == index);
+
+        const groupedCommands = processedCommands.reduce(
+          (entryMap, e) =>
+            entryMap.set(e.threadId, [...(entryMap.get(e.threadId) || []), e]),
+          new Map()
+        );
+
+        const ThreadCommandBar = ({ threadId, commands }) => {
+          const paddedCommands = Array.from(
+            Array(processedCommands.length)
+          ).map((_, index) => ({
+            padding: true,
+            index: index,
+          }));
+
+          for (const command of commands)
+            paddedCommands[command.index] = command;
+          return (
+            <div>
+              <em>
+                {threadId} ({commands.length} commands)
+              </em>
+              <div className="progress">
+                {paddedCommands.map((a) => {
+                  const isActive = a.index == index;
+                  return (
+                    <div
+                      className={"progress-bar"}
+                      key={a.index}
+                      style={{
+                        width: 100 / commands.length + "%",
+                        backgroundColor: a.padding
+                          ? 'white'
+                          : CommandColour(a, isActive, highlightingActive),
+                      }}
+                      onClick={(e) => {
+                        setIndex(a.index);
+                      }}
+                    ></div>
+                  );
+                  return null;
+                })}
+              </div>
+            </div>
+          );
+        };
+
+        return (
+          <div>
+            <h2>
+              {processedCommands.length}/{commands.length} commands
+            </h2>
+
+            <div className="row">
+              <div className="col-8">
+                <div className="input-group">
+                  <input
+                    type="text"
+                    value={filter}
+                    placeholder={
+                      "Insert value to " +
+                      (highlightOrFilter ? "filter for" : "highlight")
+                    }
+                    onChange={(e) => {
+                      setFilter(e.target.value);
+                    }}
+                    className="form-control"
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => setFilter("")}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <div className="col-4">
+                <div className="form-check form-switch">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={highlightOrFilter}
+                    onChange={(e) => setHighlightOrFilter(e.target.checked)}
+                  />
+                  <label className="form-check-label">
+                    Filter instead of highlight
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-100">
+              {Array.from(groupedCommands).map(([threadId, commands]) => (
+                <ThreadCommandBar
+                  threadId={threadId}
+                  commands={commands}
+                  setIndex={setIndex}
+                />
+              ))}
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max={processedCommands.length - 1}
+              value={processedCommands.findIndex((a) => a.index == index)}
+              onChange={(e) => {
+                setIndex(processedCommands[e.target.value].index);
+              }}
+              className="w-100"
+            />
+
+            <div className="row">
+              <div className="col-4">
+                <CommandList
+                  commands={processedCommands}
+                  activeItemRef={activeItemRef}
+                  index={index}
+                  setIndex={setIndex}
+                  highlightingActive={highlightingActive}
+                />
+              </div>
+              <div className="col-8">
+                {currentCmd ? (
+                  <CommandView
+                    index={index}
+                    cmd={currentCmd}
+                    setFilter={setFilter}
+                  />
+                ) : (
+                  <h3>This command is not available in this filter</h3>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const FilePicker = ({ setJson }) => (
+        <input
+          type="file"
+          onChange={(e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function (res) {
+              setJson(JSON.parse(res.target.result));
+            };
+
+            reader.readAsText(file);
+          }}
+        ></input>
+      );
+
+      const Container = () => {
+        const [json, setJson] = React.useState(null);
+
+        if (json == null) {
+          return <FilePicker setJson={setJson} />;
+        } else {
+          const commands = json.commands.map((cmd, index) => ({
+            ...cmd,
+            index,
+          }));
+          return <Scrubber commands={commands} />;
+        }
+      };
+
+      const domContainer = document.querySelector("#react-container");
+      ReactDOM.render(<Container />, domContainer);
+    </script>
+  </body>
+</html>

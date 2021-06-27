@@ -54,6 +54,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -126,7 +127,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>..\external\fmt\include;..\external\minhook\include;..\external\OpenXR-SDK\include;src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\external\json\single_include;..\external\fmt\include;..\external\minhook\include;..\external\OpenXR-SDK\include;src</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -145,7 +146,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>..\external\fmt\include;..\external\minhook\include;..\external\OpenXR-SDK\include;src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\external\json\single_include;..\external\fmt\include;..\external\minhook\include;..\external\OpenXR-SDK\include;src</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -170,10 +171,13 @@
     <ClCompile Include="src\xr\XRUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\external\stb_image.h" />
     <ClInclude Include="src\debug\CaptureCallstack.h" />
     <ClInclude Include="src\game\Addresses.h" />
     <ClInclude Include="src\game\graphics\kernel\Device.h" />
     <ClInclude Include="src\game\graphics\kernel\SwapChain.h" />
+    <ClInclude Include="src\game\graphics\kernel\Texture.h" />
+    <ClInclude Include="src\game\graphics\render\RenderTargetManager.h" />
     <ClInclude Include="src\game\system\framework\Framework.h" />
     <ClInclude Include="src\game\Util.h" />
     <ClInclude Include="src\Log.h" />
@@ -191,7 +195,11 @@
       <Project>{f142a341-5ee0-442d-a15f-98ae9b48dbae}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <MASM Include="src\hooks\graphics\kernel\ProcessEventsTrampoline.asm" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
   </ImportGroup>
 </Project>

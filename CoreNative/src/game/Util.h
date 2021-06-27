@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <minwindef.h>
 
-extern void* g_BaseAddress;
+extern "C"  void* g_BaseAddress;
 extern HMODULE g_Module;
 
 namespace game

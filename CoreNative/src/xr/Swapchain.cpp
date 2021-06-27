@@ -1,7 +1,9 @@
-#include "Swapchain.h"
+#include "xr/Swapchain.h"
 
-#include "XRUtils.h"
+#include "xr/XRUtils.h"
 #include <openxr/openxr_platform.h>
+
+#include "game/graphics/kernel/Device.h"
 
 namespace xr
 {
@@ -52,7 +54,8 @@ void Swapchain::AcquireImage()
 
 void Swapchain::CopyImage(ImageHandle handle)
 {
-	//glCopyImageSubData(handle, GL_TEXTURE_2D, 0, 0, 0, 0, m_Images[m_ImageIndex].image, GL_TEXTURE_2D, 0, 0, 0, 0, m_Width, m_Height, 1);
+	auto ctx = game::graphics::kernel::Device::Get()->D3DDeviceContext();
+	ctx->CopyResource(m_Images[m_ImageIndex].texture, handle);
 }
 
 void Swapchain::ReleaseImage()

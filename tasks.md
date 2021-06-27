@@ -22,6 +22,10 @@
     - Determining when the final composited game content is copied from (I)
     - Running the renderer twice and capturing the outputs
 
+- Improving the output of the frame scrubber
+    - Need a flame graph, grouped by functions, so that you can see which monolith functions are calling what
+        - Get the base address of each function by dumping that information from IDA
+
 - Headset rendering
     - Initialize OpenXR on startup and teardown on exit
     - Applying headset matrix to camera matrix

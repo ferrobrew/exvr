@@ -84,27 +84,6 @@ void PreTick()
 	}
 };
 
-void Render(const std::function<void()>& fn)
-{
-#ifdef OPTICK
-	OPTICK_EVENT();
-#endif
-	stereoRender.Render(fn);
-}
-
-void RenderEyes()
-{
-	stereoRender.RenderEyes();
-
-	if (auto session = GetSession())
-	{
-		for (int i = 0; i < 2; ++i)
-		{
-			session->CopyImageToEye((i + 1) % 2, stereoRender.GetImage(i));
-		}
-	}
-}
-
 void PostTick()
 {
 #ifdef OPTICK

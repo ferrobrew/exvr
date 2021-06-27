@@ -28,14 +28,29 @@
     <Filter Include="Source Files\debug">
       <UniqueIdentifier>{18f0c398-d6d0-4ea3-af64-c737d4b01a5f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\fmt">
-      <UniqueIdentifier>{526fb61a-e97c-49e9-a5a9-b094acfa8953}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\game\system">
       <UniqueIdentifier>{70e2929d-73dc-4f30-a336-0310a82473d6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\game\system\framework">
       <UniqueIdentifier>{0a618a4c-4759-451b-a85e-e27d3fdeebf6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\game\graphics\render">
+      <UniqueIdentifier>{4a1963b8-c462-495c-9bdf-62b41593cbe2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\external_singlefile">
+      <UniqueIdentifier>{4c185965-1a6b-4608-b6b5-ace346ee16dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\external_singlefile\fmt">
+      <UniqueIdentifier>{526fb61a-e97c-49e9-a5a9-b094acfa8953}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\hooks">
+      <UniqueIdentifier>{42f22e84-3821-405b-b3a2-e4d511e4a61c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\hooks\graphics">
+      <UniqueIdentifier>{0d857fe0-99f5-4c04-a7f6-f0e613159123}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\hooks\graphics\kernel">
+      <UniqueIdentifier>{461c9626-dab3-4b17-84d3-299472a21cd6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -70,7 +85,7 @@
       <Filter>Source Files\debug</Filter>
     </ClCompile>
     <ClCompile Include="..\external\fmt\src\format.cc">
-      <Filter>Source Files\fmt</Filter>
+      <Filter>Source Files\external_singlefile\fmt</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -119,5 +134,19 @@
     <ClInclude Include="src\game\system\framework\Framework.h">
       <Filter>Source Files\game\system\framework</Filter>
     </ClInclude>
+    <ClInclude Include="src\game\graphics\render\RenderTargetManager.h">
+      <Filter>Source Files\game\graphics\render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\graphics\kernel\Texture.h">
+      <Filter>Source Files\game\graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\stb_image.h">
+      <Filter>Source Files\external_singlefile</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="src\hooks\graphics\kernel\ProcessEventsTrampoline.asm">
+      <Filter>Source Files\hooks\graphics\kernel</Filter>
+    </MASM>
   </ItemGroup>
 </Project>
