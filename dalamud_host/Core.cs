@@ -27,13 +27,6 @@ namespace XIVR
     public struct LoadParameters
     {
         public LogDelegate logger;
-        // TODO: move to native
-        public IntPtr baseAddress;
-        // TODO: move sigscanning to native
-        public IntPtr contextPushBackEventPtr;
-        // TODO: consider moving to native
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-        public string dirPath;
     }
 
     public class Core : IDalamudPlugin
@@ -52,10 +45,10 @@ namespace XIVR
 
         private bool ReloadQueued = false;
 
-        private string DirPath { get => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(assemblyLocation), "..")); }
-        private string ModuleName(string ext) => "CoreNative" + "." + ext;
+        private string DirPath { get => Path.GetFullPath(Path.GetDirectoryName(assemblyLocation)); }
+        private string ModuleName(string ext) => "xivr_native" + "." + ext;
         private string ModulePath(string ext) => Path.Combine(DirPath, ModuleName(ext));
-        private string ModuleLoadedName(string ext) => "CoreNative_Loaded" + "." + ext;
+        private string ModuleLoadedName(string ext) => "xivr_native_loaded" + "." + ext;
         private string ModuleLoadedPath(string ext) => Path.Combine(DirPath, ModuleLoadedName(ext));
         private IntPtr module = IntPtr.Zero;
 
@@ -99,7 +92,7 @@ namespace XIVR
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        delegate void LoadType(LoadParameters loadParams);
+        delegate bool LoadType(LoadParameters loadParams);
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         delegate void UnloadType();
@@ -130,7 +123,7 @@ namespace XIVR
         {
             if (this.module == IntPtr.Zero) return;
 
-            ModuleFunction<UnloadType>("XIVR_Unload")();
+            ModuleFunction<UnloadType>("xivr_unload")();
 
             // todo: less jank. some kind of semaphore system to make sure our hooks are properly unloaded
             // before we free, maybe?
@@ -151,12 +144,9 @@ namespace XIVR
             File.Copy(ModulePath("pdb"), ModuleLoadedPath("pdb"), true);
 
             this.module = NativeMethods.LoadLibrary(ModuleLoadedPath("dll"));
-            ModuleFunction<LoadType>("XIVR_Load")(new LoadParameters
+            ModuleFunction<LoadType>("xivr_load")(new LoadParameters
             {
                 logger = (s) => PluginLog.Information("native: {0:l}", s),
-                baseAddress = Process.GetCurrentProcess().MainModule.BaseAddress,
-                contextPushBackEventPtr = this.pi.TargetModuleScanner.ScanText("83 41 30 FF"),
-                dirPath = DirPath,
             });
             this.ReloadQueued = false;
         }

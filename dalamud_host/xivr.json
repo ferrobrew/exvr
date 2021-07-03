@@ -1,0 +1,11 @@
+{
+  "Author": "Philpax",
+  "Name": "XIVR",
+  "Description": "Brings the critically acclaimed MMORPG Final Fantasy XIV to virtual reality.",
+  "InternalName": "xivr",
+  "AssemblyVersion": "1.0.0.0",
+  "RepoUrl": "https://github.com/Philpax/xivr",
+  "ApplicableVersion": "any",
+  "Tags": [ "xivr" ],
+  "DalamudApiLevel": 3
+}
