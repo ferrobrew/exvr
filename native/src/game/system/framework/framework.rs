@@ -1,17 +1,11 @@
 use crate::game::offsets;
+use crate::game::system::framework::Window;
+
 use macros::game_class;
-
-use bindings::Windows::Win32::Foundation::HWND;
-
-game_class!(Window, {
-    fields: {
-        [0x18] handle: HWND
-    }
-});
 
 game_class!(Framework, {
     location: offsets::globals::Framework,
     fields: {
-        [0x7A8] window: Window
+        [0x7A8] window: &'static self::Window,
     }
 });

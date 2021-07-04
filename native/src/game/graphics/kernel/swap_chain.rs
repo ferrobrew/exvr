@@ -8,8 +8,8 @@ game_class!(SwapChain, {
     fields: {
         [0x38] width: u32,
         [0x3C] height: u32,
-        [0x58] back_buffer: *mut Texture,
-        [0x60] depth_stencil: *mut Texture,
-        [0x68] dxgi_swap_chain: *mut IDXGISwapChain,
+        [0x58] back_buffer: &'static mut Texture,
+        [0x60] depth_stencil: &'static mut Texture,
+        [0x68] dxgi_swap_chain: &'static mut IDXGISwapChain,
     }
 });

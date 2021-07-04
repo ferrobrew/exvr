@@ -37,8 +37,6 @@ pub unsafe fn hook_rendermanager_render() -> Option<HookState> {
             let cmd =
                 context_alloc(rc, mem::size_of::<ShaderCommandXIVR>()) as *mut ShaderCommandXIVR;
             *cmd = ShaderCommandXIVR::new(|| {
-                let device = Device::get();
-                log!("hello hello! feature level is {:?}", device.feature_level);
             });
             context_pushbackevent(rc, cmd);
             ret

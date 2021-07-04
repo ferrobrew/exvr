@@ -13,7 +13,11 @@ fn main() -> Result<()> {
 
     let transform_pair = |(a, n): (&yaml_rust::yaml::Yaml, &yaml_rust::yaml::Yaml)| {
         let (n, a) = (
-            n.as_str().unwrap().replace("g_", "").replace("::", "_"),
+            n.as_str()
+                .unwrap()
+                .replace("g_", "")
+                .replace("Client::", "")
+                .replace("::", "_"),
             a.as_i64().unwrap() as u64,
         );
         let (n, a) = (format_ident!("{}", n), a - 0x1_4000_0000);

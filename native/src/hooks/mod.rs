@@ -1,20 +1,19 @@
 pub mod patcher;
 pub use patcher::*;
 
+pub mod game;
 pub mod graphics;
 
 pub struct HookState {
-    _kernel_context: graphics::kernel::context::HookState,
-    _render_render_manager: graphics::render::render_manager::HookState,
+    _game: game::HookState,
+    _graphics: graphics::HookState,
 }
 
 impl HookState {
     pub fn new(patcher: &mut Patcher) -> Option<HookState> {
         Some(HookState {
-            _kernel_context: unsafe { graphics::kernel::context::patch_process_events(patcher)? },
-            _render_render_manager: unsafe {
-                graphics::render::render_manager::hook_rendermanager_render()?
-            },
+            _game: game::HookState::new(patcher)?,
+            _graphics: graphics::HookState::new(patcher)?,
         })
     }
 }
