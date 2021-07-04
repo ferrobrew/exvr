@@ -10,7 +10,7 @@ mod module;
 
 use hooks::HookState;
 use log::Logger;
-use module::Module;
+use module::{Module, GAME_MODULE};
 
 use bindings::Windows::Win32::Foundation::HINSTANCE;
 use once_cell::unsync::OnceCell;
@@ -38,7 +38,8 @@ impl Core {
             .iter()
             .find(|x| x.filename().as_deref() == Some("ffxiv_dx11.exe"))?;
 
-        let hook_state = HookState::new(&ffxiv_module, &mut patcher)?;
+        unsafe { GAME_MODULE.set(ffxiv_module.clone()).ok()? };
+        let hook_state = HookState::new(&mut patcher)?;
 
         Some(Core {
             _patcher: patcher,

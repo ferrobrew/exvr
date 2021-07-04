@@ -1,9 +1,3 @@
-use bindings::Windows::Win32::Foundation::{HINSTANCE, PWSTR};
-use bindings::Windows::Win32::System::LibraryLoader::GetModuleFileNameW;
-use bindings::Windows::Win32::System::ProcessStatus::{
-    K32EnumProcessModules, K32GetModuleInformation, MODULEINFO,
-};
-use bindings::Windows::Win32::System::Threading::GetCurrentProcess;
 use std::ffi::OsString;
 use std::io;
 use std::mem;
@@ -11,7 +5,16 @@ use std::os::windows::ffi::OsStringExt;
 use std::path::Path;
 use std::slice;
 
-#[derive(Debug)]
+use once_cell::unsync::OnceCell;
+
+use bindings::Windows::Win32::Foundation::{HINSTANCE, PWSTR};
+use bindings::Windows::Win32::System::LibraryLoader::GetModuleFileNameW;
+use bindings::Windows::Win32::System::ProcessStatus::{
+    K32EnumProcessModules, K32GetModuleInformation, MODULEINFO,
+};
+use bindings::Windows::Win32::System::Threading::GetCurrentProcess;
+
+#[derive(Debug, Clone)]
 pub struct Module {
     pub module: HINSTANCE,
     pub path: Option<String>,
@@ -110,3 +113,5 @@ impl Module {
         unsafe { self.base.offset(offset) }
     }
 }
+
+pub static mut GAME_MODULE: OnceCell<Module> = OnceCell::new();

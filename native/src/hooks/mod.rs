@@ -9,13 +9,11 @@ pub struct HookState {
 }
 
 impl HookState {
-    pub fn new(module: &crate::module::Module, patcher: &mut Patcher) -> Option<HookState> {
+    pub fn new(patcher: &mut Patcher) -> Option<HookState> {
         Some(HookState {
-            _kernel_context: unsafe {
-                graphics::kernel::context::patch_process_events(module, patcher)?
-            },
+            _kernel_context: unsafe { graphics::kernel::context::patch_process_events(patcher)? },
             _render_render_manager: unsafe {
-                graphics::render::render_manager::hook_rendermanager_render(module)?
+                graphics::render::render_manager::hook_rendermanager_render()?
             },
         })
     }

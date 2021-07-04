@@ -99,7 +99,8 @@ namespace XIVR
 
         private TDelegate ModuleFunction<TDelegate>(string name)
         {
-            return Marshal.GetDelegateForFunctionPointer<TDelegate>(NativeMethods.GetProcAddress(this.module, name));
+            var functionPointer = NativeMethods.GetProcAddress(this.module, name);
+            return Marshal.GetDelegateForFunctionPointer<TDelegate>(functionPointer);
         }
 
         private void Reload()
@@ -144,6 +145,10 @@ namespace XIVR
             File.Copy(ModulePath("pdb"), ModuleLoadedPath("pdb"), true);
 
             this.module = NativeMethods.LoadLibrary(ModuleLoadedPath("dll"));
+            if (this.module == IntPtr.Zero)
+            {
+                PluginLog.Error("Failed to load native module: {0}", Marshal.GetLastWin32Error());
+            }
             ModuleFunction<LoadType>("xivr_load")(new LoadParameters
             {
                 logger = (s) => PluginLog.Information("native: {0:l}", s),

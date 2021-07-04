@@ -1,6 +1,7 @@
+use crate::game::graphics::kernel::Device;
 use crate::hooks::graphics::kernel::context::ShaderCommandXIVR;
 use crate::log;
-use crate::module::Module;
+use crate::module::{Module, GAME_MODULE};
 
 use detour::static_detour;
 use std::mem;
@@ -19,7 +20,9 @@ impl Drop for HookState {
     }
 }
 
-pub unsafe fn hook_rendermanager_render(module: &Module) -> Option<HookState> {
+pub unsafe fn hook_rendermanager_render() -> Option<HookState> {
+    let module = GAME_MODULE.get()?;
+
     let tls_index = get_tls_index(&module);
     let rendermanager_render_addr = module.scan("40 53 55 57 41 56 41 57 48 83 EC 60")?;
     let context_alloc: fn(*const u8, usize) -> *const u8 =
@@ -34,7 +37,8 @@ pub unsafe fn hook_rendermanager_render(module: &Module) -> Option<HookState> {
             let cmd =
                 context_alloc(rc, mem::size_of::<ShaderCommandXIVR>()) as *mut ShaderCommandXIVR;
             *cmd = ShaderCommandXIVR::new(|| {
-                log!("hello hello!");
+                let device = Device::get();
+                log!("hello hello! feature level is {:?}", device.feature_level);
             });
             context_pushbackevent(rc, cmd);
             ret

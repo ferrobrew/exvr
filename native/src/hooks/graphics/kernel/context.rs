@@ -1,10 +1,10 @@
 use crate::hooks;
-use crate::module::Module;
 use crate::log;
+use crate::module::GAME_MODULE;
 use detour::RawDetour;
 
 #[no_mangle]
-pub static mut PROCESS_EVENTS_DEFAULT_CASE: *mut u8 = std::ptr::null_mut();
+static mut PROCESS_EVENTS_DEFAULT_CASE: *mut u8 = std::ptr::null_mut();
 const PROCESS_EVENTS_TABLE_LENGTH: u32 = 18;
 const SHADER_COMMAND_HIJACKED_TYPE: usize = 9;
 
@@ -33,10 +33,9 @@ impl Drop for HookState {
     }
 }
 
-pub unsafe fn patch_process_events(
-    module: &Module,
-    patcher: &mut hooks::Patcher,
-) -> Option<HookState> {
+pub unsafe fn patch_process_events(patcher: &mut hooks::Patcher) -> Option<HookState> {
+    let module = GAME_MODULE.get()?;
+
     let process_events =
         module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 4B 30 FF 15 ? ? ? ?")?;
 
