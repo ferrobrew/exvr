@@ -55,6 +55,8 @@ impl Core {
                 .map_err(|_| Error::msg("failed to set XR"))?
         };
 
+        log!("good to go!");
+
         Ok(Core {
             _patcher: patcher,
             _hook_state: hook_state,
@@ -71,10 +73,29 @@ impl Drop for Core {
 
 unsafe fn xivr_load_impl(parameters: LoadParameters) -> Result<()> {
     Logger::initialize_instance(parameters.logger);
-    CORE.set(Core::new(parameters)?)
-        .map_err(|_| Error::msg("failed to set core"))?;
 
-    Ok(())
+    std::panic::set_hook(Box::new(|info| {
+        match (info.payload().downcast_ref::<&str>(), info.location()) {
+            (Some(msg), Some(loc)) => log!("Panic! {:?} at {}:{}", msg, loc.file(), loc.line()),
+            (Some(msg), None) => log!("Panic! {:?}", msg),
+            (None, Some(loc)) => log!("Panic! at {}:{}", loc.file(), loc.line()),
+            (None, None) => log!("Panic! something at somewhere")
+        };
+    }));
+
+    let r = std::panic::catch_unwind(|| {
+        CORE.set(Core::new(parameters)?)
+            .map_err(|_| Error::msg("failed to set core"))
+    });
+    match r {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => {
+            Err(Error::msg("Failed initialisation"))
+        }
+        Err(e) => {
+            Err(Error::msg("Failed initialisation"))
+        }
+    }
 }
 
 #[no_mangle]

@@ -31,7 +31,6 @@ impl Logger {
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => {
-        #[allow(unused_unsafe)]
         crate::log::LOGGER.get().unwrap().log(&format!($($arg)*))
     }
 }
