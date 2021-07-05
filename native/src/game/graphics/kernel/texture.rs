@@ -21,7 +21,7 @@ game_class!(Texture, {
         [0x47] unk_37: u8,
         [0x48] texture_format: TextureFormat,
         [0x4C] flags: u32,
-        [0x50] texture: *mut ID3D11Texture2D1,
-        [0x58] shader_resource_view: *mut ID3D11ShaderResourceView1,
+        [0x50] texture: ID3D11Texture2D1,
+        [0x58] shader_resource_view: ID3D11ShaderResourceView1,
     },
 });

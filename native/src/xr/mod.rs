@@ -1,6 +1,12 @@
 use crate::game::graphics::kernel;
 use crate::game::system::framework;
 
+use bindings::Windows::Win32::Graphics::Direct3D11::{
+    ID3D11Device, ID3D11Texture2D, D3D11_TEXTURE2D_DESC,
+};
+use bindings::Windows::Win32::Graphics::Dxgi::DXGI_FORMAT_R8G8B8A8_UNORM;
+use windows::Abi;
+
 use anyhow;
 use once_cell::unsync::OnceCell;
 use openxr;
@@ -16,6 +22,14 @@ pub struct XR {
     frame_stream: openxr::FrameStream<openxr::D3D11>,
     stage: openxr::Space,
 
+    swapchain: openxr::Swapchain<openxr::D3D11>,
+    // buffer_images is used to stage the images before they
+    // can be copied to the swapchain. We can't acquire a
+    // specific swapchain image, so we have to keep retrying
+    // until we handle both.
+    buffer_images: Vec<ID3D11Texture2D>,
+    swapchain_images: Vec<ID3D11Texture2D>,
+
     environment_blend_mode: openxr::EnvironmentBlendMode,
     frame_state: Option<openxr::FrameState>,
 
@@ -23,7 +37,7 @@ pub struct XR {
 }
 
 impl XR {
-    pub fn new() -> openxr::Result<XR> {
+    pub fn new() -> anyhow::Result<XR> {
         let entry = openxr::Entry::linked();
         let available_extensions = entry.enumerate_extensions()?;
         assert!(available_extensions.khr_d3d11_enable);
@@ -86,19 +100,18 @@ impl XR {
 
         let window = &framework::Framework::get().window;
         let window_size = window.get_size();
-        window.set_resizing_enabled(false);
-        window.set_size((
+        let new_window_size = (
             views[0].recommended_image_rect_width,
             views[0].recommended_image_rect_height,
-        ));
+        );
+        window.set_resizing_enabled(false);
+        window.set_size(new_window_size);
 
         let (session, frame_waiter, frame_stream) = unsafe {
-            let device: *mut _ = &mut *kernel::Device::get().device;
-
             instance.create_session::<openxr::D3D11>(
                 system,
                 &openxr::d3d::SessionCreateInfo {
-                    device: std::mem::transmute(device),
+                    device: std::mem::transmute(kernel::Device::get().device.abi()),
                 },
             )?
         };
@@ -106,12 +119,55 @@ impl XR {
         let stage = session
             .create_reference_space(openxr::ReferenceSpaceType::STAGE, openxr::Posef::IDENTITY)?;
 
+        let mut swapchain = session.create_swapchain(&openxr::SwapchainCreateInfo {
+            create_flags: openxr::SwapchainCreateFlags::EMPTY,
+            usage_flags: openxr::SwapchainUsageFlags::COLOR_ATTACHMENT
+                | openxr::SwapchainUsageFlags::SAMPLED,
+            format: DXGI_FORMAT_R8G8B8A8_UNORM.0,
+            // The Vulkan graphics pipeline we create is not set up for multisampling,
+            // so we hardcode this to 1. If we used a proper multisampling setup, we
+            // could set this to `views[0].recommended_swapchain_sample_count`.
+            sample_count: 1,
+            width: new_window_size.0,
+            height: new_window_size.1,
+            face_count: 1,
+            array_size: VIEW_COUNT,
+            mip_count: 1,
+        })?;
+
+        let swapchain_images: Vec<ID3D11Texture2D> = swapchain
+            .enumerate_images()?
+            .iter()
+            .map(|x| unsafe { ID3D11Texture2D::from_abi(*x as *mut _) })
+            .collect::<Result<Vec<ID3D11Texture2D>, _>>()?;
+
+        let mut desc: D3D11_TEXTURE2D_DESC = unsafe { std::mem::zeroed() };
+        {
+            let index = swapchain.acquire_image()?;
+            swapchain.wait_image(openxr::Duration::INFINITE)?;
+            unsafe {
+                swapchain_images[index as usize].GetDesc(&mut desc);
+            }
+            swapchain.release_image()?;
+        }
+
+        let mut buffer_images: Vec<_> = vec![];
+        for i in 0..VIEW_COUNT {
+            let device = &kernel::Device::get().device;
+            let texture = unsafe { device.CreateTexture2D(&desc, std::ptr::null())? };
+            buffer_images.push(texture);
+        }
+
         Ok(XR {
             instance,
             session,
             frame_waiter,
             frame_stream,
             stage,
+
+            swapchain,
+            buffer_images,
+            swapchain_images,
 
             environment_blend_mode,
             frame_state: None,
