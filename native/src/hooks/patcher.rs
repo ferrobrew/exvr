@@ -2,7 +2,8 @@ use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
 
-use bindings::Windows::Win32::System::Memory::{VirtualProtect, PAGE_EXECUTE_READWRITE, PAGE_TYPE};
+use bindings::Windows::Win32::System::Memory::{VirtualProtect, PAGE_EXECUTE_READWRITE};
+use bindings::Windows::Win32::System::Memory::PAGE_PROTECTION_FLAGS;
 
 struct Patch {
     address: *mut u8,
@@ -19,7 +20,7 @@ impl Patcher {
     }
 
     pub unsafe fn safe_write(&self, addr_ptr: *mut u8, bytes: &[u8]) {
-        let mut old: PAGE_TYPE = PAGE_TYPE(0);
+        let mut old = PAGE_PROTECTION_FLAGS(0);
         VirtualProtect(
             addr_ptr as *mut c_void,
             bytes.len(),

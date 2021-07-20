@@ -12,12 +12,17 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "1.0"
 bindings = { path = "bindings" }
-windows = "0.13" # This should match the version you used in the bindings crate
+cimgui = { path = "cimgui" }
+windows = "0.17.2" # This should match the version you used in the bindings crate
 patternscan = "1.2.0"
 detour = { git = "https://github.com/darfink/detour-rs" }
 once_cell = "1.8.0"
 macros = { path = "macros" }
 openxr = { version = "0.15.2", features = ["static"] }
+c_str_macro = "1.0.3"
+backtrace = "0.3.60"
+strum = "0.21"
+strum_macros = "0.21"
 
 [build-dependencies]
 yaml-rust = "0.4"

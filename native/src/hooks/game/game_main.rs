@@ -1,6 +1,6 @@
 use crate::game::offsets;
 use crate::log;
-use crate::module::{Module, GAME_MODULE};
+use crate::module::GAME_MODULE;
 
 use detour::static_detour;
 use std::mem;
@@ -19,14 +19,28 @@ impl Drop for HookState {
     }
 }
 
-pub unsafe fn hook_update() -> Option<HookState> {
+pub unsafe fn install() -> Option<HookState> {
     let module = GAME_MODULE.get()?;
     let gamemain_update: fn(usize) -> usize =
         mem::transmute(module.rel_to_abs_addr(offsets::functions::Game_GameMain_Update as isize));
 
     GameMain_Update_Detour
         .initialize(mem::transmute(gamemain_update), |s| {
+            use crate::debugger::Debugger;
+            use crate::xr::XR;
+            if let Some(debugger) = Debugger::get_mut() {
+                debugger.command_stream.pre_update().unwrap();
+            }
+
+            if let Some(xr) = XR::get_mut() {
+                xr.pre_update().unwrap();
+            }
+
             let ret = GameMain_Update_Detour.call(s);
+
+            if let Some(xr) = XR::get_mut() {
+                xr.post_update().unwrap();
+            }
             ret
         })
         .ok()?;

@@ -16,11 +16,12 @@ use bindings::Windows::Win32::System::Threading::GetCurrentProcess;
 
 #[derive(Debug, Clone)]
 pub struct Module {
-    pub module: HINSTANCE,
+    module: HINSTANCE,
     pub path: Option<String>,
     pub base: *mut u8,
-    pub entry_point: *mut u8,
-    pub image_size: u32,
+    entry_point: *mut u8,
+    image_size: u32,
+    image_backup: Vec<u8>,
 }
 
 impl Module {
@@ -47,6 +48,7 @@ impl Module {
             base: mod_info.lpBaseOfDll as *mut u8,
             entry_point: mod_info.EntryPoint as *mut u8,
             image_size: mod_info.SizeOfImage,
+            image_backup: vec![],
         }
     }
 
@@ -70,32 +72,48 @@ impl Module {
         buf.iter().map(Module::from_handle).collect()
     }
 
-    pub fn as_bytes(&self) -> &[u8] {
+    pub fn as_bytes_from_memory(&self) -> &[u8] {
         unsafe { slice::from_raw_parts(self.base as *const u8, self.image_size as usize) }
     }
 
-    pub fn scan(&self, pattern: &str) -> Option<*mut u8> {
-        patternscan::scan_first_match(io::Cursor::new(self.as_bytes()), pattern)
-            .ok()
-            .flatten()
-            .map(|o| unsafe { self.base.offset(o as isize) })
+    pub fn backup_image(&mut self) {
+        self.image_backup = self.as_bytes_from_memory().to_vec();
     }
 
-    pub fn scan_for_relative_callsite(&self, pattern: &str) -> Option<*mut u8> {
+    pub fn as_bytes(&self) -> &[u8] {
+        if self.image_backup.len() > 0 {
+            &self.image_backup
+        } else {
+            self.as_bytes_from_memory()
+        }
+    }
+
+    pub fn scan(&self, pattern: &str) -> anyhow::Result<*mut u8> {
+        Ok(
+            patternscan::scan_first_match(io::Cursor::new(self.as_bytes()), pattern)
+                .transpose()
+                .ok_or(anyhow::Error::msg("failed to scan"))?
+                .map(|o| unsafe { self.base.offset(o as isize) })?,
+        )
+    }
+
+    pub fn scan_for_relative_callsite(&self, pattern: &str) -> anyhow::Result<*mut u8> {
         let p = self.scan(pattern)?;
         let call = unsafe { slice::from_raw_parts(p as *const u8, 5) };
-        let offset = i32::from_ne_bytes(call[1..].try_into().ok()?) + 5;
-        Some(unsafe { p.offset(offset as isize) })
+        let offset = i32::from_ne_bytes(call[1..].try_into()?) + 5;
+        Ok(unsafe { p.offset(offset as isize) })
     }
 
-    pub fn scan_after_ptr(&self, base: *const u8, pattern: &str) -> Option<*mut u8> {
+    pub fn scan_after_ptr(&self, base: *const u8, pattern: &str) -> anyhow::Result<*mut u8> {
         let index = self.abs_to_rel_addr(base) as usize;
         let slice = &self.as_bytes()[index..];
 
-        patternscan::scan_first_match(io::Cursor::new(slice), pattern)
-            .ok()
-            .flatten()
-            .map(|o| self.rel_to_abs_addr((index + o) as isize))
+        Ok(
+            patternscan::scan_first_match(io::Cursor::new(slice), pattern)
+                .transpose()
+                .ok_or(anyhow::Error::msg("failed to scan"))?
+                .map(|o| self.rel_to_abs_addr((index + o) as isize))?,
+        )
     }
 
     pub fn filename(&self) -> Option<String> {

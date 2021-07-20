@@ -9,7 +9,7 @@ pub struct HookState {
 impl HookState {
     pub fn new(_patcher: &mut Patcher) -> Option<HookState> {
         Some(HookState {
-            _game_main: unsafe { game_main::hook_update()? },
+            _game_main: unsafe { game_main::install()? },
         })
     }
 }

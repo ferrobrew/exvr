@@ -33,13 +33,13 @@ impl Drop for HookState {
     }
 }
 
-pub unsafe fn patch_process_events(patcher: &mut hooks::Patcher) -> Option<HookState> {
+pub unsafe fn install(patcher: &mut hooks::Patcher) -> Option<HookState> {
     let module = GAME_MODULE.get()?;
 
     let process_events =
-        module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 4B 30 FF 15 ? ? ? ?")?;
+        module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 4B 30 FF 15 ? ? ? ?").ok()?;
 
-    let padding = module.scan_after_ptr(process_events, &"CC ".repeat(10))?;
+    let padding = module.scan_after_ptr(process_events, &"CC ".repeat(10)).ok()?;
     let padding_detour =
         RawDetour::new(padding as *const (), process_events_trampoline as *const ()).ok()?;
     padding_detour.enable().ok()?;

@@ -3,8 +3,6 @@ use macros::game_class;
 use bindings::Windows::Win32::Foundation::{HWND, LPARAM, RECT, WPARAM};
 use bindings::Windows::Win32::UI::WindowsAndMessaging::*;
 
-use crate::log;
-
 game_class!(Window, {
     fields: {
         [0x18] handle: HWND
@@ -25,7 +23,13 @@ impl Window {
             right: size.0 as i32,
             bottom: size.1 as i32,
         };
-        unsafe { AdjustWindowRect(&mut r, GetWindowLongA(self.handle, GWL_STYLE) as u32, false) };
+        unsafe {
+            AdjustWindowRect(
+                &mut r,
+                WINDOW_STYLE(GetWindowLongA(self.handle, GWL_STYLE) as u32),
+                false,
+            )
+        };
         r.bottom -= r.top;
         r.right -= r.left;
         unsafe {

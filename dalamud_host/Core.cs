@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using ImGuiNET;
 
 namespace XIVR
 {
@@ -20,13 +21,17 @@ namespace XIVR
         public static extern bool FreeLibrary(IntPtr hModule);
     }
 
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     public delegate void LogDelegate(string s);
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-    public struct LoadParameters
+    public unsafe struct LoadParameters
     {
         public LogDelegate logger;
+        public IntPtr imguiContext;
+        public IntPtr imguiAllocatorAlloc;
+        public IntPtr imguiAllocatorFree;
+        public void* imguiAllocatorUserData;
     }
 
     public class Core : IDalamudPlugin
@@ -52,6 +57,8 @@ namespace XIVR
         private string ModuleLoadedPath(string ext) => Path.Combine(DirPath, ModuleLoadedName(ext));
         private IntPtr module = IntPtr.Zero;
 
+        private LogDelegate logDelegate = (s) => PluginLog.Information("native: {0:l}", s);
+
         // TODO: Use a state machine to handle loading/unloading/waiting instead of the delays
 
         public void Initialize(DalamudPluginInterface pluginInterface)
@@ -70,6 +77,8 @@ namespace XIVR
             this.watcher.Filter = ModuleName("dll");
             this.watcher.Changed += this.OnChanged;
             this.watcher.EnableRaisingEvents = true;
+
+            this.pi.UiBuilder.OnBuildUi += this.OnDraw;
 
             Reload();
         }
@@ -92,10 +101,13 @@ namespace XIVR
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        delegate bool LoadType(LoadParameters loadParams);
+        delegate bool LoadType(IntPtr loadParams);
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         delegate void UnloadType();
+
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+        delegate void DrawType();
 
         private TDelegate ModuleFunction<TDelegate>(string name)
         {
@@ -149,11 +161,36 @@ namespace XIVR
             {
                 PluginLog.Error("Failed to load native module: {0}", Marshal.GetLastWin32Error());
             }
-            ModuleFunction<LoadType>("xivr_load")(new LoadParameters
+
+            unsafe
             {
-                logger = (s) => PluginLog.Information("native: {0:l}", s),
-            });
+                LoadParameters parameters = default;
+                parameters.logger = this.logDelegate;
+                parameters.imguiContext = ImGui.GetCurrentContext();
+                ImGui.GetAllocatorFunctions(
+                    ref parameters.imguiAllocatorAlloc, 
+                    ref parameters.imguiAllocatorFree, 
+                    ref parameters.imguiAllocatorUserData
+                );
+
+                IntPtr ptr = Marshal.AllocHGlobal(Marshal.SizeOf(parameters));
+                Marshal.StructureToPtr(parameters, ptr, false);
+
+                try
+                {
+                    ModuleFunction<LoadType>("xivr_load")(ptr);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(ptr);
+                }
+            }
             this.ReloadQueued = false;
+        }
+
+        private void OnDraw()
+        {
+            ModuleFunction<DrawType>("xivr_draw_ui")();
         }
     }
 }
