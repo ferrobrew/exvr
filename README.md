@@ -1,4 +1,7 @@
-# Goals
+# XIVR
+Bringing today's Final Fantasy XIV to tomorrow's virtual reality.
+
+## Goals
 - To be the first real VRMMORPG by taking a critically acclaimed MMORPG and lifting it into VR.
 - We should create a high-quality, comfortable, native experience comparable to an official project.
 - VR and non-VR players should be able to play, just like with VRChat.
@@ -11,26 +14,15 @@
 - The game should remain broadly compatible with existing modifications, including Dalamud and others.
 - People should be able to have real social experiences.
 
-# Tasks
+## Tasks
 - Stereo rendering
-    - Dumping render stream from start of frame to end of frame with callstacks
-        - Capture game / render state for better reconstruction like RenderDoc?
     - Writing an IDA script to export all functions beginning/end with names
-    - Writing an analyser that can visualise the render stream data with where it came from
-        - Potentially a React app?
-    - Determining when the game starts rendering game content
     - Determining when the final composited game content is copied from (I)
     - Running the renderer twice and capturing the outputs
 
-- Improving the output of the frame scrubber
-    - Need a flame graph, grouped by functions, so that you can see which monolith functions are calling what
-        - Get the base address of each function by dumping that information from IDA
-
 - Headset rendering
-    - Initialize OpenXR on startup and teardown on exit
     - Applying headset matrix to camera matrix
     - Fixing camera FOV
-    - (I) Copying rendered output to headset
 
 - Gameplay considerations
     - Basic motion controller mapping to hotbars
