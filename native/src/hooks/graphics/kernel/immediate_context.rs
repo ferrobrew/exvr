@@ -25,7 +25,8 @@ impl Drop for HookState {
 
 fn immediatecontext_pushbackcmd_hook(ctx: usize, cmd: &'static ShaderCommand) -> usize {
     if let Some(debugger) = Debugger::get_mut() {
-        debugger.command_stream.add_command(cmd).unwrap();
+        let mut command_stream = debugger.command_stream.lock().unwrap();
+        command_stream.add_command(cmd).unwrap();
     }
     ImmediateContext_PushBackCmd_Detour.call(ctx, cmd)
 }

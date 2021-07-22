@@ -38,15 +38,15 @@ pub unsafe fn install() -> Option<HookState> {
             use crate::xr::XR;
 
             if let Some(debugger) = Debugger::get_mut() {
-                debugger
-                    .command_stream
+                let mut command_stream = debugger.command_stream.lock().unwrap();
+                command_stream
                     .add_marker("RenderManager::Render pre-call")
                     .unwrap();
             }
             let ret = RenderManager_Render_Detour.call(s);
             if let Some(debugger) = Debugger::get_mut() {
-                debugger
-                    .command_stream
+                let mut command_stream = debugger.command_stream.lock().unwrap();
+                command_stream
                     .add_marker("RenderManager::Render post-call")
                     .unwrap();
             }
@@ -76,15 +76,15 @@ pub unsafe fn install() -> Option<HookState> {
         .initialize(mem::transmute(rendermanager_renderui_addr), move |s, a| {
             use crate::debugger::Debugger;
             if let Some(debugger) = Debugger::get_mut() {
-                debugger
-                    .command_stream
+                let mut command_stream = debugger.command_stream.lock().unwrap();
+                command_stream
                     .add_marker("RenderManager::RenderUI pre-call")
                     .unwrap();
             }
             let ret = RenderManager_RenderUI_Detour.call(s, a);
             if let Some(debugger) = Debugger::get_mut() {
-                debugger
-                    .command_stream
+                let mut command_stream = debugger.command_stream.lock().unwrap();
+                command_stream
                     .add_marker("RenderManager::RenderUI post-call")
                     .unwrap();
             }

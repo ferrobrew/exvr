@@ -29,7 +29,7 @@ pub unsafe fn install() -> Option<HookState> {
             use crate::debugger::Debugger;
             use crate::xr::XR;
             if let Some(debugger) = Debugger::get_mut() {
-                debugger.command_stream.pre_update().unwrap();
+                debugger.pre_update().unwrap();
             }
 
             if let Some(xr) = XR::get_mut() {

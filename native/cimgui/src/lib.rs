@@ -715,6 +715,10 @@ pub fn begin_child(
     }
 }
 
+pub fn set_next_window_size(size: Vec2, cond: Option<Cond>) {
+    unsafe { sys::igSetNextWindowSize(size, cond.unwrap_or(Cond::None) as i32) }
+}
+
 pub fn same_line(offset_from_start_x: Option<f32>, spacing: Option<f32>) {
     unsafe { sys::igSameLine(offset_from_start_x.unwrap_or(0.0), spacing.unwrap_or(-1.0)) }
 }
@@ -765,6 +769,11 @@ macro_rules! textf {
 pub fn button(label: &str, size: Option<Vec2>) -> Result<bool, NulError> {
     let label = CString::new(label)?;
     Ok(unsafe { sys::igButton(label.as_ptr(), size.unwrap_or(Vec2::ZERO)) })
+}
+
+pub fn small_button(label: &str) -> Result<bool, NulError> {
+    let label = CString::new(label)?;
+    Ok(unsafe { sys::igSmallButton(label.as_ptr()) })
 }
 
 pub fn image(
@@ -864,4 +873,9 @@ pub fn push_style_color(idx: Col, col: Color) {
 
 pub fn pop_style_color(count: i32) {
     unsafe { sys::igPopStyleColor(count) }
+}
+
+pub fn set_clipboard_text(text: &str) -> Result<(), NulError> {
+    let text = CString::new(text)?;
+    unsafe { Ok(sys::igSetClipboardText(text.as_ptr())) }
 }
