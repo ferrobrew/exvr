@@ -1,5 +1,3 @@
-use crate::hooks::Patcher;
-
 pub mod kernel;
 pub mod render;
 
@@ -10,11 +8,11 @@ pub struct HookState {
 }
 
 impl HookState {
-    pub fn new(patcher: &mut Patcher) -> Option<HookState> {
+    pub fn new() -> Option<HookState> {
         unsafe {
             Some(HookState {
-                _kernel_context: kernel::context::install(patcher)?,
-                _kernel_immediate_context: kernel::immediate_context::install(patcher)?,
+                _kernel_context: kernel::context::install()?,
+                _kernel_immediate_context: kernel::immediate_context::install()?,
                 _render_render_manager: render::render_manager::install()?,
             })
         }

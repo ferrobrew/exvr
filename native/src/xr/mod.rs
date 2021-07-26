@@ -197,7 +197,7 @@ impl XR {
             Height: swapchain_desc.Height,
             MipLevels: 1,
             ArraySize: 1,
-            Format: dxgi::DXGI_FORMAT_R8G8B8A8_UNORM,
+            Format: dxgi::DXGI_FORMAT_R16G16B16A16_FLOAT,
             SampleDesc: dxgi::DXGI_SAMPLE_DESC {
                 Count: 1,
                 Quality: 0,
@@ -329,7 +329,14 @@ impl XR {
                 );
 
                 ig::table_next_column();
-                ig::image(buffer_srv.abi(), size, None, None, None, None);
+                ig::image(
+                    buffer_srv.abi(),
+                    size,
+                    None,
+                    None,
+                    None,
+                    Some(ig::Color::ONE),
+                );
             }
             ig::end_table();
         }
@@ -350,9 +357,10 @@ impl XR {
             ig::image(srv.abi(), size, None, None, None, None);
         }
 
-        if ig::begin_table("xivr_debug_tab_rt_list_table", 5, None, None, None)? {
+        if ig::begin_table("xivr_debug_tab_rt_list_table", 7, None, None, None)? {
             ig::table_setup_column("Active", None, None, None)?;
             ig::table_setup_column("Offset", None, None, None)?;
+            ig::table_setup_column("Address", None, None, None)?;
             ig::table_setup_column("Width", None, None, None)?;
             ig::table_setup_column("Height", None, None, None)?;
             ig::table_setup_column("Format", None, None, None)?;
@@ -373,10 +381,13 @@ impl XR {
                         self.tracked_rt_index = i as u32;
                     }
                 }
-
                 {
                     ig::table_next_column();
                     ig::textf!("{:X}", offset);
+                }
+                {
+                    ig::table_next_column();
+                    ig::textf!("{:X?}", texture);
                 }
                 {
                     ig::table_next_column();
@@ -398,16 +409,14 @@ impl XR {
         Ok(())
     }
 
-    pub fn copy_backbuffer_to_buffer(&mut self, index: usize) {
+    pub fn copy_backbuffer_to_buffer(&mut self, index: u32) {
         unsafe {
             let device_context = kernel::Device::get().device_context_ptr();
-            let textures = render::RenderTargetManager::get().get_render_targets();
-
-            let texture = textures[self.tracked_rt_index as usize].1;
+            let texture: &'static _ = *render::RenderTargetManager::get().rendered_game_ptr();
 
             (*device_context).CopyResource(
-                self.buffer_images[index].clone(),
-                (*(*texture).texture_ptr()).clone(),
+                self.buffer_images[index as usize].clone(),
+                (*texture.texture_ptr()).clone(),
             );
         }
     }

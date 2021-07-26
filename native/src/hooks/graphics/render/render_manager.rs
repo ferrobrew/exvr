@@ -33,36 +33,42 @@ pub unsafe fn install() -> Option<HookState> {
     RenderManager_Render_Detour
         .initialize(mem::transmute(rendermanager_render_addr), move |s| {
             use crate::debugger::Debugger;
-            use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand};
-            use crate::hooks::graphics::kernel::context::ShaderCommandXIVR;
-            use crate::xr::XR;
+            use crate::game::graphics::kernel::Context;
+            use crate::hooks::graphics::kernel::immediate_context::XIVRCommandPayload;
+            use crate::xr::{VIEW_COUNT, XR};
 
-            if let Some(debugger) = Debugger::get_mut() {
-                let mut command_stream = debugger.command_stream.lock().unwrap();
-                command_stream
-                    .add_marker("RenderManager::Render pre-call")
-                    .unwrap();
-            }
-            let ret = RenderManager_Render_Detour.call(s);
-            if let Some(debugger) = Debugger::get_mut() {
-                let mut command_stream = debugger.command_stream.lock().unwrap();
-                command_stream
-                    .add_marker("RenderManager::Render post-call")
-                    .unwrap();
-            }
+            let rc = Context::get_for_current_thread().unwrap();
 
-            let rc = ImmediateContext::get_for_current_thread().unwrap();
-            let cmd = rc.alloc(mem::size_of::<ShaderCommandXIVR>()) as *mut ShaderCommandXIVR;
-            *cmd = ShaderCommandXIVR::new(|| {
-                if let Some(xr) = XR::get_mut() {
-                    xr.copy_backbuffer_to_buffer(0);
-                    xr.copy_backbuffer_to_buffer(1);
-                    // xr.copy_buffers_to_swapchain().unwrap();
+            for i in 0..VIEW_COUNT {
+                if let Some(debugger) = Debugger::get_mut() {
+                    let mut command_stream = debugger.command_stream.lock().unwrap();
+                    command_stream
+                        .add_marker(&format!("RenderManager::Render pre-call ({})", i))
+                        .unwrap();
                 }
-            });
-            rc.push_back_command(&*(cmd as *mut ShaderCommand));
+                RenderManager_Render_Detour.call(s);
+                if let Some(debugger) = Debugger::get_mut() {
+                    let mut command_stream = debugger.command_stream.lock().unwrap();
+                    command_stream
+                        .add_marker(&format!("RenderManager::Render post-call ({})", i))
+                        .unwrap();
+                }
 
-            ret
+                rc.push_back_xivr_command(
+                    move |immediate_context, payload| {
+                        if let XIVRCommandPayload::Integer(i) = payload {
+                            if let Some(xr) = XR::get_mut() {
+                                xr.copy_backbuffer_to_buffer(*i);
+                                // xr.copy_buffers_to_swapchain().unwrap();
+                                (*immediate_context.device_context_ptr()).ClearState();
+                            }
+                        }
+                    },
+                    XIVRCommandPayload::Integer(i),
+                );
+            }
+
+            0usize
         })
         .ok()?;
     RenderManager_Render_Detour.enable().ok()?;

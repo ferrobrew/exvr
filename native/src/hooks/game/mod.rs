@@ -1,5 +1,3 @@
-use crate::hooks::Patcher;
-
 pub mod game_main;
 
 pub struct HookState {
@@ -7,7 +5,7 @@ pub struct HookState {
 }
 
 impl HookState {
-    pub fn new(_patcher: &mut Patcher) -> Option<HookState> {
+    pub fn new() -> Option<HookState> {
         Some(HookState {
             _game_main: unsafe { game_main::install()? },
         })

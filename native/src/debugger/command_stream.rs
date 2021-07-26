@@ -1,4 +1,5 @@
 use crate::game::graphics::kernel::{ShaderCommand, ShaderCommandType, Texture};
+use crate::log;
 use crate::module::Module;
 
 use std::collections::HashMap;
@@ -68,12 +69,14 @@ struct Command {
     duration: Duration,
 }
 
+const FRAMES_TO_CAPTURE: u32 = 1;
 enum CommandStreamState {
     Uncaptured,
     WantToCapture,
     Capturing {
         start_instant: Instant,
         stream: Vec<Command>,
+        frames: u32,
     },
     Captured {
         stream: Vec<Command>,
@@ -258,7 +261,7 @@ impl CommandStreamUI {
         let rt_size = ig::Vec2::new(tex.width as f32 / 4.0, tex.height as f32 / 4.0);
 
         ig::set_next_window_size(
-            ig::Vec2::new(rt_size.x, rt_size.y + 100.0),
+            ig::Vec2::new(rt_size.x, rt_size.y + 150.0),
             Some(ig::Cond::FirstUseEver),
         );
         if ig::begin(
@@ -336,16 +339,17 @@ impl CommandStream {
     }
 
     pub fn pre_update(&mut self) -> anyhow::Result<()> {
-        self.end_capture()?;
-        let should_capture = if let CommandStreamState::WantToCapture = &self.state {
-            true
-        } else {
-            false
-        };
-
-        if should_capture {
-            self.start_capture()?;
+        match self.state {
+            CommandStreamState::WantToCapture => self.start_capture()?,
+            CommandStreamState::Capturing { ref mut frames, .. } => {
+                *frames += 1;
+                if *frames == FRAMES_TO_CAPTURE {
+                    self.end_capture()?;
+                }
+            }
+            _ => {}
         }
+
         Ok(())
     }
 
@@ -353,7 +357,10 @@ impl CommandStream {
         self.state = CommandStreamState::Capturing {
             start_instant: Instant::now(),
             stream: vec![],
+            frames: 0,
         };
+
+        log!("Starting command stream capture");
         Ok(())
     }
 
@@ -364,6 +371,7 @@ impl CommandStream {
                 selected_index: None,
             };
         }
+        log!("Ending command stream capture");
         Ok(())
     }
 
@@ -371,6 +379,7 @@ impl CommandStream {
         if let CommandStreamState::Capturing {
             stream,
             start_instant,
+            ..
         } = &mut self.state
         {
             use bindings::Windows::Win32::System::Threading::GetCurrentThreadId;

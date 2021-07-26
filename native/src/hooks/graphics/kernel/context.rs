@@ -1,79 +1,50 @@
-use crate::hooks;
+use crate::debugger::Debugger;
+use crate::game::graphics::kernel::ShaderCommand;
 use crate::log;
 use crate::module::GAME_MODULE;
-use detour::RawDetour;
 
-#[no_mangle]
-static mut PROCESS_EVENTS_DEFAULT_CASE: *mut u8 = std::ptr::null_mut();
-const PROCESS_EVENTS_TABLE_LENGTH: u32 = 18;
-const SHADER_COMMAND_HIJACKED_TYPE: usize = 9;
+use detour::static_detour;
 
-#[repr(C)]
-pub struct ShaderCommandXIVR {
-    cmd_type: u32,
-    callback: fn() -> (),
+static_detour! {
+    pub static Context_PushBackCmd_Detour: fn(usize, &'static ShaderCommand) -> usize;
 }
 
-impl ShaderCommandXIVR {
-    pub fn new(callback: fn() -> ()) -> ShaderCommandXIVR {
-        ShaderCommandXIVR {
-            cmd_type: SHADER_COMMAND_HIJACKED_TYPE as u32,
-            callback,
-        }
-    }
-}
-
-pub struct HookState(detour::RawDetour);
+pub struct HookState;
 impl Drop for HookState {
     fn drop(&mut self) {
-        let res = unsafe { self.0.disable() };
+        let res = unsafe { Context_PushBackCmd_Detour.disable() };
         if let Err(e) = res {
-            log!("error while disabling context detour: {}", e.to_string())
+            log!(
+                "error while disabling context detour: {}",
+                e.to_string()
+            );
         }
     }
 }
 
-pub unsafe fn install(patcher: &mut hooks::Patcher) -> Option<HookState> {
+fn context_pushbackcmd_hook(ctx: usize, cmd: &'static ShaderCommand) -> usize {
+    if let Some(debugger) = Debugger::get_mut() {
+        let mut command_stream = debugger.command_stream.lock().unwrap();
+        command_stream.add_command(cmd).unwrap();
+    }
+    Context_PushBackCmd_Detour.call(ctx, cmd)
+}
+
+pub unsafe fn install() -> Option<HookState> {
+    use std::mem;
+
     let module = GAME_MODULE.get()?;
+    let context_pushbackcmd: fn(usize, &'static ShaderCommand) -> usize =
+        mem::transmute(module.scan("83 41 30 FF").ok()?);
 
-    let process_events =
-        module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 4B 30 FF 15 ? ? ? ?").ok()?;
+    Context_PushBackCmd_Detour
+        .initialize(
+            context_pushbackcmd,
+            context_pushbackcmd_hook,
+        )
+        .ok()?;
 
-    let padding = module.scan_after_ptr(process_events, &"CC ".repeat(10)).ok()?;
-    let padding_detour =
-        RawDetour::new(padding as *const (), process_events_trampoline as *const ()).ok()?;
-    padding_detour.enable().ok()?;
+    Context_PushBackCmd_Detour.enable().ok()?;
 
-    let jump_table_slice = {
-        let jump_table = padding.offset(-(PROCESS_EVENTS_TABLE_LENGTH as isize) * 4);
-        std::slice::from_raw_parts_mut(jump_table as *mut u32, PROCESS_EVENTS_TABLE_LENGTH as usize)
-    };
-
-    let default_offset = jump_table_slice[SHADER_COMMAND_HIJACKED_TYPE];
-    PROCESS_EVENTS_DEFAULT_CASE = module.rel_to_abs_addr(default_offset as isize);
-
-    let padding_rel = module.abs_to_rel_addr(padding) as i32;
-    patcher.patch(
-        (&mut jump_table_slice[SHADER_COMMAND_HIJACKED_TYPE]) as *mut _ as *mut u8,
-        &padding_rel.to_ne_bytes(),
-    );
-
-    Some(HookState(padding_detour))
-}
-
-global_asm!(
-    ".global process_events_trampoline",
-    "process_events_trampoline:",
-    "   MOV rcx, r10",
-    "   MOVABS rax, PROCESS_EVENTS_DEFAULT_CASE",
-    "   PUSH rax",
-    "   JMP process_events_jump_table_9",
-);
-extern "C" {
-    fn process_events_trampoline();
-}
-
-#[no_mangle]
-unsafe extern "C" fn process_events_jump_table_9(cmd: *const ShaderCommandXIVR) {
-    ((*cmd).callback)();
+    Some(HookState {})
 }

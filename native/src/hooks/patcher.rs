@@ -1,9 +1,11 @@
+use crate::singleton;
+
 use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
 
-use bindings::Windows::Win32::System::Memory::{VirtualProtect, PAGE_EXECUTE_READWRITE};
 use bindings::Windows::Win32::System::Memory::PAGE_PROTECTION_FLAGS;
+use bindings::Windows::Win32::System::Memory::{VirtualProtect, PAGE_EXECUTE_READWRITE};
 
 struct Patch {
     address: *mut u8,
@@ -13,10 +15,11 @@ struct Patch {
 pub struct Patcher {
     patches: Vec<Patch>,
 }
+singleton!(Patcher);
 
 impl Patcher {
-    pub fn new() -> Patcher {
-        Patcher { patches: vec![] }
+    pub fn new() -> anyhow::Result<Patcher> {
+        Ok(Patcher { patches: vec![] })
     }
 
     pub unsafe fn safe_write(&self, addr_ptr: *mut u8, bytes: &[u8]) {
@@ -31,22 +34,32 @@ impl Patcher {
         VirtualProtect(addr_ptr as *mut c_void, bytes.len(), old, &mut old);
     }
 
-    pub unsafe fn patch(&mut self, address: *mut u8, bytes: &[u8]) {
+    pub unsafe fn patch(&mut self, address: *mut u8, bytes: &[u8]) -> *mut u8 {
         self.patches.push(Patch {
             address,
             original_bytes: slice::from_raw_parts(address, bytes.len()).to_vec(),
         });
 
-        self.safe_write(address, bytes)
+        self.safe_write(address, bytes);
+        address
+    }
+
+    pub unsafe fn unpatch(&mut self, address: *mut u8) {
+        if let Some(index) = self.patches.iter().position(|p| p.address == address) {
+            {
+                let patch = &self.patches[index];
+                self.safe_write(patch.address, &patch.original_bytes);
+            }
+            self.patches.remove(index);
+        }
     }
 }
 
 impl Drop for Patcher {
     fn drop(&mut self) {
         for patch in self.patches.iter().rev() {
-            let bytes = &patch.original_bytes;
             unsafe {
-                self.safe_write(patch.address, bytes);
+                self.safe_write(patch.address, &patch.original_bytes);
             }
         }
     }
