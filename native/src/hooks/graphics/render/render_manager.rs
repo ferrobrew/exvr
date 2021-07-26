@@ -21,17 +21,19 @@ impl Drop for HookState {
     }
 }
 
-pub unsafe fn install() -> Option<HookState> {
+pub unsafe fn install() -> anyhow::Result<HookState> {
     use crate::module::GAME_MODULE;
     use std::mem;
 
-    let rendermanager_render_addr = GAME_MODULE
-        .get()?
-        .scan("40 53 55 57 41 56 41 57 48 83 EC 60")
-        .ok()?;
+    let module = GAME_MODULE
+        .get()
+        .ok_or(anyhow::Error::msg("Failed to retrieve game module"))?;
 
-    RenderManager_Render_Detour
-        .initialize(mem::transmute(rendermanager_render_addr), move |s| {
+    let rendermanager_render_addr = module.scan("40 53 55 57 41 56 41 57 48 83 EC 60")?;
+
+    RenderManager_Render_Detour.initialize(
+        mem::transmute(rendermanager_render_addr),
+        move |s| {
             use crate::debugger::Debugger;
             use crate::game::graphics::kernel::Context;
             use crate::hooks::graphics::kernel::immediate_context::XIVRCommandPayload;
@@ -69,17 +71,16 @@ pub unsafe fn install() -> Option<HookState> {
             }
 
             0usize
-        })
-        .ok()?;
-    RenderManager_Render_Detour.enable().ok()?;
+        },
+    )?;
+    RenderManager_Render_Detour.enable()?;
 
-    let rendermanager_renderui_addr = GAME_MODULE
-        .get()?
-        .scan("48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 54 41 56 41 57 48 83 EC 40 44 8B 05 ? ? ? ?")
-        .ok()?;
+    let rendermanager_renderui_addr = module
+        .scan("48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 54 41 56 41 57 48 83 EC 40 44 8B 05 ? ? ? ?")?;
 
-    RenderManager_RenderUI_Detour
-        .initialize(mem::transmute(rendermanager_renderui_addr), move |s, a| {
+    RenderManager_RenderUI_Detour.initialize(
+        mem::transmute(rendermanager_renderui_addr),
+        move |s, a| {
             use crate::debugger::Debugger;
             if let Some(debugger) = Debugger::get_mut() {
                 let mut command_stream = debugger.command_stream.lock().unwrap();
@@ -96,9 +97,9 @@ pub unsafe fn install() -> Option<HookState> {
             }
 
             ret
-        })
-        .ok()?;
-    RenderManager_RenderUI_Detour.enable().ok()?;
+        },
+    )?;
+    RenderManager_RenderUI_Detour.enable()?;
 
-    Some(HookState {})
+    Ok(HookState {})
 }

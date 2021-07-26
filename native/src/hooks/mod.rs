@@ -14,8 +14,8 @@ pub struct HookState {
 impl HookState {
     pub fn new() -> anyhow::Result<HookState> {
         Ok(HookState {
-            _game: game::HookState::new().ok_or(anyhow::Error::msg("Failed to hook game"))?,
-            _graphics: graphics::HookState::new().ok_or(anyhow::Error::msg("Failed to hook graphics"))?,
+            _game: game::HookState::new()?,
+            _graphics: graphics::HookState::new()?,
         })
     }
 }

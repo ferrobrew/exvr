@@ -49,21 +49,18 @@ impl Drop for HookState {
     }
 }
 
-pub unsafe fn install() -> Option<HookState> {
-    let module = GAME_MODULE.get()?;
+pub unsafe fn install() -> anyhow::Result<HookState> {
+    let module = GAME_MODULE
+        .get()
+        .ok_or(anyhow::Error::msg("Failed to retrieve game module"))?;
 
-    let process_events = module
-        .scan_for_relative_callsite("E8 ? ? ? ? 48 8B 4B 30 FF 15 ? ? ? ?")
-        .ok()?;
+    let process_events =
+        module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 4B 30 FF 15 ? ? ? ?")?;
 
-    log!("{:?}", process_events);
-
-    let padding = module
-        .scan_after_ptr(process_events, &"CC ".repeat(10))
-        .ok()?;
+    let padding = module.scan_after_ptr(process_events, &"CC ".repeat(10))?;
     let padding_detour =
-        RawDetour::new(padding as *const (), process_events_trampoline as *const ()).ok()?;
-    padding_detour.enable().ok()?;
+        RawDetour::new(padding as *const (), process_events_trampoline as *const ())?;
+    padding_detour.enable()?;
 
     let jump_table_slice = {
         let jump_table = padding.offset(-(PROCESS_EVENTS_TABLE_LENGTH as isize) * 4);
@@ -74,12 +71,14 @@ pub unsafe fn install() -> Option<HookState> {
     PROCESS_EVENTS_DEFAULT_CASE = module.rel_to_abs_addr(default_offset as isize);
 
     let padding_rel = module.abs_to_rel_addr(padding) as i32;
-    hooks::Patcher::get_mut()?.patch(
-        (&mut jump_table_slice[SHADER_COMMAND_HIJACKED_TYPE]) as *mut _ as *mut u8,
-        &padding_rel.to_ne_bytes(),
-    );
+    hooks::Patcher::get_mut()
+        .ok_or(anyhow::Error::msg("Failed to retrieve patcher"))?
+        .patch(
+            (&mut jump_table_slice[SHADER_COMMAND_HIJACKED_TYPE]) as *mut _ as *mut u8,
+            &padding_rel.to_ne_bytes(),
+        );
 
-    Some(HookState(padding_detour))
+    Ok(HookState(padding_detour))
 }
 
 global_asm!(

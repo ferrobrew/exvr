@@ -19,32 +19,32 @@ impl Drop for HookState {
     }
 }
 
-pub unsafe fn install() -> Option<HookState> {
-    let module = GAME_MODULE.get()?;
+pub unsafe fn install() -> anyhow::Result<HookState> {
+    let module = GAME_MODULE
+        .get()
+        .ok_or(anyhow::Error::msg("Failed to retrieve game module"))?;
     let gamemain_update: fn(usize) -> usize =
         mem::transmute(module.rel_to_abs_addr(offsets::functions::Game_GameMain_Update as isize));
 
-    GameMain_Update_Detour
-        .initialize(mem::transmute(gamemain_update), |s| {
-            use crate::debugger::Debugger;
-            use crate::xr::XR;
-            if let Some(debugger) = Debugger::get_mut() {
-                debugger.pre_update().unwrap();
-            }
+    GameMain_Update_Detour.initialize(mem::transmute(gamemain_update), |s| {
+        use crate::debugger::Debugger;
+        use crate::xr::XR;
+        if let Some(debugger) = Debugger::get_mut() {
+            debugger.pre_update().unwrap();
+        }
 
-            if let Some(xr) = XR::get_mut() {
-                xr.pre_update().unwrap();
-            }
+        if let Some(xr) = XR::get_mut() {
+            xr.pre_update().unwrap();
+        }
 
-            let ret = GameMain_Update_Detour.call(s);
+        let ret = GameMain_Update_Detour.call(s);
 
-            if let Some(xr) = XR::get_mut() {
-                xr.post_update().unwrap();
-            }
-            ret
-        })
-        .ok()?;
-    GameMain_Update_Detour.enable().ok()?;
+        if let Some(xr) = XR::get_mut() {
+            xr.post_update().unwrap();
+        }
+        ret
+    })?;
+    GameMain_Update_Detour.enable()?;
 
-    Some(HookState {})
+    Ok(HookState {})
 }

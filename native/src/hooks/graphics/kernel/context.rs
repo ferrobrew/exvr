@@ -14,10 +14,7 @@ impl Drop for HookState {
     fn drop(&mut self) {
         let res = unsafe { Context_PushBackCmd_Detour.disable() };
         if let Err(e) = res {
-            log!(
-                "error while disabling context detour: {}",
-                e.to_string()
-            );
+            log!("error while disabling context detour: {}", e.to_string());
         }
     }
 }
@@ -30,21 +27,17 @@ fn context_pushbackcmd_hook(ctx: usize, cmd: &'static ShaderCommand) -> usize {
     Context_PushBackCmd_Detour.call(ctx, cmd)
 }
 
-pub unsafe fn install() -> Option<HookState> {
+pub unsafe fn install() -> anyhow::Result<HookState> {
     use std::mem;
 
-    let module = GAME_MODULE.get()?;
+    let module = GAME_MODULE
+        .get()
+        .ok_or(anyhow::Error::msg("Failed to retrieve game module"))?;
     let context_pushbackcmd: fn(usize, &'static ShaderCommand) -> usize =
-        mem::transmute(module.scan("83 41 30 FF").ok()?);
+        mem::transmute(module.scan("83 41 30 FF")?);
 
-    Context_PushBackCmd_Detour
-        .initialize(
-            context_pushbackcmd,
-            context_pushbackcmd_hook,
-        )
-        .ok()?;
+    Context_PushBackCmd_Detour.initialize(context_pushbackcmd, context_pushbackcmd_hook)?;
+    Context_PushBackCmd_Detour.enable()?;
 
-    Context_PushBackCmd_Detour.enable().ok()?;
-
-    Some(HookState {})
+    Ok(HookState {})
 }
