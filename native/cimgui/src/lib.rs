@@ -719,6 +719,10 @@ pub fn set_next_window_size(size: Vec2, cond: Option<Cond>) {
     unsafe { sys::igSetNextWindowSize(size, cond.unwrap_or(Cond::None) as i32) }
 }
 
+pub fn set_next_window_bg_alpha(alpha: f32) {
+    unsafe { sys::igSetNextWindowBgAlpha(alpha) }
+}
+
 pub fn same_line(offset_from_start_x: Option<f32>, spacing: Option<f32>) {
     unsafe { sys::igSameLine(offset_from_start_x.unwrap_or(0.0), spacing.unwrap_or(-1.0)) }
 }
@@ -855,14 +859,14 @@ pub fn begin_tab_bar(str_id: &str, flags: Option<TabBarFlags>) -> Result<bool, N
 pub fn begin_tab_item(
     str_id: &str,
     open: Option<&mut bool>,
-    flags: Option<TabBarFlags>,
+    flags: Option<TabItemFlags>,
 ) -> Result<bool, NulError> {
     let str_id = CString::new(str_id)?;
     unsafe {
         Ok(sys::igBeginTabItem(
             str_id.as_ptr(),
             bool_opt_to_ptr(open),
-            flags.unwrap_or(TabBarFlags::None) as sys::ImGuiTabBarFlags,
+            flags.unwrap_or(TabItemFlags::None) as sys::ImGuiTabItemFlags,
         ))
     }
 }

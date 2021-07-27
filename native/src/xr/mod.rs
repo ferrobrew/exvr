@@ -1,3 +1,4 @@
+use crate::ct_config;
 use crate::game::graphics::kernel;
 use crate::game::graphics::render;
 use crate::game::system::framework;
@@ -10,12 +11,8 @@ use windows::Abi;
 use cimgui as ig;
 use openxr;
 
-pub const VIEW_COUNT: u32 = 2;
+pub use crate::ct_config::xr::VIEW_COUNT;
 const VIEW_TYPE: openxr::ViewConfigurationType = openxr::ViewConfigurationType::PRIMARY_STEREO;
-
-// temporary settings while I fix other code
-const ACTUALLY_CHANGE_WINDOW_SIZE: bool = false;
-const ACTUALLY_RUN_XR_FRAME_CODE: bool = false;
 
 #[allow(dead_code)]
 pub struct XR {
@@ -142,7 +139,7 @@ impl XR {
 
         let window: &framework::Window = framework::Framework::get().window;
         let old_window_size = window.get_size();
-        let new_window_size = if ACTUALLY_CHANGE_WINDOW_SIZE {
+        let new_window_size = if ct_config::xr::CHANGE_WINDOW_SIZE {
             (
                 views[0].recommended_image_rect_width,
                 views[0].recommended_image_rect_height,
@@ -296,7 +293,7 @@ impl XR {
             }
         }
 
-        if ACTUALLY_RUN_XR_FRAME_CODE {
+        if ct_config::xr::RUN_XR_PER_FRAME {
             self.frame_state = Some(self.frame_waiter.wait()?);
             self.frame_stream.begin()?;
         }
@@ -305,7 +302,7 @@ impl XR {
     }
 
     pub fn post_update(&mut self) -> anyhow::Result<()> {
-        if ACTUALLY_RUN_XR_FRAME_CODE {
+        if ct_config::xr::RUN_XR_PER_FRAME {
             let frame_state = &self
                 .frame_state
                 .ok_or(anyhow::Error::msg("failed to get frame state"))?;
@@ -450,11 +447,13 @@ impl XR {
 
 impl Drop for XR {
     fn drop(&mut self) {
-        framework::Framework::get()
-            .window
-            .set_resizing_enabled(true);
-        framework::Framework::get()
-            .window
-            .set_size(self.old_window_size);
+        if ct_config::xr::CHANGE_WINDOW_SIZE {
+            framework::Framework::get()
+                .window
+                .set_resizing_enabled(true);
+            framework::Framework::get()
+                .window
+                .set_size(self.old_window_size);
+        }
     }
 }

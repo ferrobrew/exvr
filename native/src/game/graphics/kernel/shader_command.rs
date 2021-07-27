@@ -1,3 +1,4 @@
+use crate::ct_config::rendering::SHADER_COMMAND_HIJACKED_TYPE;
 use crate::game;
 use macros::game_class;
 
@@ -185,6 +186,7 @@ pub union ShaderCommandPayload {
 
 #[repr(u32)]
 #[allow(dead_code)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum ShaderCommandType {
 	SetRenderTargets = 0,
 	SetViewports = 1,
@@ -195,7 +197,7 @@ pub enum ShaderCommandType {
 	DrawIndexed = 6,
 	DrawIndexedInstanced = 7,
 	DispatchComputeShader = 8,
-	XIVRHijack = 9,
+	XIVRHijack = SHADER_COMMAND_HIJACKED_TYPE as u32,
 	CopyTexture = 10,
 	UnknownDraw = 11,
 	CopyResource = 12,

@@ -5,7 +5,9 @@ use macros::game_class;
 
 game_class!(Context, {
     size: 0x1158,
-    fields: {},
+    fields: {
+        [0x8] sort_key_maybe: u32,
+    },
     functions: {
         [signature("4C 8D 4A 0F 4C 8B C1")] fn alloc(&mut self, size: usize) -> *const u8;
         [signature("83 41 30 FF")] fn push_back_command(&mut self, cmd: &ShaderCommand) -> usize;

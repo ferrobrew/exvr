@@ -2,6 +2,7 @@ mod command_stream;
 pub use command_stream::*;
 
 use crate::singleton;
+
 use std::sync::Mutex;
 
 pub struct Debugger {
@@ -24,6 +25,7 @@ impl Debugger {
         use crate::xr::XR;
         use cimgui as ig;
 
+        ig::set_next_window_bg_alpha(1.0);
         if ig::begin("XIVR Debugger", None, None)? {
             if ig::begin_tab_bar("xivr_debug_tabs", None)? {
                 if ig::begin_tab_item("Command Stream", None, None)? {

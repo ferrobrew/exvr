@@ -1,13 +1,17 @@
-use crate::game::graphics::kernel::ImmediateContext;
+use crate::ct_config::rendering::SHADER_COMMAND_HIJACKED_TYPE;
+use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand, ShaderCommandType};
 use crate::hooks;
 use crate::log;
 use crate::module::GAME_MODULE;
-use detour::RawDetour;
+use detour::{static_detour, RawDetour};
 
 #[no_mangle]
-static mut PROCESS_EVENTS_DEFAULT_CASE: *mut u8 = std::ptr::null_mut();
-const PROCESS_EVENTS_TABLE_LENGTH: u32 = 18;
-const SHADER_COMMAND_HIJACKED_TYPE: usize = 9;
+static mut PROCESS_COMMANDS_DEFAULT_CASE: *mut u8 = std::ptr::null_mut();
+const PROCESS_COMMANDS_TABLE_LENGTH: u32 = 18;
+
+static_detour! {
+    pub static ImmediateContext_ProcessCommands_Detour: fn(&'static ImmediateContext, u64, u32) -> u64;
+}
 
 #[allow(dead_code)]
 pub enum XIVRCommandPayload {
@@ -46,6 +50,13 @@ impl Drop for HookState {
                 e.to_string()
             )
         }
+        let res = unsafe { ImmediateContext_ProcessCommands_Detour.disable() };
+        if let Err(e) = res {
+            log!(
+                "error while disabling process commands detour: {}",
+                e.to_string()
+            )
+        }
     }
 }
 
@@ -54,21 +65,57 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
         .get()
         .ok_or(anyhow::Error::msg("Failed to retrieve game module"))?;
 
-    let process_events =
+    let process_commands =
         module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 4B 30 FF 15 ? ? ? ?")?;
 
-    let padding = module.scan_after_ptr(process_events, &"CC ".repeat(10))?;
-    let padding_detour =
-        RawDetour::new(padding as *const (), process_events_trampoline as *const ())?;
+    ImmediateContext_ProcessCommands_Detour.initialize(
+        std::mem::transmute(process_commands),
+        |ic, a2, command_count| {
+            use crate::debugger::Debugger;
+
+            #[repr(C)]
+            struct StreamCommand {
+                cmd: *mut ShaderCommand,
+                sort_key: u64,
+            }
+
+            let mut p = (a2 + 8) as *mut StreamCommand;
+
+            if let Some(debugger) = Debugger::get_mut() {
+                let mut command_stream = debugger.command_stream.lock().unwrap();
+                if command_stream.is_capturing() {
+                    for i in 0..command_count {
+                        let stream_cmd: &StreamCommand = &*p.add(i as usize);
+                        let cmd: &ShaderCommand = &*stream_cmd.cmd;
+
+                        command_stream.add_processed_command(cmd).unwrap();
+                    }
+                }
+            }
+
+            ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
+            0u64
+        },
+    )?;
+    ImmediateContext_ProcessCommands_Detour.enable()?;
+
+    let padding = module.scan_after_ptr(process_commands, &"CC ".repeat(10))?;
+    let padding_detour = RawDetour::new(
+        padding as *const (),
+        process_commands_jump_trampoline as *const (),
+    )?;
     padding_detour.enable()?;
 
     let jump_table_slice = {
-        let jump_table = padding.offset(-(PROCESS_EVENTS_TABLE_LENGTH as isize) * 4);
-        std::slice::from_raw_parts_mut(jump_table as *mut u32, PROCESS_EVENTS_TABLE_LENGTH as usize)
+        let jump_table = padding.offset(-(PROCESS_COMMANDS_TABLE_LENGTH as isize) * 4);
+        std::slice::from_raw_parts_mut(
+            jump_table as *mut u32,
+            PROCESS_COMMANDS_TABLE_LENGTH as usize,
+        )
     };
 
     let default_offset = jump_table_slice[SHADER_COMMAND_HIJACKED_TYPE];
-    PROCESS_EVENTS_DEFAULT_CASE = module.rel_to_abs_addr(default_offset as isize);
+    PROCESS_COMMANDS_DEFAULT_CASE = module.rel_to_abs_addr(default_offset as isize);
 
     let padding_rel = module.abs_to_rel_addr(padding) as i32;
     hooks::Patcher::get_mut()
@@ -81,21 +128,21 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
     Ok(HookState(padding_detour))
 }
 
+extern "C" {
+    fn process_commands_jump_trampoline();
+}
 global_asm!(
-    ".global process_events_trampoline",
-    "process_events_trampoline:",
+    ".global process_commands_jump_trampoline",
+    "process_commands_jump_trampoline:",
     "   MOV rdx, r10",
     "   MOV rcx, rbx",
-    "   MOVABS rax, PROCESS_EVENTS_DEFAULT_CASE",
+    "   MOVABS rax, PROCESS_COMMANDS_DEFAULT_CASE",
     "   PUSH rax",
-    "   JMP process_events_jump_table_9",
+    "   JMP process_commands_jump_table_9",
 );
-extern "C" {
-    fn process_events_trampoline();
-}
 
 #[no_mangle]
-unsafe extern "C" fn process_events_jump_table_9(
+unsafe extern "C" fn process_commands_jump_table_9(
     context: &'static ImmediateContext,
     cmd: *const XIVRCommand,
 ) {

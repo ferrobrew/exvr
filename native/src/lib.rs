@@ -11,6 +11,7 @@ mod module;
 mod xr;
 #[macro_use]
 mod util;
+mod ct_config;
 
 use hooks::HookState;
 use log::Logger;

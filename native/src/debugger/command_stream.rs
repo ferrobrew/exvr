@@ -1,4 +1,6 @@
-use crate::game::graphics::kernel::{ShaderCommand, ShaderCommandType, Texture};
+use crate::ct_config;
+use crate::game::graphics::kernel;
+use crate::game::graphics::kernel::{ShaderCommandType, Texture};
 use crate::log;
 use crate::module::Module;
 
@@ -11,6 +13,8 @@ use strum_macros::{Display, EnumCount, EnumDiscriminants};
 
 use cimgui as ig;
 
+const FRAMES_TO_CAPTURE: u32 = 1;
+
 struct Ptr<T>(*const T);
 unsafe impl<T> Send for Ptr<T> {}
 unsafe impl<T> Sync for Ptr<T> {}
@@ -21,8 +25,14 @@ impl<T> Clone for Ptr<T> {
     }
 }
 
+trait Payload {
+    fn title(&self) -> String;
+    fn colour(&self) -> ig::Color;
+    fn draw(&self) -> anyhow::Result<()>;
+}
+
 #[derive(Display, EnumDiscriminants, EnumCount, Clone)]
-enum CommandPayload {
+enum ShaderPayload {
     SetRenderTargets(Vec<Ptr<Texture>>),
     SetViewports,
     SetViewportsFancy,
@@ -45,8 +55,7 @@ enum CommandPayload {
     SomethingWithStrings,
     XIVRMarker(String),
 }
-
-impl CommandPayload {
+impl Payload for ShaderPayload {
     fn title(&self) -> String {
         match self {
             Self::XIVRMarker(s) => s.to_string(),
@@ -55,32 +64,213 @@ impl CommandPayload {
     }
 
     fn colour(&self) -> ig::Color {
-        let type_index = CommandPayloadDiscriminants::from(self) as u32;
-        let hue = type_index as f32 / CommandPayload::COUNT as f32;
+        let type_index = ShaderPayloadDiscriminants::from(self) as u32;
+        let hue = type_index as f32 / ShaderPayload::COUNT as f32;
         ig::Color::from_hsv(hue, 0.6, 0.8)
+    }
+
+    fn draw(&self) -> anyhow::Result<()> {
+        match self {
+            ShaderPayload::SetRenderTargets(rts) => {
+                ig::text("Render Targets: ");
+
+                for rt in rts {
+                    ig::bullet();
+                    if ig::small_button(&format!("{:X?}", rt.0))? {
+                        // self.inspect_texture(rt.0);
+                    }
+                }
+            }
+            ShaderPayload::CopyTexture { dst, src } => {
+                ig::text("Destination: ");
+                ig::same_line(None, Some(0.0));
+                if ig::small_button(&format!("{:X?}", dst.0))? {
+                    // self.inspect_texture(dst.0);
+                }
+
+                ig::text("Source: ");
+                ig::same_line(None, Some(0.0));
+                if ig::small_button(&format!("{:X?}", src.0))? {
+                    // self.inspect_texture(src.0);
+                }
+            }
+            _ => {
+                ig::text("No additional data available.");
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Display, EnumDiscriminants, EnumCount, Clone)]
+#[allow(dead_code)]
+pub enum D3DPayload {
+    QueryInterface,
+    AddRef,
+    Release,
+    GetDevice,
+    GetPrivateData,
+    SetPrivateData,
+    SetPrivateDataInterface,
+    VSSetConstantBuffers,
+    PSSetShaderResources,
+    PSSetShader,
+    PSSetSamplers,
+    VSSetShader,
+    DrawIndexed,
+    Draw,
+    Map,
+    Unmap,
+    PSSetConstantBuffers,
+    IASetInputLayout,
+    IASetVertexBuffers,
+    IASetIndexBuffer,
+    DrawIndexedInstanced,
+    DrawInstanced,
+    GSSetConstantBuffers,
+    GSSetShader,
+    IASetPrimitiveTopology,
+    VSSetShaderResources,
+    VSSetSamplers,
+    Begin,
+    End,
+    GetData,
+    SetPredication,
+    GSSetShaderResources,
+    GSSetSamplers,
+    OMSetRenderTargets,
+    OMSetRenderTargetsAndUnorderedAccessViews,
+    OMSetBlendState,
+    OMSetDepthStencilState,
+    SOSetTargets,
+    DrawAuto,
+    DrawIndexedInstancedIndirect,
+    DrawInstancedIndirect,
+    Dispatch,
+    DispatchIndirect,
+    RSSetState,
+    RSSetViewports,
+    RSSetScissorRects,
+    CopySubresourceRegion,
+    CopyResource,
+    UpdateSubresource,
+    CopyStructureCount,
+    ClearRenderTargetView,
+    ClearUnorderedAccessViewUint,
+    ClearUnorderedAccessViewFloat,
+    ClearDepthStencilView,
+    GenerateMips,
+    SetResourceMinLOD,
+    GetResourceMinLOD,
+    ResolveSubresource,
+    ExecuteCommandList,
+    HSSetShaderResources,
+    HSSetShader,
+    HSSetSamplers,
+    HSSetConstantBuffers,
+    DSSetShaderResources,
+    DSSetShader,
+    DSSetSamplers,
+    DSSetConstantBuffers,
+    CSSetShaderResources,
+    CSSetUnorderedAccessViews,
+    CSSetShader,
+    CSSetSamplers,
+    CSSetConstantBuffers,
+    VSGetConstantBuffers,
+    PSGetShaderResources,
+    PSGetShader,
+    PSGetSamplers,
+    VSGetShader,
+    PSGetConstantBuffers,
+    IAGetInputLayout,
+    IAGetVertexBuffers,
+    IAGetIndexBuffer,
+    GSGetConstantBuffers,
+    GSGetShader,
+    IAGetPrimitiveTopology,
+    VSGetShaderResources,
+    VSGetSamplers,
+    GetPredication,
+    GSGetShaderResources,
+    GSGetSamplers,
+    OMGetRenderTargets,
+    OMGetRenderTargetsAndUnorderedAccessViews,
+    OMGetBlendState,
+    OMGetDepthStencilState,
+    SOGetTargets,
+    RSGetState,
+    RSGetViewports,
+    RSGetScissorRects,
+    HSGetShaderResources,
+    HSGetShader,
+    HSGetSamplers,
+    HSGetConstantBuffers,
+    DSGetShaderResources,
+    DSGetShader,
+    DSGetSamplers,
+    DSGetConstantBuffers,
+    CSGetShaderResources,
+    CSGetUnorderedAccessViews,
+    CSGetShader,
+    CSGetSamplers,
+    CSGetConstantBuffers,
+    ClearState,
+    Flush,
+    GetType,
+    GetContextFlags,
+    FinishCommandList,
+}
+impl Payload for D3DPayload {
+    fn title(&self) -> String {
+        match self {
+            _ => self.to_string(),
+        }
+    }
+
+    fn colour(&self) -> ig::Color {
+        let type_index = D3DPayloadDiscriminants::from(self) as u32;
+        let hue = type_index as f32 / D3DPayload::COUNT as f32;
+        ig::Color::from_hsv(hue, 0.6, 0.8)
+    }
+
+    fn draw(&self) -> anyhow::Result<()> {
+        Ok(())
     }
 }
 
 #[derive(Clone)]
-struct Command {
-    payload: CommandPayload,
+struct Command<PayloadType> {
+    payload: PayloadType,
+    address: Option<*const kernel::ShaderCommand>,
     backtrace: backtrace::Backtrace,
     thread_id: u32,
     duration: Duration,
 }
 
-const FRAMES_TO_CAPTURE: u32 = 1;
+type ShaderCommand = Command<ShaderPayload>;
+type D3DCommand = Command<D3DPayload>;
+
+struct Stream<CommandType> {
+    stream: Vec<CommandType>,
+    selected_index: Option<usize>,
+}
+
 enum CommandStreamState {
     Uncaptured,
     WantToCapture,
     Capturing {
         start_instant: Instant,
-        stream: Vec<Command>,
+        shader_stream: Vec<ShaderCommand>,
+        processed_shader_stream: Vec<ShaderCommand>,
+        d3d_stream: Vec<D3DCommand>,
         frames: u32,
     },
     Captured {
-        stream: Vec<Command>,
-        selected_index: Option<usize>,
+        shader_streams: HashMap<u32, Stream<ShaderCommand>>,
+        processed_shader_stream: Stream<ShaderCommand>,
+        d3d_stream: Stream<D3DCommand>,
     },
 }
 
@@ -94,6 +284,7 @@ struct InspectedTexture {
 struct CommandStreamUI {
     module_name_lookup: HashMap<*mut u8, String>,
     inspected_textures: HashMap<*const Texture, InspectedTexture>,
+    selected_cmd_address: Option<*const kernel::ShaderCommand>,
 }
 impl CommandStreamUI {
     pub fn new() -> CommandStreamUI {
@@ -106,6 +297,7 @@ impl CommandStreamUI {
         CommandStreamUI {
             module_name_lookup,
             inspected_textures,
+            selected_cmd_address: None,
         }
     }
 
@@ -135,7 +327,11 @@ impl CommandStreamUI {
         );
     }
 
-    fn draw_cmd(&mut self, index: usize, cmd: &Command) -> anyhow::Result<()> {
+    fn draw_cmd<PayloadType: Payload>(
+        &mut self,
+        index: usize,
+        cmd: &Command<PayloadType>,
+    ) -> anyhow::Result<()> {
         ig::begin_group();
         if ig::begin_child("Item view", Some(ig::Vec2::new(0.0, -1.0)), None, None)? {
             {
@@ -151,39 +347,19 @@ impl CommandStreamUI {
             ig::separator();
             {
                 ig::textf!("Thread ID: {}", cmd.thread_id);
+                if let Some(address) = cmd.address {
+                    ig::text("Pointer: ");
+                    ig::same_line(None, Some(0.0));
+                    if ig::small_button(&format!("{:X?}", address))? {
+                        self.selected_cmd_address = Some(address);
+                    }
+                }
                 ig::textf!("Timestamp: {:.3}ms", cmd.duration.as_secs_f64() * 1_000.0);
             }
 
             ig::separator();
             if ig::collapsing_header("Data", None, None)? {
-                match &cmd.payload {
-                    CommandPayload::SetRenderTargets(rts) => {
-                        ig::text("Render Targets: ");
-
-                        for rt in rts {
-                            ig::bullet();
-                            if ig::small_button(&format!("{:X?}", rt.0))? {
-                                self.inspect_texture(rt.0);
-                            }
-                        }
-                    }
-                    CommandPayload::CopyTexture { dst, src } => {
-                        ig::text("Destination: ");
-                        ig::same_line(None, Some(0.0));
-                        if ig::small_button(&format!("{:X?}", dst.0))? {
-                            self.inspect_texture(dst.0);
-                        }
-
-                        ig::text("Source: ");
-                        ig::same_line(None, Some(0.0));
-                        if ig::small_button(&format!("{:X?}", src.0))? {
-                            self.inspect_texture(src.0);
-                        }
-                    }
-                    _ => {
-                        ig::text("No additional data available.");
-                    }
-                }
+                cmd.payload.draw()?;
             }
 
             if ig::collapsing_header("Callstack", None, None)? {
@@ -192,7 +368,7 @@ impl CommandStreamUI {
                     ig::table_setup_column("Address", None, None, None)?;
                     ig::table_headers_row();
 
-                    for frame in cmd.backtrace.frames().iter().skip(10) {
+                    for frame in cmd.backtrace.frames().iter().skip(5) {
                         let mba = frame.module_base_address().unwrap_or(std::ptr::null_mut());
                         let address = unsafe { frame.ip().offset_from(mba) };
 
@@ -217,25 +393,34 @@ impl CommandStreamUI {
         Ok(())
     }
 
-    pub fn draw_captured(&mut self, state: &mut CommandStreamState) -> anyhow::Result<()> {
-        if let CommandStreamState::Captured {
-            stream,
-            ref mut selected_index,
-        } = state
-        {
+    pub fn draw_stream<PayloadType: Payload>(
+        &mut self,
+        title: &str,
+        stream: &mut Stream<Command<PayloadType>>,
+        select: bool,
+    ) -> anyhow::Result<()> {
+        if ig::begin_tab_item(
+            title,
+            None,
+            if select {
+                Some(ig::TabItemFlags::SetSelected)
+            } else {
+                None
+            },
+        )? {
             if ig::begin_child(
-                "Command Stream",
+                &format!("Command Stream ({})", title),
                 Some(ig::Vec2::new(300.0, 0.0)),
                 Some(true),
                 None,
             )? {
-                for (i, cmd) in stream.iter().enumerate() {
-                    let is_selected = *selected_index == Some(i);
+                for (i, cmd) in stream.stream.iter().enumerate() {
+                    let is_selected = stream.selected_index == Some(i);
                     let name = format!("{}: {}", i, cmd.payload.title());
 
                     ig::push_style_color(ig::Col::Text, cmd.payload.colour());
                     if ig::selectable(&name, Some(is_selected), None, None)? {
-                        *selected_index = Some(i);
+                        stream.selected_index = Some(i);
                     }
                     ig::pop_style_color(1);
 
@@ -247,9 +432,66 @@ impl CommandStreamUI {
             }
 
             ig::same_line(None, None);
-            if let Some(index) = selected_index {
-                let cmd = &stream[*index];
-                self.draw_cmd(*index, cmd)?;
+            if let Some(index) = stream.selected_index {
+                let cmd = &stream.stream[index];
+                self.draw_cmd(index, cmd)?;
+            }
+            ig::end_tab_item();
+        }
+
+        Ok(())
+    }
+
+    pub fn draw_captured(&mut self, state: &mut CommandStreamState) -> anyhow::Result<()> {
+        if let CommandStreamState::Captured {
+            shader_streams,
+            processed_shader_stream,
+            d3d_stream,
+        } = state
+        {
+            if ig::begin_tab_bar("xivr_debugger_command_stream_tabs", None)? {
+                let mut selected_thread_id = None;
+                for (thread_id, shader_stream) in shader_streams.iter_mut() {
+                    let mut select = false;
+                    if let Some(selected_cmd_address) = self.selected_cmd_address {
+                        if let Some(index) = shader_stream
+                            .stream
+                            .iter()
+                            .position(|cmd| cmd.address == Some(selected_cmd_address))
+                        {
+                            shader_stream.selected_index = Some(index);
+                            self.selected_cmd_address = None;
+                            selected_thread_id = Some(*thread_id);
+                        }
+                    }
+                }
+
+                if ig::begin_tab_item(
+                    "Game",
+                    None,
+                    if selected_thread_id.is_some() {
+                        Some(ig::TabItemFlags::SetSelected)
+                    } else {
+                        None
+                    },
+                )? {
+                    if ig::begin_tab_bar("xivr_debugger_command_stream_tabs_game", None)? {
+                        for (thread_id, shader_stream) in shader_streams {
+                            self.draw_stream(
+                                &format!("{}", thread_id),
+                                shader_stream,
+                                selected_thread_id == Some(*thread_id),
+                            )?;
+                        }
+                        ig::end_tab_bar();
+                    }
+                    ig::end_tab_item();
+                }
+                self.draw_stream("Game (Processed)", processed_shader_stream, false)?;
+                if ct_config::rendering::CAPTURE_D3D_COMMANDS {
+                    self.draw_stream("D3D", d3d_stream, false)?;
+                }
+                ig::end_tab_bar();
             }
         }
 
@@ -291,23 +533,15 @@ impl CommandStreamUI {
     }
 
     fn draw(&mut self, state: &mut CommandStreamState) -> anyhow::Result<()> {
-        ig::new_line();
         {
-            ig::same_line(None, Some(0.0));
             if ig::button("Capture", None)? {
                 *state = CommandStreamState::WantToCapture;
-            }
-
-            ig::same_line(None, None);
-            if let CommandStreamState::Captured { stream, .. } = state {
-                ig::textf!("{} commands", stream.len());
             }
         }
 
         if let CommandStreamState::Captured { .. } = state {
             self.draw_captured(state)?;
         } else {
-            ig::new_line();
             ig::separator();
             ig::text("Capture a frame to proceed.");
         }
@@ -356,7 +590,9 @@ impl CommandStream {
     pub fn start_capture(&mut self) -> anyhow::Result<()> {
         self.state = CommandStreamState::Capturing {
             start_instant: Instant::now(),
-            stream: vec![],
+            shader_stream: vec![],
+            processed_shader_stream: vec![],
+            d3d_stream: vec![],
             frames: 0,
         };
 
@@ -365,70 +601,153 @@ impl CommandStream {
     }
 
     pub fn end_capture(&mut self) -> anyhow::Result<()> {
-        if let CommandStreamState::Capturing { stream, .. } = &self.state {
+        if let CommandStreamState::Capturing {
+            shader_stream,
+            processed_shader_stream,
+            d3d_stream,
+            ..
+        } = &self.state
+        {
+            let mut shader_streams = HashMap::new();
+            for cmd in shader_stream {
+                shader_streams
+                    .entry(cmd.thread_id)
+                    .or_insert(Stream {
+                        stream: vec![],
+                        selected_index: None,
+                    })
+                    .stream
+                    .push(cmd.clone());
+            }
+
             self.state = CommandStreamState::Captured {
-                stream: stream.clone(),
-                selected_index: None,
+                shader_streams,
+                processed_shader_stream: Stream {
+                    stream: processed_shader_stream.clone(),
+                    selected_index: None,
+                },
+                d3d_stream: Stream {
+                    stream: d3d_stream.clone(),
+                    selected_index: None,
+                },
             };
         }
         log!("Ending command stream capture");
         Ok(())
     }
 
-    fn push_back_command(&mut self, payload: CommandPayload) -> anyhow::Result<()> {
-        if let CommandStreamState::Capturing {
-            stream,
-            start_instant,
-            ..
-        } = &mut self.state
-        {
-            use bindings::Windows::Win32::System::Threading::GetCurrentThreadId;
-            let backtrace = backtrace::Backtrace::new_unresolved();
-
-            stream.push(Command {
-                payload,
-                backtrace,
-                thread_id: unsafe { GetCurrentThreadId() },
-                duration: Instant::now() - *start_instant,
-            });
+    pub fn is_capturing(&self) -> bool {
+        match self.state {
+            CommandStreamState::Capturing { .. } => true,
+            _ => false,
         }
+    }
+
+    fn push_back_command_to_stream<PayloadType>(
+        stream: &mut Vec<Command<PayloadType>>,
+        address: Option<*const kernel::ShaderCommand>,
+        start_instant: &Instant,
+        payload: PayloadType,
+    ) -> anyhow::Result<()> {
+        use bindings::Windows::Win32::System::Threading::GetCurrentThreadId;
+        let backtrace = backtrace::Backtrace::new_unresolved();
+
+        stream.push(Command::<PayloadType> {
+            payload,
+            address,
+            backtrace,
+            thread_id: unsafe { GetCurrentThreadId() },
+            duration: Instant::now() - *start_instant,
+        });
 
         Ok(())
     }
 
-    pub fn add_command(&mut self, cmd: &'static ShaderCommand) -> anyhow::Result<()> {
-        self.push_back_command(match cmd.cmd_type {
+    fn push_back_command(
+        &mut self,
+        address: Option<*const kernel::ShaderCommand>,
+        payload: ShaderPayload,
+    ) -> anyhow::Result<()> {
+        match &mut self.state {
+            CommandStreamState::Capturing {
+                shader_stream,
+                start_instant,
+                ..
+            } => Self::push_back_command_to_stream(shader_stream, address, start_instant, payload),
+            _ => Ok(()),
+        }
+    }
+
+    fn shader_command_to_payload(cmd: &'static kernel::ShaderCommand) -> ShaderPayload {
+        match cmd.cmd_type {
             ShaderCommandType::SetRenderTargets => unsafe {
                 let rts = cmd.payload.set_render_targets.get_render_target_slice();
-                CommandPayload::SetRenderTargets(rts.iter().map(|x| Ptr(*x)).collect())
+                ShaderPayload::SetRenderTargets(rts.iter().map(|x| Ptr(*x)).collect())
             },
-            ShaderCommandType::SetViewports => CommandPayload::SetViewports,
-            ShaderCommandType::SetViewportsFancy => CommandPayload::SetViewportsFancy,
-            ShaderCommandType::SetScissorRect => CommandPayload::SetScissorRect,
-            ShaderCommandType::Clear => CommandPayload::Clear,
-            ShaderCommandType::Draw => CommandPayload::Draw,
-            ShaderCommandType::DrawIndexed => CommandPayload::DrawIndexed,
-            ShaderCommandType::DrawIndexedInstanced => CommandPayload::DrawIndexedInstanced,
-            ShaderCommandType::DispatchComputeShader => CommandPayload::DispatchComputeShader,
-            ShaderCommandType::XIVRHijack => CommandPayload::XIVRHijack,
+            ShaderCommandType::SetViewports => ShaderPayload::SetViewports,
+            ShaderCommandType::SetViewportsFancy => ShaderPayload::SetViewportsFancy,
+            ShaderCommandType::SetScissorRect => ShaderPayload::SetScissorRect,
+            ShaderCommandType::Clear => ShaderPayload::Clear,
+            ShaderCommandType::Draw => ShaderPayload::Draw,
+            ShaderCommandType::DrawIndexed => ShaderPayload::DrawIndexed,
+            ShaderCommandType::DrawIndexedInstanced => ShaderPayload::DrawIndexedInstanced,
+            ShaderCommandType::DispatchComputeShader => ShaderPayload::DispatchComputeShader,
+            ShaderCommandType::XIVRHijack => ShaderPayload::XIVRHijack,
             ShaderCommandType::CopyTexture => unsafe {
                 let p = &cmd.payload.copy_texture;
-                CommandPayload::CopyTexture {
+                ShaderPayload::CopyTexture {
                     dst: Ptr(*p.dst_resource_ptr()),
                     src: Ptr(*p.src_resource_ptr()),
                 }
             },
-            ShaderCommandType::UnknownDraw => CommandPayload::UnknownDraw,
-            ShaderCommandType::CopyResource => CommandPayload::CopyResource,
-            ShaderCommandType::ResetRendererMaybe => CommandPayload::ResetRendererMaybe,
-            ShaderCommandType::Unknown1 => CommandPayload::Unknown1,
-            ShaderCommandType::CopySubresourceRegion => CommandPayload::CopySubresourceRegion,
-            ShaderCommandType::SomethingWithStrings => CommandPayload::SomethingWithStrings,
-        })
+            ShaderCommandType::UnknownDraw => ShaderPayload::UnknownDraw,
+            ShaderCommandType::CopyResource => ShaderPayload::CopyResource,
+            ShaderCommandType::ResetRendererMaybe => ShaderPayload::ResetRendererMaybe,
+            ShaderCommandType::Unknown1 => ShaderPayload::Unknown1,
+            ShaderCommandType::CopySubresourceRegion => ShaderPayload::CopySubresourceRegion,
+            ShaderCommandType::SomethingWithStrings => ShaderPayload::SomethingWithStrings,
+        }
+    }
+
+    pub fn add_command(&mut self, cmd: &'static kernel::ShaderCommand) -> anyhow::Result<()> {
+        self.push_back_command(
+            Some(cmd as *const kernel::ShaderCommand),
+            Self::shader_command_to_payload(cmd),
+        )
     }
 
     pub fn add_marker(&mut self, msg: &str) -> anyhow::Result<()> {
-        self.push_back_command(CommandPayload::XIVRMarker(msg.to_string()))
+        self.push_back_command(None, ShaderPayload::XIVRMarker(msg.to_string()))
+    }
+
+    pub fn add_processed_command(
+        &mut self,
+        cmd: &'static kernel::ShaderCommand,
+    ) -> anyhow::Result<()> {
+        match &mut self.state {
+            CommandStreamState::Capturing {
+                processed_shader_stream,
+                start_instant,
+                ..
+            } => Self::push_back_command_to_stream(
+                processed_shader_stream,
+                Some(cmd as *const kernel::ShaderCommand),
+                start_instant,
+                Self::shader_command_to_payload(cmd),
+            ),
+            _ => Ok(()),
+        }
+    }
+
+    pub fn add_d3d_command(&mut self, payload: D3DPayload) -> anyhow::Result<()> {
+        match &mut self.state {
+            CommandStreamState::Capturing {
+                d3d_stream,
+                start_instant,
+                ..
+            } => Self::push_back_command_to_stream(d3d_stream, None, start_instant, payload),
+            _ => Ok(()),
+        }
     }
 
     pub fn draw_ui(&mut self) -> anyhow::Result<()> {

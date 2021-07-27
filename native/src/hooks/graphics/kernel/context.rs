@@ -27,6 +27,8 @@ fn context_pushbackcmd_hook(ctx: usize, cmd: &'static ShaderCommand) -> usize {
     Context_PushBackCmd_Detour.call(ctx, cmd)
 }
 
+// TODO: Consider hooking SortRenderCommands and implementing our own sort algorithm on (pad, sort_key)
+
 pub unsafe fn install() -> anyhow::Result<HookState> {
     use std::mem;
 
