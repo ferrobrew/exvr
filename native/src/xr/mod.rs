@@ -275,17 +275,16 @@ impl XR {
     pub fn draw_ui_framebuffers(&mut self) -> anyhow::Result<()> {
         use cimgui as ig;
 
-        let size = ig::Vec2::new(
-            self.frame_size.0 as f32 / 8.0,
-            self.frame_size.1 as f32 / 8.0,
-        );
+        let ig::Vec2 { x: width, .. } = ig::get_window_size();
+        let inverse_aspect_ratio = self.frame_size.1 as f32 / self.frame_size.0 as f32;
+        let srv_width = (width * 0.5) - 16.0;
 
         if ig::begin_table("xivr_debug_tab_framebuffers_table", 2, None, None, None)? {
             for buffer_srv in self.buffer_srvs.iter() {
                 ig::table_next_column();
                 ig::image(
                     buffer_srv.abi(),
-                    size,
+                    ig::Vec2::new(srv_width, srv_width * inverse_aspect_ratio),
                     None,
                     None,
                     None,
@@ -293,18 +292,6 @@ impl XR {
                 );
             }
             ig::end_table();
-        }
-
-        unsafe {
-            let texture: &'static _ = *((*kernel::Device::get().swapchain_ptr()).back_buffer_ptr());
-            ig::image(
-                (*texture.shader_resource_view_ptr()).abi(),
-                size,
-                None,
-                None,
-                None,
-                Some(ig::Color::ONE),
-            );
         }
 
         Ok(())
@@ -315,8 +302,6 @@ impl XR {
         use cimgui as ig;
 
         if ig::collapsing_header("Config", None, Some(ig::TreeNodeFlags::DefaultOpen))? {
-            use crate::ct_config::*;
-
             ig::bulletf!("data.yml version: {}", crate::game::VERSION);
         }
 

@@ -89,52 +89,104 @@ impl Debugger {
         Ok(open)
     }
 
-    pub fn draw_render_targets(&mut self) -> anyhow::Result<()> {
-        use crate::game::graphics::render;
+    fn draw_render_target(
+        &mut self,
+        description: &str,
+        texture: *const Texture,
+    ) -> anyhow::Result<()> {
         use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
         use cimgui as ig;
 
-        let textures = render::RenderTargetManager::get().get_render_targets();
-        if ig::begin_table("xivr_debug_tab_rt_list_table", 5, None, None, None)? {
-            ig::table_setup_column("Address", None, None, None)?;
-            ig::table_setup_column("Offset", None, None, None)?;
-            ig::table_setup_column("Width", None, None, None)?;
-            ig::table_setup_column("Height", None, None, None)?;
-            ig::table_setup_column("Format", None, None, None)?;
-            ig::table_headers_row();
+        let mut desc: d3d::D3D11_TEXTURE2D_DESC = unsafe { std::mem::zeroed() };
+        unsafe {
+            (*(*texture).texture_ptr()).GetDesc(&mut desc);
+        }
 
-            for (offset, texture) in textures.into_iter() {
-                let mut desc: d3d::D3D11_TEXTURE2D_DESC = unsafe { std::mem::zeroed() };
-                unsafe {
-                    (*(*texture).texture_ptr()).GetDesc(&mut desc);
-                }
+        const PREVIEW_HEIGHT: f32 = 64.0;
+        ig::table_next_row(None, None);
+        {
+            use windows::Abi;
+            let aspect_ratio = desc.Width as f32 / desc.Height as f32;
+            let rt_size = ig::Vec2::new(aspect_ratio * PREVIEW_HEIGHT, PREVIEW_HEIGHT);
 
-                ig::table_next_row(None, None);
-                {
-                    ig::table_next_column();
-                    if ig::button(&format!("{:X?}", texture), None)? {
-                        self.inspect_texture(texture);
-                    }
-                }
-                {
-                    ig::table_next_column();
-                    ig::textf!("0x{:X}", offset);
-                }
-                {
-                    ig::table_next_column();
-                    ig::textf!("{}", desc.Width);
-                }
-                {
-                    ig::table_next_column();
-                    ig::textf!("{}", desc.Height);
-                }
-                {
-                    ig::table_next_column();
-                    ig::textf!("{:?}", desc.Format);
-                }
+            ig::table_next_column();
+            let img = unsafe { (*(*texture).shader_resource_view_ptr()).abi() };
+            if ig::image_button(
+                img,
+                rt_size,
+                None,
+                None,
+                None,
+                Some(ig::Color::new(0.0, 0.0, 0.0, 1.0)),
+                None,
+            ) {
+                self.inspect_texture(texture);
             }
+        }
+        {
+            ig::table_next_column();
+            ig::textf!("{:X?}", texture);
+        }
+        {
+            ig::table_next_column();
+            ig::text(description);
+        }
+        {
+            ig::table_next_column();
+            ig::textf!("{}", desc.Width);
+        }
+        {
+            ig::table_next_column();
+            ig::textf!("{}", desc.Height);
+        }
+        {
+            ig::table_next_column();
+            ig::textf!("{:?}", desc.Format);
+        }
 
-            ig::end_table();
+        Ok(())
+    }
+
+    pub fn draw_render_targets(&mut self) -> anyhow::Result<()> {
+        use crate::game::graphics::{kernel, render};
+        use cimgui as ig;
+
+        if ig::collapsing_header("Swapchain", None, None)? {
+            let swapchain = unsafe { &*kernel::Device::get().swapchain_ptr() };
+            if ig::begin_table("xivr_debug_tab_rts_swapchain", 6, None, None, None)? {
+                ig::table_setup_column("Preview", None, None, None)?;
+                ig::table_setup_column("Address", None, None, None)?;
+                ig::table_setup_column("Description", None, None, None)?;
+                ig::table_setup_column("Width", None, None, None)?;
+                ig::table_setup_column("Height", None, None, None)?;
+                ig::table_setup_column("Format", None, None, None)?;
+                ig::table_headers_row();
+
+                self.draw_render_target("Backbuffer", unsafe {
+                    *swapchain.back_buffer_ptr() as *const Texture
+                })?;
+
+                ig::end_table();
+            }
+        }
+
+        if ig::collapsing_header("Render Target Manager", None, None)? {
+            let textures = render::RenderTargetManager::get().get_render_targets();
+            if ig::begin_table("xivr_debug_tab_rts_rtm", 6, None, None, None)? {
+                ig::table_setup_column("Preview", None, None, None)?;
+                ig::table_setup_column("Address", None, None, None)?;
+                ig::table_setup_column("Offset", None, None, None)?;
+                ig::table_setup_column("Width", None, None, None)?;
+                ig::table_setup_column("Height", None, None, None)?;
+                ig::table_setup_column("Format", None, None, None)?;
+                ig::table_headers_row();
+
+                for (offset, texture) in textures.into_iter() {
+                    self.draw_render_target(&format!("0x{:X}", offset), texture)?;
+                }
+
+                ig::end_table();
+            }
         }
 
         Ok(())

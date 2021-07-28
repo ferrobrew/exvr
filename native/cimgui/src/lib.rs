@@ -1,4 +1,5 @@
 use std::ffi::{CString, NulError};
+use std::mem::MaybeUninit;
 
 #[allow(non_upper_case_globals)]
 #[allow(non_camel_case_types)]
@@ -115,10 +116,18 @@ impl Color {
     pub const ZERO: Color = Color { Value: Vec4::ZERO };
     pub const ONE: Color = Color { Value: Vec4::ONE };
 
+    pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
+        Color {
+            Value: Vec4::new(r, g, b, a),
+        }
+    }
+
     pub fn from_hsv(h: f32, s: f32, v: f32) -> Color {
-        let mut col: sys::ImColor = unsafe { std::mem::zeroed() };
-        unsafe { sys::ImColor_SetHSV(&mut col, h, s, v, 1.0) };
-        col
+        let mut col = MaybeUninit::<Color>::uninit();
+        unsafe {
+            sys::ImColor_SetHSV(col.as_mut_ptr(), h, s, v, 1.0);
+            col.assume_init()
+        }
     }
 }
 impl From<Color> for Vec4 {
@@ -715,6 +724,22 @@ pub fn begin_child(
     }
 }
 
+pub fn get_window_pos() -> Vec2 {
+    let mut ret = MaybeUninit::<Vec2>::uninit();
+    unsafe {
+        sys::igGetWindowPos(ret.as_mut_ptr());
+        ret.assume_init()
+    }
+}
+
+pub fn get_window_size() -> Vec2 {
+    let mut ret = MaybeUninit::<Vec2>::uninit();
+    unsafe {
+        sys::igGetWindowSize(ret.as_mut_ptr());
+        ret.assume_init()
+    }
+}
+
 pub fn set_next_window_size(size: Vec2, cond: Option<Cond>) {
     unsafe { sys::igSetNextWindowSize(size, cond.unwrap_or(Cond::None) as i32) }
 }
@@ -803,6 +828,28 @@ pub fn image(
             uv1.unwrap_or(Vec2::ONE),
             tint_col.unwrap_or(Color::ONE).into(),
             border_col.unwrap_or(Color::ZERO).into(),
+        )
+    }
+}
+
+pub fn image_button(
+    user_texture_id: TextureID,
+    size: Vec2,
+    uv0: Option<Vec2>,
+    uv1: Option<Vec2>,
+    frame_padding: Option<i32>,
+    bg_col: Option<Color>,
+    tint_col: Option<Color>,
+) -> bool {
+    unsafe {
+        sys::igImageButton(
+            user_texture_id,
+            size,
+            uv0.unwrap_or(Vec2::ZERO),
+            uv1.unwrap_or(Vec2::ONE),
+            frame_padding.unwrap_or(-1),
+            bg_col.unwrap_or(Color::ZERO).into(),
+            tint_col.unwrap_or(Color::ONE).into(),
         )
     }
 }

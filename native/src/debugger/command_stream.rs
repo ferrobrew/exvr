@@ -6,7 +6,6 @@ use crate::debugger::shader_payload::*;
 
 use crate::game::graphics::kernel;
 use crate::game::graphics::kernel::ShaderCommandType;
-use crate::log;
 use crate::module::Module;
 
 use std::collections::HashMap;
