@@ -57,32 +57,35 @@ impl Payload for ShaderPayload {
     }
 
     fn draw(&self) -> anyhow::Result<()> {
-        match self {
-            ShaderPayload::SetRenderTargets(rts) => {
-                ig::text("Render Targets: ");
+        use crate::debugger::Debugger;
+        if let Some(debugger) = Debugger::get_mut() {
+            match self {
+                ShaderPayload::SetRenderTargets(rts) => {
+                    ig::text("Render Targets: ");
 
-                for rt in rts {
-                    ig::bullet();
-                    if ig::small_button(&format!("{:X?}", rt.0))? {
-                        // self.inspect_texture(rt.0);
+                    for rt in rts {
+                        ig::bullet();
+                        if ig::small_button(&format!("{:X?}", rt.0))? {
+                            debugger.inspect_texture(rt.0);
+                        }
                     }
                 }
-            }
-            ShaderPayload::CopyTexture { dst, src } => {
-                ig::text("Destination: ");
-                ig::same_line(None, Some(0.0));
-                if ig::small_button(&format!("{:X?}", dst.0))? {
-                    // self.inspect_texture(dst.0);
-                }
+                ShaderPayload::CopyTexture { dst, src } => {
+                    ig::text("Destination: ");
+                    ig::same_line(None, Some(0.0));
+                    if ig::small_button(&format!("{:X?}", dst.0))? {
+                        debugger.inspect_texture(dst.0);
+                    }
 
-                ig::text("Source: ");
-                ig::same_line(None, Some(0.0));
-                if ig::small_button(&format!("{:X?}", src.0))? {
-                    // self.inspect_texture(src.0);
+                    ig::text("Source: ");
+                    ig::same_line(None, Some(0.0));
+                    if ig::small_button(&format!("{:X?}", src.0))? {
+                        debugger.inspect_texture(src.0);
+                    }
                 }
-            }
-            _ => {
-                ig::text("No additional data available.");
+                _ => {
+                    ig::text("No additional data available.");
+                }
             }
         }
 

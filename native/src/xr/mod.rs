@@ -36,8 +36,6 @@ pub struct XR {
 
     old_window_size: (u32, u32),
     frame_size: (u32, u32),
-
-    tracked_rt_index: u32,
 }
 singleton!(XR);
 
@@ -249,8 +247,6 @@ impl XR {
 
             old_window_size,
             frame_size: new_window_size,
-
-            tracked_rt_index: 0,
         })
     }
 
@@ -318,10 +314,10 @@ impl XR {
     }
 
     pub fn draw_ui_framebuffers(&mut self) -> anyhow::Result<()> {
-                let size = ig::Vec2::new(
-                    self.frame_size.0 as f32 / 8.0,
-                    self.frame_size.1 as f32 / 8.0,
-                );
+        let size = ig::Vec2::new(
+            self.frame_size.0 as f32 / 8.0,
+            self.frame_size.1 as f32 / 8.0,
+        );
 
         if ig::begin_table("xivr_debug_tab_framebuffers_table", 2, None, None, None)? {
             for buffer_srv in self.buffer_srvs.iter() {
@@ -348,71 +344,6 @@ impl XR {
                 None,
                 Some(ig::Color::ONE),
             );
-        }
-
-        Ok(())
-    }
-
-    pub fn draw_ui_render_targets(&mut self) -> anyhow::Result<()> {
-        let textures = render::RenderTargetManager::get().get_render_targets();
-
-        {
-            let texture = textures[self.tracked_rt_index as usize].1;
-            let srv = unsafe { &(*(*texture).shader_resource_view_ptr()) };
-            let size = ig::Vec2::new(
-                self.frame_size.0 as f32 / 8.0,
-                self.frame_size.1 as f32 / 8.0,
-            );
-            ig::image(srv.abi(), size, None, None, None, None);
-        }
-
-        if ig::begin_table("xivr_debug_tab_rt_list_table", 7, None, None, None)? {
-            ig::table_setup_column("Active", None, None, None)?;
-            ig::table_setup_column("Offset", None, None, None)?;
-            ig::table_setup_column("Address", None, None, None)?;
-            ig::table_setup_column("Width", None, None, None)?;
-            ig::table_setup_column("Height", None, None, None)?;
-            ig::table_setup_column("Format", None, None, None)?;
-            ig::table_headers_row();
-
-            for (i, (offset, texture)) in textures.into_iter().enumerate() {
-                let mut desc: d3d::D3D11_TEXTURE2D_DESC = unsafe { std::mem::zeroed() };
-                unsafe {
-                    (*(*texture).texture_ptr()).GetDesc(&mut desc);
-                }
-
-                ig::table_next_row(None, None);
-                ig::table_next_column();
-                {
-                    let tracked = self.tracked_rt_index == (i as u32);
-                    let label = format!("{}###{}", if tracked { "X" } else { " " }, i);
-                    if ig::button(&label, None)? {
-                        self.tracked_rt_index = i as u32;
-                    }
-                }
-                {
-                    ig::table_next_column();
-                    ig::textf!("{:X}", offset);
-                }
-                {
-                    ig::table_next_column();
-                    ig::textf!("{:X?}", texture);
-                }
-                {
-                    ig::table_next_column();
-                    ig::textf!("{}", desc.Width);
-                }
-                {
-                    ig::table_next_column();
-                    ig::textf!("{}", desc.Height);
-                }
-                {
-                    ig::table_next_column();
-                    ig::textf!("{:?}", desc.Format);
-                }
-            }
-
-            ig::end_table();
         }
 
         Ok(())

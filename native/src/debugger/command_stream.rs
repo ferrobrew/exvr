@@ -5,7 +5,7 @@ use crate::debugger::payload::*;
 use crate::debugger::shader_payload::*;
 
 use crate::game::graphics::kernel;
-use crate::game::graphics::kernel::{ShaderCommandType, Texture};
+use crate::game::graphics::kernel::ShaderCommandType;
 use crate::log;
 use crate::module::Module;
 
@@ -38,17 +38,8 @@ enum CommandStreamState {
         d3d_stream: Stream<D3DCommand>,
     },
 }
-
-struct InspectedTexture {
-    texture: *const Texture,
-    width: u32,
-    height: u32,
-    format: u32,
-}
-
 struct CommandStreamUI {
     module_name_lookup: HashMap<*mut u8, String>,
-    inspected_textures: HashMap<*const Texture, InspectedTexture>,
     selected_cmd_address: Option<*const kernel::ShaderCommand>,
 }
 impl CommandStreamUI {
@@ -57,11 +48,9 @@ impl CommandStreamUI {
             .iter()
             .map(|m| (m.base, m.filename().unwrap_or("unknown".to_string())))
             .collect();
-        let inspected_textures = HashMap::new();
 
         CommandStreamUI {
             module_name_lookup,
-            inspected_textures,
             selected_cmd_address: None,
         }
     }
@@ -71,25 +60,6 @@ impl CommandStreamUI {
             .get(&(mba as *mut _))
             .cloned()
             .unwrap_or(format!("{:X?}", mba))
-    }
-
-    fn inspect_texture(&mut self, texture: *const Texture) {
-        use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
-
-        let mut desc: d3d::D3D11_TEXTURE2D_DESC = unsafe { std::mem::zeroed() };
-        unsafe {
-            (*(*texture).texture_ptr()).GetDesc(&mut desc);
-        }
-
-        self.inspected_textures.insert(
-            texture,
-            InspectedTexture {
-                texture,
-                width: desc.Width as u32,
-                height: desc.Height as u32,
-                format: desc.Format.0 as u32,
-            },
-        );
     }
 
     fn draw_cmd<PayloadType: Payload>(
@@ -262,40 +232,6 @@ impl CommandStreamUI {
         Ok(())
     }
 
-    fn draw_inspected_texture(&self, tex: &InspectedTexture) -> anyhow::Result<bool> {
-        let mut open = true;
-        let rt_size = ig::Vec2::new(tex.width as f32 / 4.0, tex.height as f32 / 4.0);
-
-        ig::set_next_window_size(
-            ig::Vec2::new(rt_size.x, rt_size.y + 150.0),
-            Some(ig::Cond::FirstUseEver),
-        );
-        if ig::begin(
-            &format!("Texture {:X?}", tex.texture),
-            Some(&mut open),
-            None,
-        )? {
-            use windows::Abi;
-
-            ig::image(
-                unsafe { (*(*tex.texture).shader_resource_view_ptr()).abi() },
-                rt_size,
-                None,
-                None,
-                None,
-                None,
-            );
-
-            ig::textf!("Width: {}", tex.width);
-            ig::textf!("Height: {}", tex.height);
-            ig::textf!("Format: {}", tex.format);
-
-            ig::end();
-        }
-
-        Ok(open)
-    }
-
     fn draw(&mut self, state: &mut CommandStreamState) -> anyhow::Result<()> {
         {
             if ig::button("Capture", None)? {
@@ -308,16 +244,6 @@ impl CommandStreamUI {
         } else {
             ig::separator();
             ig::text("Capture a frame to proceed.");
-        }
-
-        let mut textures_to_remove = vec![];
-        for inspected_texture in self.inspected_textures.values() {
-            if !self.draw_inspected_texture(&inspected_texture)? {
-                textures_to_remove.push(inspected_texture.texture);
-            }
-        }
-        for texture in textures_to_remove {
-            self.inspected_textures.remove(&texture);
         }
 
         Ok(())
