@@ -8,7 +8,6 @@ use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
 use bindings::Windows::Win32::Graphics::Dxgi as dxgi;
 use windows::Abi;
 
-use cimgui as ig;
 use openxr;
 
 pub use crate::ct_config::xr::VIEW_COUNT;
@@ -36,6 +35,10 @@ pub struct XR {
 
     old_window_size: (u32, u32),
     frame_size: (u32, u32),
+
+    instance_properties: openxr::InstanceProperties,
+    system_properties: openxr::SystemProperties,
+    available_extensions: openxr::ExtensionSet,
 }
 singleton!(XR);
 
@@ -57,47 +60,7 @@ impl XR {
             &enabled_extensions,
             &[],
         )?;
-
-        let instance_props = instance.properties()?;
-        log!(
-            "loaded OpenXR runtime: {} {}",
-            instance_props.runtime_name,
-            instance_props.runtime_version
-        );
-
-        log!("extensions of interest supported:");
-        log!(
-            "  ext_performance_settings: {}",
-            available_extensions.ext_performance_settings
-        );
-        log!(
-            "  ext_debug_utils: {}",
-            available_extensions.ext_debug_utils
-        );
-        log!(
-            "  ext_eye_gaze_interaction: {}",
-            available_extensions.ext_eye_gaze_interaction
-        );
-        log!(
-            "  ext_hand_tracking: {}",
-            available_extensions.ext_hand_tracking
-        );
-        log!(
-            "  ext_hand_joints_motion_range: {}",
-            available_extensions.ext_hand_joints_motion_range
-        );
-        log!(
-            "  msft_hand_interaction: {}",
-            available_extensions.msft_hand_interaction
-        );
-        log!(
-            "  msft_hand_tracking_mesh: {}",
-            available_extensions.msft_hand_tracking_mesh
-        );
-        log!(
-            "  msft_controller_model: {}",
-            available_extensions.msft_controller_model
-        );
+        let instance_properties = instance.properties()?;
 
         // Request a form factor from the device (HMD, Handheld, etc.)
         let system = instance.system(openxr::FormFactor::HEAD_MOUNTED_DISPLAY)?;
@@ -112,14 +75,6 @@ impl XR {
         let _reqs = instance.graphics_requirements::<openxr::D3D11>(system)?;
 
         let system_properties = instance.system_properties(system)?;
-        log!(
-            "system properties: {} ({}:{:?}), orientation {}, position {}",
-            system_properties.system_name,
-            system_properties.vendor_id,
-            system_properties.system_id,
-            system_properties.tracking_properties.orientation_tracking,
-            system_properties.tracking_properties.position_tracking
-        );
 
         let views = instance.enumerate_view_configuration_views(system, VIEW_TYPE)?;
         assert_eq!(
@@ -247,6 +202,10 @@ impl XR {
 
             old_window_size,
             frame_size: new_window_size,
+
+            instance_properties,
+            system_properties,
+            available_extensions,
         })
     }
 
@@ -314,6 +273,8 @@ impl XR {
     }
 
     pub fn draw_ui_framebuffers(&mut self) -> anyhow::Result<()> {
+        use cimgui as ig;
+
         let size = ig::Vec2::new(
             self.frame_size.0 as f32 / 8.0,
             self.frame_size.1 as f32 / 8.0,
@@ -344,6 +305,51 @@ impl XR {
                 None,
                 Some(ig::Color::ONE),
             );
+        }
+
+        Ok(())
+    }
+
+    #[rustfmt::skip]
+    pub fn draw_ui_properties(&mut self) -> anyhow::Result<()> {
+        use cimgui as ig;
+
+        if ig::collapsing_header("Config", None, Some(ig::TreeNodeFlags::DefaultOpen))? {
+            use crate::ct_config::*;
+
+            ig::bulletf!("data.yml version: {}", crate::game::VERSION);
+        }
+
+        if ig::collapsing_header("Instance Properties", None, Some(ig::TreeNodeFlags::DefaultOpen))? {
+            let inst_props = &self.instance_properties;
+            ig::bulletf!("Runtime name: {}", inst_props.runtime_name);
+            ig::bulletf!("Runtime version: {}", inst_props.runtime_version);
+        }
+
+        if ig::collapsing_header("System Properties", None, Some(ig::TreeNodeFlags::DefaultOpen))? {
+            let sys_props = &self.system_properties;
+            ig::bulletf!("System name: {}", sys_props.system_name);
+            ig::bulletf!("Vendor ID: {}", sys_props.vendor_id);
+            ig::bulletf!("System ID: {:?}", sys_props.system_id);
+            ig::bulletf!("Orientation Tracking: {}", sys_props.tracking_properties.orientation_tracking);
+            ig::bulletf!("Position Tracking: {}", sys_props.tracking_properties.position_tracking);
+        }
+
+        if ig::collapsing_header("Extensions", None, Some(ig::TreeNodeFlags::DefaultOpen))? {
+            let exts = &self.available_extensions;
+            ig::bulletf!("ext_performance_settings: {}", exts.ext_performance_settings);
+            ig::bulletf!("ext_debug_utils: {}", exts.ext_debug_utils);
+            ig::bulletf!("ext_eye_gaze_interaction: {}", exts.ext_eye_gaze_interaction);
+            ig::bulletf!("ext_hand_tracking: {}", exts.ext_hand_tracking);
+            ig::bulletf!("ext_hand_joints_motion_range: {}", exts.ext_hand_joints_motion_range);
+            ig::bulletf!("msft_hand_interaction: {}", exts.msft_hand_interaction);
+            ig::bulletf!("msft_hand_tracking_mesh: {}", exts.msft_hand_tracking_mesh);
+            ig::bulletf!("msft_controller_model: {}", exts.msft_controller_model);
+        }
+
+        if ig::collapsing_header("Frame", None, Some(ig::TreeNodeFlags::DefaultOpen))? {
+            ig::bulletf!("Frame size: {}x{}", self.frame_size.0, self.frame_size.1);
+            ig::bulletf!("Original window size: {}x{}", self.old_window_size.0, self.old_window_size.1);
         }
 
         Ok(())

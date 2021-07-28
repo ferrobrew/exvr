@@ -152,528 +152,528 @@ impl Payload for D3DPayload {
     fn draw(&self) -> anyhow::Result<()> {
         match self {
             Self::QueryInterface(riid, ppvObject) => {
-                ig::bullet(); ig::textf!("riid: {:?}", riid);
-                ig::bullet(); ig::textf!("ppvObject: {:?}", ppvObject);
+                ig::bulletf!("riid: {:?}", riid);
+                ig::bulletf!("ppvObject: {:?}", ppvObject);
             }
             Self::GetDevice(ppDevice) => {
-                ig::bullet(); ig::textf!("ppDevice: {:?}", ppDevice);
+                ig::bulletf!("ppDevice: {:?}", ppDevice);
             }
             Self::GetPrivateData(guid, pDataSize, pData) => {
-                ig::bullet(); ig::textf!("guid: {:?}", guid);
-                ig::bullet(); ig::textf!("pDataSize: {:?}", pDataSize);
-                ig::bullet(); ig::textf!("pData: {:?}", pData);
+                ig::bulletf!("guid: {:?}", guid);
+                ig::bulletf!("pDataSize: {:?}", pDataSize);
+                ig::bulletf!("pData: {:?}", pData);
             }
             Self::SetPrivateData(guid, DataSize, pData) => {
-                ig::bullet(); ig::textf!("guid: {:?}", guid);
-                ig::bullet(); ig::textf!("DataSize: {:?}", DataSize);
-                ig::bullet(); ig::textf!("pData: {:?}", pData);
+                ig::bulletf!("guid: {:?}", guid);
+                ig::bulletf!("DataSize: {:?}", DataSize);
+                ig::bulletf!("pData: {:?}", pData);
             }
             Self::SetPrivateDataInterface(guid, pData) => {
-                ig::bullet(); ig::textf!("guid: {:?}", guid);
-                ig::bullet(); ig::textf!("pData: {:?}", pData);
+                ig::bulletf!("guid: {:?}", guid);
+                ig::bulletf!("pData: {:?}", pData);
             }
             Self::VSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::PSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::PSSetShader(pPixelShader, ppClassInstances, NumClassInstances) => {
-                ig::bullet(); ig::textf!("pPixelShader: {:?}", pPixelShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("NumClassInstances: {:?}", NumClassInstances);
+                ig::bulletf!("pPixelShader: {:?}", pPixelShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("NumClassInstances: {:?}", NumClassInstances);
             }
             Self::PSSetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::VSSetShader(pVertexShader, ppClassInstances, NumClassInstances) => {
-                ig::bullet(); ig::textf!("pVertexShader: {:?}", pVertexShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("NumClassInstances: {:?}", NumClassInstances);
+                ig::bulletf!("pVertexShader: {:?}", pVertexShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("NumClassInstances: {:?}", NumClassInstances);
             }
             Self::DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation) => {
-                ig::bullet(); ig::textf!("IndexCount: {:?}", IndexCount);
-                ig::bullet(); ig::textf!("StartIndexLocation: {:?}", StartIndexLocation);
-                ig::bullet(); ig::textf!("BaseVertexLocation: {:?}", BaseVertexLocation);
+                ig::bulletf!("IndexCount: {:?}", IndexCount);
+                ig::bulletf!("StartIndexLocation: {:?}", StartIndexLocation);
+                ig::bulletf!("BaseVertexLocation: {:?}", BaseVertexLocation);
             }
             Self::Draw(VertexCount, StartVertexLocation) => {
-                ig::bullet(); ig::textf!("VertexCount: {:?}", VertexCount);
-                ig::bullet(); ig::textf!("StartVertexLocation: {:?}", StartVertexLocation);
+                ig::bulletf!("VertexCount: {:?}", VertexCount);
+                ig::bulletf!("StartVertexLocation: {:?}", StartVertexLocation);
             }
             Self::Map(pResource, Subresource, MapType, MapFlags, pMappedResource) => {
-                ig::bullet(); ig::textf!("pResource: {:?}", pResource);
-                ig::bullet(); ig::textf!("Subresource: {:?}", Subresource);
-                ig::bullet(); ig::textf!("MapType: {:?}", MapType);
-                ig::bullet(); ig::textf!("MapFlags: {:?}", MapFlags);
-                ig::bullet(); ig::textf!("pMappedResource: {:?}", pMappedResource);
+                ig::bulletf!("pResource: {:?}", pResource);
+                ig::bulletf!("Subresource: {:?}", Subresource);
+                ig::bulletf!("MapType: {:?}", MapType);
+                ig::bulletf!("MapFlags: {:?}", MapFlags);
+                ig::bulletf!("pMappedResource: {:?}", pMappedResource);
             }
             Self::Unmap(pResource, Subresource) => {
-                ig::bullet(); ig::textf!("pResource: {:?}", pResource);
-                ig::bullet(); ig::textf!("Subresource: {:?}", Subresource);
+                ig::bulletf!("pResource: {:?}", pResource);
+                ig::bulletf!("Subresource: {:?}", Subresource);
             }
             Self::PSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::IASetInputLayout(pInputLayout) => {
-                ig::bullet(); ig::textf!("pInputLayout: {:?}", pInputLayout);
+                ig::bulletf!("pInputLayout: {:?}", pInputLayout);
             }
             Self::IASetVertexBuffers(StartSlot, NumBuffers, ppVertexBuffers, pStrides, pOffsets) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppVertexBuffers: {:?}", ppVertexBuffers);
-                ig::bullet(); ig::textf!("pStrides: {:?}", pStrides);
-                ig::bullet(); ig::textf!("pOffsets: {:?}", pOffsets);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppVertexBuffers: {:?}", ppVertexBuffers);
+                ig::bulletf!("pStrides: {:?}", pStrides);
+                ig::bulletf!("pOffsets: {:?}", pOffsets);
             }
             Self::IASetIndexBuffer(pIndexBuffer, Format, Offset) => {
-                ig::bullet(); ig::textf!("pIndexBuffer: {:?}", pIndexBuffer);
-                ig::bullet(); ig::textf!("Format: {:?}", Format);
-                ig::bullet(); ig::textf!("Offset: {:?}", Offset);
+                ig::bulletf!("pIndexBuffer: {:?}", pIndexBuffer);
+                ig::bulletf!("Format: {:?}", Format);
+                ig::bulletf!("Offset: {:?}", Offset);
             }
             Self::DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation) => {
-                ig::bullet(); ig::textf!("IndexCountPerInstance: {:?}", IndexCountPerInstance);
-                ig::bullet(); ig::textf!("InstanceCount: {:?}", InstanceCount);
-                ig::bullet(); ig::textf!("StartIndexLocation: {:?}", StartIndexLocation);
-                ig::bullet(); ig::textf!("BaseVertexLocation: {:?}", BaseVertexLocation);
-                ig::bullet(); ig::textf!("StartInstanceLocation: {:?}", StartInstanceLocation);
+                ig::bulletf!("IndexCountPerInstance: {:?}", IndexCountPerInstance);
+                ig::bulletf!("InstanceCount: {:?}", InstanceCount);
+                ig::bulletf!("StartIndexLocation: {:?}", StartIndexLocation);
+                ig::bulletf!("BaseVertexLocation: {:?}", BaseVertexLocation);
+                ig::bulletf!("StartInstanceLocation: {:?}", StartInstanceLocation);
             }
             Self::DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation) => {
-                ig::bullet(); ig::textf!("VertexCountPerInstance: {:?}", VertexCountPerInstance);
-                ig::bullet(); ig::textf!("InstanceCount: {:?}", InstanceCount);
-                ig::bullet(); ig::textf!("StartVertexLocation: {:?}", StartVertexLocation);
-                ig::bullet(); ig::textf!("StartInstanceLocation: {:?}", StartInstanceLocation);
+                ig::bulletf!("VertexCountPerInstance: {:?}", VertexCountPerInstance);
+                ig::bulletf!("InstanceCount: {:?}", InstanceCount);
+                ig::bulletf!("StartVertexLocation: {:?}", StartVertexLocation);
+                ig::bulletf!("StartInstanceLocation: {:?}", StartInstanceLocation);
             }
             Self::GSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::GSSetShader(pShader, ppClassInstances, NumClassInstances) => {
-                ig::bullet(); ig::textf!("pShader: {:?}", pShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("NumClassInstances: {:?}", NumClassInstances);
+                ig::bulletf!("pShader: {:?}", pShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("NumClassInstances: {:?}", NumClassInstances);
             }
             Self::IASetPrimitiveTopology(Topology) => {
-                ig::bullet(); ig::textf!("Topology: {:?}", Topology);
+                ig::bulletf!("Topology: {:?}", Topology);
             }
             Self::VSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::VSSetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::Begin(pAsync) => {
-                ig::bullet(); ig::textf!("pAsync: {:?}", pAsync);
+                ig::bulletf!("pAsync: {:?}", pAsync);
             }
             Self::End(pAsync) => {
-                ig::bullet(); ig::textf!("pAsync: {:?}", pAsync);
+                ig::bulletf!("pAsync: {:?}", pAsync);
             }
             Self::GetData(pAsync, pData, DataSize, GetDataFlags) => {
-                ig::bullet(); ig::textf!("pAsync: {:?}", pAsync);
-                ig::bullet(); ig::textf!("pData: {:?}", pData);
-                ig::bullet(); ig::textf!("DataSize: {:?}", DataSize);
-                ig::bullet(); ig::textf!("GetDataFlags: {:?}", GetDataFlags);
+                ig::bulletf!("pAsync: {:?}", pAsync);
+                ig::bulletf!("pData: {:?}", pData);
+                ig::bulletf!("DataSize: {:?}", DataSize);
+                ig::bulletf!("GetDataFlags: {:?}", GetDataFlags);
             }
             Self::SetPredication(pPredicate, PredicateValue) => {
-                ig::bullet(); ig::textf!("pPredicate: {:?}", pPredicate);
-                ig::bullet(); ig::textf!("PredicateValue: {:?}", PredicateValue);
+                ig::bulletf!("pPredicate: {:?}", pPredicate);
+                ig::bulletf!("PredicateValue: {:?}", PredicateValue);
             }
             Self::GSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::GSSetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView) => {
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppRenderTargetViews: {:?}", ppRenderTargetViews);
-                ig::bullet(); ig::textf!("pDepthStencilView: {:?}", pDepthStencilView);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppRenderTargetViews: {:?}", ppRenderTargetViews);
+                ig::bulletf!("pDepthStencilView: {:?}", pDepthStencilView);
             }
             Self::OMSetRenderTargetsAndUnorderedAccessViews(NumRTVs, ppRenderTargetViews, pDepthStencilView, UAVStartSlot, NumUAVs, ppUnorderedAccessViews, pUAVInitialCounts) => {
-                ig::bullet(); ig::textf!("NumRTVs: {:?}", NumRTVs);
-                ig::bullet(); ig::textf!("ppRenderTargetViews: {:?}", ppRenderTargetViews);
-                ig::bullet(); ig::textf!("pDepthStencilView: {:?}", pDepthStencilView);
-                ig::bullet(); ig::textf!("UAVStartSlot: {:?}", UAVStartSlot);
-                ig::bullet(); ig::textf!("NumUAVs: {:?}", NumUAVs);
-                ig::bullet(); ig::textf!("ppUnorderedAccessViews: {:?}", ppUnorderedAccessViews);
-                ig::bullet(); ig::textf!("pUAVInitialCounts: {:?}", pUAVInitialCounts);
+                ig::bulletf!("NumRTVs: {:?}", NumRTVs);
+                ig::bulletf!("ppRenderTargetViews: {:?}", ppRenderTargetViews);
+                ig::bulletf!("pDepthStencilView: {:?}", pDepthStencilView);
+                ig::bulletf!("UAVStartSlot: {:?}", UAVStartSlot);
+                ig::bulletf!("NumUAVs: {:?}", NumUAVs);
+                ig::bulletf!("ppUnorderedAccessViews: {:?}", ppUnorderedAccessViews);
+                ig::bulletf!("pUAVInitialCounts: {:?}", pUAVInitialCounts);
             }
             Self::OMSetBlendState(pBlendState, BlendFactor, SampleMask) => {
-                ig::bullet(); ig::textf!("pBlendState: {:?}", pBlendState);
-                ig::bullet(); ig::textf!("BlendFactor: {:?}", BlendFactor);
-                ig::bullet(); ig::textf!("SampleMask: {:?}", SampleMask);
+                ig::bulletf!("pBlendState: {:?}", pBlendState);
+                ig::bulletf!("BlendFactor: {:?}", BlendFactor);
+                ig::bulletf!("SampleMask: {:?}", SampleMask);
             }
             Self::OMSetDepthStencilState(pDepthStencilState, StencilRef) => {
-                ig::bullet(); ig::textf!("pDepthStencilState: {:?}", pDepthStencilState);
-                ig::bullet(); ig::textf!("StencilRef: {:?}", StencilRef);
+                ig::bulletf!("pDepthStencilState: {:?}", pDepthStencilState);
+                ig::bulletf!("StencilRef: {:?}", StencilRef);
             }
             Self::SOSetTargets(NumBuffers, ppSOTargets, pOffsets) => {
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppSOTargets: {:?}", ppSOTargets);
-                ig::bullet(); ig::textf!("pOffsets: {:?}", pOffsets);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppSOTargets: {:?}", ppSOTargets);
+                ig::bulletf!("pOffsets: {:?}", pOffsets);
             }
             Self::DrawIndexedInstancedIndirect(pBufferForArgs, AlignedByteOffsetForArgs) => {
-                ig::bullet(); ig::textf!("pBufferForArgs: {:?}", pBufferForArgs);
-                ig::bullet(); ig::textf!("AlignedByteOffsetForArgs: {:?}", AlignedByteOffsetForArgs);
+                ig::bulletf!("pBufferForArgs: {:?}", pBufferForArgs);
+                ig::bulletf!("AlignedByteOffsetForArgs: {:?}", AlignedByteOffsetForArgs);
             }
             Self::DrawInstancedIndirect(pBufferForArgs, AlignedByteOffsetForArgs) => {
-                ig::bullet(); ig::textf!("pBufferForArgs: {:?}", pBufferForArgs);
-                ig::bullet(); ig::textf!("AlignedByteOffsetForArgs: {:?}", AlignedByteOffsetForArgs);
+                ig::bulletf!("pBufferForArgs: {:?}", pBufferForArgs);
+                ig::bulletf!("AlignedByteOffsetForArgs: {:?}", AlignedByteOffsetForArgs);
             }
             Self::Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ) => {
-                ig::bullet(); ig::textf!("ThreadGroupCountX: {:?}", ThreadGroupCountX);
-                ig::bullet(); ig::textf!("ThreadGroupCountY: {:?}", ThreadGroupCountY);
-                ig::bullet(); ig::textf!("ThreadGroupCountZ: {:?}", ThreadGroupCountZ);
+                ig::bulletf!("ThreadGroupCountX: {:?}", ThreadGroupCountX);
+                ig::bulletf!("ThreadGroupCountY: {:?}", ThreadGroupCountY);
+                ig::bulletf!("ThreadGroupCountZ: {:?}", ThreadGroupCountZ);
             }
             Self::DispatchIndirect(pBufferForArgs, AlignedByteOffsetForArgs) => {
-                ig::bullet(); ig::textf!("pBufferForArgs: {:?}", pBufferForArgs);
-                ig::bullet(); ig::textf!("AlignedByteOffsetForArgs: {:?}", AlignedByteOffsetForArgs);
+                ig::bulletf!("pBufferForArgs: {:?}", pBufferForArgs);
+                ig::bulletf!("AlignedByteOffsetForArgs: {:?}", AlignedByteOffsetForArgs);
             }
             Self::RSSetState(pRasterizerState) => {
-                ig::bullet(); ig::textf!("pRasterizerState: {:?}", pRasterizerState);
+                ig::bulletf!("pRasterizerState: {:?}", pRasterizerState);
             }
             Self::RSSetViewports(NumViewports, pViewports) => {
-                ig::bullet(); ig::textf!("NumViewports: {:?}", NumViewports);
-                ig::bullet(); ig::textf!("pViewports: {:?}", pViewports);
+                ig::bulletf!("NumViewports: {:?}", NumViewports);
+                ig::bulletf!("pViewports: {:?}", pViewports);
             }
             Self::RSSetScissorRects(NumRects, pRects) => {
-                ig::bullet(); ig::textf!("NumRects: {:?}", NumRects);
-                ig::bullet(); ig::textf!("pRects: {:?}", pRects);
+                ig::bulletf!("NumRects: {:?}", NumRects);
+                ig::bulletf!("pRects: {:?}", pRects);
             }
             Self::CopySubresourceRegion(pDstResource, DstSubresource, DstX, DstY, DstZ, pSrcResource, SrcSubresource, pSrcBox) => {
-                ig::bullet(); ig::textf!("pDstResource: {:?}", pDstResource);
-                ig::bullet(); ig::textf!("DstSubresource: {:?}", DstSubresource);
-                ig::bullet(); ig::textf!("DstX: {:?}", DstX);
-                ig::bullet(); ig::textf!("DstY: {:?}", DstY);
-                ig::bullet(); ig::textf!("DstZ: {:?}", DstZ);
-                ig::bullet(); ig::textf!("pSrcResource: {:?}", pSrcResource);
-                ig::bullet(); ig::textf!("SrcSubresource: {:?}", SrcSubresource);
-                ig::bullet(); ig::textf!("pSrcBox: {:?}", pSrcBox);
+                ig::bulletf!("pDstResource: {:?}", pDstResource);
+                ig::bulletf!("DstSubresource: {:?}", DstSubresource);
+                ig::bulletf!("DstX: {:?}", DstX);
+                ig::bulletf!("DstY: {:?}", DstY);
+                ig::bulletf!("DstZ: {:?}", DstZ);
+                ig::bulletf!("pSrcResource: {:?}", pSrcResource);
+                ig::bulletf!("SrcSubresource: {:?}", SrcSubresource);
+                ig::bulletf!("pSrcBox: {:?}", pSrcBox);
             }
             Self::CopyResource(pDstResource, pSrcResource) => {
-                ig::bullet(); ig::textf!("pDstResource: {:?}", pDstResource);
-                ig::bullet(); ig::textf!("pSrcResource: {:?}", pSrcResource);
+                ig::bulletf!("pDstResource: {:?}", pDstResource);
+                ig::bulletf!("pSrcResource: {:?}", pSrcResource);
             }
             Self::UpdateSubresource(pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch) => {
-                ig::bullet(); ig::textf!("pDstResource: {:?}", pDstResource);
-                ig::bullet(); ig::textf!("DstSubresource: {:?}", DstSubresource);
-                ig::bullet(); ig::textf!("pDstBox: {:?}", pDstBox);
-                ig::bullet(); ig::textf!("pSrcData: {:?}", pSrcData);
-                ig::bullet(); ig::textf!("SrcRowPitch: {:?}", SrcRowPitch);
-                ig::bullet(); ig::textf!("SrcDepthPitch: {:?}", SrcDepthPitch);
+                ig::bulletf!("pDstResource: {:?}", pDstResource);
+                ig::bulletf!("DstSubresource: {:?}", DstSubresource);
+                ig::bulletf!("pDstBox: {:?}", pDstBox);
+                ig::bulletf!("pSrcData: {:?}", pSrcData);
+                ig::bulletf!("SrcRowPitch: {:?}", SrcRowPitch);
+                ig::bulletf!("SrcDepthPitch: {:?}", SrcDepthPitch);
             }
             Self::CopyStructureCount(pDstBuffer, DstAlignedByteOffset, pSrcView) => {
-                ig::bullet(); ig::textf!("pDstBuffer: {:?}", pDstBuffer);
-                ig::bullet(); ig::textf!("DstAlignedByteOffset: {:?}", DstAlignedByteOffset);
-                ig::bullet(); ig::textf!("pSrcView: {:?}", pSrcView);
+                ig::bulletf!("pDstBuffer: {:?}", pDstBuffer);
+                ig::bulletf!("DstAlignedByteOffset: {:?}", DstAlignedByteOffset);
+                ig::bulletf!("pSrcView: {:?}", pSrcView);
             }
             Self::ClearRenderTargetView(pRenderTargetView, ColorRGBA) => {
-                ig::bullet(); ig::textf!("pRenderTargetView: {:?}", pRenderTargetView);
-                ig::bullet(); ig::textf!("ColorRGBA: {:?}", ColorRGBA);
+                ig::bulletf!("pRenderTargetView: {:?}", pRenderTargetView);
+                ig::bulletf!("ColorRGBA: {:?}", ColorRGBA);
             }
             Self::ClearUnorderedAccessViewUint(pUnorderedAccessView, Values) => {
-                ig::bullet(); ig::textf!("pUnorderedAccessView: {:?}", pUnorderedAccessView);
-                ig::bullet(); ig::textf!("Values: {:?}", Values);
+                ig::bulletf!("pUnorderedAccessView: {:?}", pUnorderedAccessView);
+                ig::bulletf!("Values: {:?}", Values);
             }
             Self::ClearUnorderedAccessViewFloat(pUnorderedAccessView, Values) => {
-                ig::bullet(); ig::textf!("pUnorderedAccessView: {:?}", pUnorderedAccessView);
-                ig::bullet(); ig::textf!("Values: {:?}", Values);
+                ig::bulletf!("pUnorderedAccessView: {:?}", pUnorderedAccessView);
+                ig::bulletf!("Values: {:?}", Values);
             }
             Self::ClearDepthStencilView(pDepthStencilView, ClearFlags, Depth, Stencil) => {
-                ig::bullet(); ig::textf!("pDepthStencilView: {:?}", pDepthStencilView);
-                ig::bullet(); ig::textf!("ClearFlags: {:?}", ClearFlags);
-                ig::bullet(); ig::textf!("Depth: {:?}", Depth);
-                ig::bullet(); ig::textf!("Stencil: {:?}", Stencil);
+                ig::bulletf!("pDepthStencilView: {:?}", pDepthStencilView);
+                ig::bulletf!("ClearFlags: {:?}", ClearFlags);
+                ig::bulletf!("Depth: {:?}", Depth);
+                ig::bulletf!("Stencil: {:?}", Stencil);
             }
             Self::GenerateMips(pShaderResourceView) => {
-                ig::bullet(); ig::textf!("pShaderResourceView: {:?}", pShaderResourceView);
+                ig::bulletf!("pShaderResourceView: {:?}", pShaderResourceView);
             }
             Self::SetResourceMinLOD(pResource, MinLOD) => {
-                ig::bullet(); ig::textf!("pResource: {:?}", pResource);
-                ig::bullet(); ig::textf!("MinLOD: {:?}", MinLOD);
+                ig::bulletf!("pResource: {:?}", pResource);
+                ig::bulletf!("MinLOD: {:?}", MinLOD);
             }
             Self::GetResourceMinLOD(pResource) => {
-                ig::bullet(); ig::textf!("pResource: {:?}", pResource);
+                ig::bulletf!("pResource: {:?}", pResource);
             }
             Self::ResolveSubresource(pDstResource, DstSubresource, pSrcResource, SrcSubresource, Format) => {
-                ig::bullet(); ig::textf!("pDstResource: {:?}", pDstResource);
-                ig::bullet(); ig::textf!("DstSubresource: {:?}", DstSubresource);
-                ig::bullet(); ig::textf!("pSrcResource: {:?}", pSrcResource);
-                ig::bullet(); ig::textf!("SrcSubresource: {:?}", SrcSubresource);
-                ig::bullet(); ig::textf!("Format: {:?}", Format);
+                ig::bulletf!("pDstResource: {:?}", pDstResource);
+                ig::bulletf!("DstSubresource: {:?}", DstSubresource);
+                ig::bulletf!("pSrcResource: {:?}", pSrcResource);
+                ig::bulletf!("SrcSubresource: {:?}", SrcSubresource);
+                ig::bulletf!("Format: {:?}", Format);
             }
             Self::ExecuteCommandList(pCommandList, RestoreContextState) => {
-                ig::bullet(); ig::textf!("pCommandList: {:?}", pCommandList);
-                ig::bullet(); ig::textf!("RestoreContextState: {:?}", RestoreContextState);
+                ig::bulletf!("pCommandList: {:?}", pCommandList);
+                ig::bulletf!("RestoreContextState: {:?}", RestoreContextState);
             }
             Self::HSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::HSSetShader(pHullShader, ppClassInstances, NumClassInstances) => {
-                ig::bullet(); ig::textf!("pHullShader: {:?}", pHullShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("NumClassInstances: {:?}", NumClassInstances);
+                ig::bulletf!("pHullShader: {:?}", pHullShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("NumClassInstances: {:?}", NumClassInstances);
             }
             Self::HSSetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::HSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::DSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::DSSetShader(pDomainShader, ppClassInstances, NumClassInstances) => {
-                ig::bullet(); ig::textf!("pDomainShader: {:?}", pDomainShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("NumClassInstances: {:?}", NumClassInstances);
+                ig::bulletf!("pDomainShader: {:?}", pDomainShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("NumClassInstances: {:?}", NumClassInstances);
             }
             Self::DSSetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::DSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::CSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::CSSetUnorderedAccessViews(StartSlot, NumUAVs, ppUnorderedAccessViews, pUAVInitialCounts) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumUAVs: {:?}", NumUAVs);
-                ig::bullet(); ig::textf!("ppUnorderedAccessViews: {:?}", ppUnorderedAccessViews);
-                ig::bullet(); ig::textf!("pUAVInitialCounts: {:?}", pUAVInitialCounts);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumUAVs: {:?}", NumUAVs);
+                ig::bulletf!("ppUnorderedAccessViews: {:?}", ppUnorderedAccessViews);
+                ig::bulletf!("pUAVInitialCounts: {:?}", pUAVInitialCounts);
             }
             Self::CSSetShader(pComputeShader, ppClassInstances, NumClassInstances) => {
-                ig::bullet(); ig::textf!("pComputeShader: {:?}", pComputeShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("NumClassInstances: {:?}", NumClassInstances);
+                ig::bulletf!("pComputeShader: {:?}", pComputeShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("NumClassInstances: {:?}", NumClassInstances);
             }
             Self::CSSetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::CSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::VSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::PSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::PSGetShader(ppPixelShader, ppClassInstances, pNumClassInstances) => {
-                ig::bullet(); ig::textf!("ppPixelShader: {:?}", ppPixelShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("pNumClassInstances: {:?}", pNumClassInstances);
+                ig::bulletf!("ppPixelShader: {:?}", ppPixelShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("pNumClassInstances: {:?}", pNumClassInstances);
             }
             Self::PSGetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::VSGetShader(ppVertexShader, ppClassInstances, pNumClassInstances) => {
-                ig::bullet(); ig::textf!("ppVertexShader: {:?}", ppVertexShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("pNumClassInstances: {:?}", pNumClassInstances);
+                ig::bulletf!("ppVertexShader: {:?}", ppVertexShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("pNumClassInstances: {:?}", pNumClassInstances);
             }
             Self::PSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::IAGetInputLayout(ppInputLayout) => {
-                ig::bullet(); ig::textf!("ppInputLayout: {:?}", ppInputLayout);
+                ig::bulletf!("ppInputLayout: {:?}", ppInputLayout);
             }
             Self::IAGetVertexBuffers(StartSlot, NumBuffers, ppVertexBuffers, pStrides, pOffsets) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppVertexBuffers: {:?}", ppVertexBuffers);
-                ig::bullet(); ig::textf!("pStrides: {:?}", pStrides);
-                ig::bullet(); ig::textf!("pOffsets: {:?}", pOffsets);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppVertexBuffers: {:?}", ppVertexBuffers);
+                ig::bulletf!("pStrides: {:?}", pStrides);
+                ig::bulletf!("pOffsets: {:?}", pOffsets);
             }
             Self::IAGetIndexBuffer(pIndexBuffer, Format, Offset) => {
-                ig::bullet(); ig::textf!("pIndexBuffer: {:?}", pIndexBuffer);
-                ig::bullet(); ig::textf!("Format: {:?}", Format);
-                ig::bullet(); ig::textf!("Offset: {:?}", Offset);
+                ig::bulletf!("pIndexBuffer: {:?}", pIndexBuffer);
+                ig::bulletf!("Format: {:?}", Format);
+                ig::bulletf!("Offset: {:?}", Offset);
             }
             Self::GSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::GSGetShader(ppGeometryShader, ppClassInstances, pNumClassInstances) => {
-                ig::bullet(); ig::textf!("ppGeometryShader: {:?}", ppGeometryShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("pNumClassInstances: {:?}", pNumClassInstances);
+                ig::bulletf!("ppGeometryShader: {:?}", ppGeometryShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("pNumClassInstances: {:?}", pNumClassInstances);
             }
             Self::IAGetPrimitiveTopology(pTopology) => {
-                ig::bullet(); ig::textf!("pTopology: {:?}", pTopology);
+                ig::bulletf!("pTopology: {:?}", pTopology);
             }
             Self::VSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::VSGetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::GetPredication(ppPredicate, pPredicateValue) => {
-                ig::bullet(); ig::textf!("ppPredicate: {:?}", ppPredicate);
-                ig::bullet(); ig::textf!("pPredicateValue: {:?}", pPredicateValue);
+                ig::bulletf!("ppPredicate: {:?}", ppPredicate);
+                ig::bulletf!("pPredicateValue: {:?}", pPredicateValue);
             }
             Self::GSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::GSGetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::OMGetRenderTargets(NumViews, ppRenderTargetViews, ppDepthStencilView) => {
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppRenderTargetViews: {:?}", ppRenderTargetViews);
-                ig::bullet(); ig::textf!("ppDepthStencilView: {:?}", ppDepthStencilView);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppRenderTargetViews: {:?}", ppRenderTargetViews);
+                ig::bulletf!("ppDepthStencilView: {:?}", ppDepthStencilView);
             }
             Self::OMGetRenderTargetsAndUnorderedAccessViews(NumRTVs, ppRenderTargetViews, ppDepthStencilView, UAVStartSlot, NumUAVs, ppUnorderedAccessViews) => {
-                ig::bullet(); ig::textf!("NumRTVs: {:?}", NumRTVs);
-                ig::bullet(); ig::textf!("ppRenderTargetViews: {:?}", ppRenderTargetViews);
-                ig::bullet(); ig::textf!("ppDepthStencilView: {:?}", ppDepthStencilView);
-                ig::bullet(); ig::textf!("UAVStartSlot: {:?}", UAVStartSlot);
-                ig::bullet(); ig::textf!("NumUAVs: {:?}", NumUAVs);
-                ig::bullet(); ig::textf!("ppUnorderedAccessViews: {:?}", ppUnorderedAccessViews);
+                ig::bulletf!("NumRTVs: {:?}", NumRTVs);
+                ig::bulletf!("ppRenderTargetViews: {:?}", ppRenderTargetViews);
+                ig::bulletf!("ppDepthStencilView: {:?}", ppDepthStencilView);
+                ig::bulletf!("UAVStartSlot: {:?}", UAVStartSlot);
+                ig::bulletf!("NumUAVs: {:?}", NumUAVs);
+                ig::bulletf!("ppUnorderedAccessViews: {:?}", ppUnorderedAccessViews);
             }
             Self::OMGetBlendState(ppBlendState, BlendFactor, pSampleMask) => {
-                ig::bullet(); ig::textf!("ppBlendState: {:?}", ppBlendState);
-                ig::bullet(); ig::textf!("BlendFactor: {:?}", BlendFactor);
-                ig::bullet(); ig::textf!("pSampleMask: {:?}", pSampleMask);
+                ig::bulletf!("ppBlendState: {:?}", ppBlendState);
+                ig::bulletf!("BlendFactor: {:?}", BlendFactor);
+                ig::bulletf!("pSampleMask: {:?}", pSampleMask);
             }
             Self::OMGetDepthStencilState(ppDepthStencilState, pStencilRef) => {
-                ig::bullet(); ig::textf!("ppDepthStencilState: {:?}", ppDepthStencilState);
-                ig::bullet(); ig::textf!("pStencilRef: {:?}", pStencilRef);
+                ig::bulletf!("ppDepthStencilState: {:?}", ppDepthStencilState);
+                ig::bulletf!("pStencilRef: {:?}", pStencilRef);
             }
             Self::SOGetTargets(NumBuffers, ppSOTargets) => {
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppSOTargets: {:?}", ppSOTargets);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppSOTargets: {:?}", ppSOTargets);
             }
             Self::RSGetState(ppRasterizerState) => {
-                ig::bullet(); ig::textf!("ppRasterizerState: {:?}", ppRasterizerState);
+                ig::bulletf!("ppRasterizerState: {:?}", ppRasterizerState);
             }
             Self::RSGetViewports(pNumViewports, pViewports) => {
-                ig::bullet(); ig::textf!("pNumViewports: {:?}", pNumViewports);
-                ig::bullet(); ig::textf!("pViewports: {:?}", pViewports);
+                ig::bulletf!("pNumViewports: {:?}", pNumViewports);
+                ig::bulletf!("pViewports: {:?}", pViewports);
             }
             Self::RSGetScissorRects(pNumRects, pRects) => {
-                ig::bullet(); ig::textf!("pNumRects: {:?}", pNumRects);
-                ig::bullet(); ig::textf!("pRects: {:?}", pRects);
+                ig::bulletf!("pNumRects: {:?}", pNumRects);
+                ig::bulletf!("pRects: {:?}", pRects);
             }
             Self::HSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::HSGetShader(ppHullShader, ppClassInstances, pNumClassInstances) => {
-                ig::bullet(); ig::textf!("ppHullShader: {:?}", ppHullShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("pNumClassInstances: {:?}", pNumClassInstances);
+                ig::bulletf!("ppHullShader: {:?}", ppHullShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("pNumClassInstances: {:?}", pNumClassInstances);
             }
             Self::HSGetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::HSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::DSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::DSGetShader(ppDomainShader, ppClassInstances, pNumClassInstances) => {
-                ig::bullet(); ig::textf!("ppDomainShader: {:?}", ppDomainShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("pNumClassInstances: {:?}", pNumClassInstances);
+                ig::bulletf!("ppDomainShader: {:?}", ppDomainShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("pNumClassInstances: {:?}", pNumClassInstances);
             }
             Self::DSGetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::DSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::CSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumViews: {:?}", NumViews);
-                ig::bullet(); ig::textf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumViews: {:?}", NumViews);
+                ig::bulletf!("ppShaderResourceViews: {:?}", ppShaderResourceViews);
             }
             Self::CSGetUnorderedAccessViews(StartSlot, NumUAVs, ppUnorderedAccessViews) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumUAVs: {:?}", NumUAVs);
-                ig::bullet(); ig::textf!("ppUnorderedAccessViews: {:?}", ppUnorderedAccessViews);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumUAVs: {:?}", NumUAVs);
+                ig::bulletf!("ppUnorderedAccessViews: {:?}", ppUnorderedAccessViews);
             }
             Self::CSGetShader(ppComputeShader, ppClassInstances, pNumClassInstances) => {
-                ig::bullet(); ig::textf!("ppComputeShader: {:?}", ppComputeShader);
-                ig::bullet(); ig::textf!("ppClassInstances: {:?}", ppClassInstances);
-                ig::bullet(); ig::textf!("pNumClassInstances: {:?}", pNumClassInstances);
+                ig::bulletf!("ppComputeShader: {:?}", ppComputeShader);
+                ig::bulletf!("ppClassInstances: {:?}", ppClassInstances);
+                ig::bulletf!("pNumClassInstances: {:?}", pNumClassInstances);
             }
             Self::CSGetSamplers(StartSlot, NumSamplers, ppSamplers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumSamplers: {:?}", NumSamplers);
-                ig::bullet(); ig::textf!("ppSamplers: {:?}", ppSamplers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumSamplers: {:?}", NumSamplers);
+                ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::CSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers) => {
-                ig::bullet(); ig::textf!("StartSlot: {:?}", StartSlot);
-                ig::bullet(); ig::textf!("NumBuffers: {:?}", NumBuffers);
-                ig::bullet(); ig::textf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
             }
             Self::FinishCommandList(RestoreDeferredContextState, ppCommandList) => {
-                ig::bullet(); ig::textf!("RestoreDeferredContextState: {:?}", RestoreDeferredContextState);
-                ig::bullet(); ig::textf!("ppCommandList: {:?}", ppCommandList);
+                ig::bulletf!("RestoreDeferredContextState: {:?}", RestoreDeferredContextState);
+                ig::bulletf!("ppCommandList: {:?}", ppCommandList);
             }
             _ => {}
         }

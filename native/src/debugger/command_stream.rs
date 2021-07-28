@@ -286,7 +286,6 @@ impl CommandStream {
             frames: 0,
         };
 
-        log!("Starting command stream capture");
         Ok(())
     }
 
@@ -322,7 +321,6 @@ impl CommandStream {
                 },
             };
         }
-        log!("Ending command stream capture");
         Ok(())
     }
 

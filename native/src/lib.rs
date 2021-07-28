@@ -74,8 +74,6 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
             );
         }
 
-        log!("loaded {}", game::VERSION);
-
         Ok(())
     });
     match r {

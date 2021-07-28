@@ -165,6 +165,10 @@ impl Debugger {
                         xr.draw_ui_framebuffers()?;
                         ig::end_tab_item();
                     }
+                    if ig::begin_tab_item("Properties", None, None)? {
+                        xr.draw_ui_properties()?;
+                        ig::end_tab_item();
+                    }
                 }
                 ig::end_tab_bar();
             }

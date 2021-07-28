@@ -769,6 +769,13 @@ macro_rules! textf {
         $crate::text(&format!($($arg)*))
     }
 }
+#[macro_export]
+macro_rules! bulletf {
+    ($($arg:tt)*) => {
+        $crate::bullet();
+        $crate::textf!($($arg)*)
+    }
+}
 
 pub fn button(label: &str, size: Option<Vec2>) -> Result<bool, NulError> {
     let label = CString::new(label)?;

@@ -17,6 +17,7 @@ fn main() -> Result<()> {
                 .unwrap()
                 .replace("g_", "")
                 .replace("Client::", "")
+                .replace(".", "::")
                 .replace("::", "_"),
             a.as_i64().unwrap() as u64,
         );

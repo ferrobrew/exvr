@@ -332,7 +332,7 @@ if PRINT_MATCH_CASES:
         args_string = ', '.join([arg['name'] for arg in function['args'][1:]])
         print(f"Self::{function['name']}({args_string}) => {{")
         for arg in function['args'][1:]:
-            print(f"\tig::bullet(); ig::textf!(\"{arg['name']}: {{:?}}\", {arg['name']});")
+            print(f"\tig::bulletf!(\"{arg['name']}: {{:?}}\", {arg['name']});")
         print("}")
     print("_ => {}")
 
