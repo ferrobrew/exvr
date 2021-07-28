@@ -1,5 +1,5 @@
 use crate::ct_config::rendering::SHADER_COMMAND_HIJACKED_TYPE;
-use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand, ShaderCommandType};
+use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand};
 use crate::hooks;
 use crate::log;
 use crate::module::GAME_MODULE;
@@ -27,6 +27,7 @@ pub struct XIVRCommand {
     payload: XIVRCommandPayload,
 }
 
+#[allow(dead_code)]
 impl XIVRCommand {
     pub fn new(
         callback: fn(context: &'static ImmediateContext, &XIVRCommandPayload) -> (),
@@ -72,6 +73,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
         std::mem::transmute(process_commands),
         |ic, a2, command_count| {
             use crate::debugger::Debugger;
+            use crate::xr::XR;
 
             #[repr(C)]
             struct StreamCommand {
@@ -79,7 +81,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 cmd: *mut ShaderCommand,
             }
 
-            let mut p = a2 as *mut StreamCommand;
+            let p = a2 as *mut StreamCommand;
 
             if let Some(debugger) = Debugger::get_mut() {
                 let mut command_stream = debugger.command_stream.lock().unwrap();
@@ -93,7 +95,14 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 }
             }
 
-            ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
+            if let Some(xr) = XR::get_mut() {
+                ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
+                xr.copy_backbuffer_to_buffer(0);
+                ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
+                xr.copy_backbuffer_to_buffer(1);
+            } else {
+                ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
+            }
             0u64
         },
     )?;

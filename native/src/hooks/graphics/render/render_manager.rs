@@ -22,8 +22,6 @@ impl Drop for HookState {
     }
 }
 
-pub static mut CURRENT_EYE_INDEX: u32 = 0;
-
 pub unsafe fn install() -> anyhow::Result<HookState> {
     use crate::module::GAME_MODULE;
     use std::mem;
@@ -42,40 +40,19 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
             }
 
             use crate::debugger::Debugger;
-            use crate::game::graphics::kernel::Context;
-            use crate::hooks::graphics::kernel::immediate_context::XIVRCommandPayload;
-            use crate::xr::{VIEW_COUNT, XR};
 
-            for i in 0..VIEW_COUNT {
-                CURRENT_EYE_INDEX = i;
-
-                if let Some(debugger) = Debugger::get_mut() {
-                    let mut command_stream = debugger.command_stream.lock().unwrap();
-                    command_stream
-                        .add_marker(&format!("RenderManager::Render pre-call ({})", i))
-                        .unwrap();
-                }
-                RenderManager_Render_Detour.call(s);
-                if let Some(debugger) = Debugger::get_mut() {
-                    let mut command_stream = debugger.command_stream.lock().unwrap();
-                    command_stream
-                        .add_marker(&format!("RenderManager::Render post-call ({})", i))
-                        .unwrap();
-                }
-
-                if let Some(rc) = Context::get_for_current_thread() {
-                rc.push_back_xivr_command(
-                    move |immediate_context, payload| {
-                        if let XIVRCommandPayload::Integer(i) = payload {
-                            if let Some(xr) = XR::get_mut() {
-                                // xr.copy_backbuffer_to_buffer(*i);
-                                // xr.copy_buffers_to_swapchain().unwrap();
-                            }
-                        }
-                    },
-                    XIVRCommandPayload::Integer(i),
-                );
-                }
+            if let Some(debugger) = Debugger::get_mut() {
+                let mut command_stream = debugger.command_stream.lock().unwrap();
+                command_stream
+                    .add_marker("RenderManager::Render pre-call")
+                    .unwrap();
+            }
+            RenderManager_Render_Detour.call(s);
+            if let Some(debugger) = Debugger::get_mut() {
+                let mut command_stream = debugger.command_stream.lock().unwrap();
+                command_stream
+                    .add_marker("RenderManager::Render post-call")
+                    .unwrap();
             }
 
             0usize

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand};
 use crate::hooks::graphics::kernel::immediate_context::{XIVRCommand, XIVRCommandPayload};
 use crate::module::{Module, GAME_MODULE};
