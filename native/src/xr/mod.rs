@@ -277,18 +277,19 @@ impl XR {
 
         let ig::Vec2 { x: width, .. } = ig::get_window_size();
         let inverse_aspect_ratio = self.frame_size.1 as f32 / self.frame_size.0 as f32;
-        let srv_width = (width * 0.5) - 16.0;
+        let srv_width = (width * 0.5) - 32.0;
 
         if ig::begin_table("xivr_debug_tab_framebuffers_table", 2, None, None, None)? {
             for buffer_srv in self.buffer_srvs.iter() {
                 ig::table_next_column();
-                ig::image(
+                ig::image_button(
                     buffer_srv.abi(),
                     ig::Vec2::new(srv_width, srv_width * inverse_aspect_ratio),
                     None,
                     None,
                     None,
-                    Some(ig::Color::ONE),
+                    Some(ig::Color::new(0.0, 0.0, 0.0, 1.0)),
+                    None,
                 );
             }
             ig::end_table();

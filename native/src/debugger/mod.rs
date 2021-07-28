@@ -11,11 +11,13 @@ use crate::singleton;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+use bindings::Windows::Win32::Graphics::Dxgi as dxgi;
+
 struct InspectedTexture {
     texture: *const Texture,
     width: u32,
     height: u32,
-    format: u32,
+    format: dxgi::DXGI_FORMAT,
 }
 
 pub struct Debugger {
@@ -23,6 +25,135 @@ pub struct Debugger {
     inspected_textures: HashMap<*const Texture, InspectedTexture>,
 }
 singleton!(Debugger);
+
+fn dxgi_format_to_str(dxgi_format: dxgi::DXGI_FORMAT) -> &'static str {
+    match dxgi_format {
+        dxgi::DXGI_FORMAT_R32G32B32A32_TYPELESS => "R32G32B32A32_TYPELESS",
+        dxgi::DXGI_FORMAT_R32G32B32A32_FLOAT => "R32G32B32A32_FLOAT",
+        dxgi::DXGI_FORMAT_R32G32B32A32_UINT => "R32G32B32A32_UINT",
+        dxgi::DXGI_FORMAT_R32G32B32A32_SINT => "R32G32B32A32_SINT",
+        dxgi::DXGI_FORMAT_R32G32B32_TYPELESS => "R32G32B32_TYPELESS",
+        dxgi::DXGI_FORMAT_R32G32B32_FLOAT => "R32G32B32_FLOAT",
+        dxgi::DXGI_FORMAT_R32G32B32_UINT => "R32G32B32_UINT",
+        dxgi::DXGI_FORMAT_R32G32B32_SINT => "R32G32B32_SINT",
+        dxgi::DXGI_FORMAT_R16G16B16A16_TYPELESS => "R16G16B16A16_TYPELESS",
+        dxgi::DXGI_FORMAT_R16G16B16A16_FLOAT => "R16G16B16A16_FLOAT",
+        dxgi::DXGI_FORMAT_R16G16B16A16_UNORM => "R16G16B16A16_UNORM",
+        dxgi::DXGI_FORMAT_R16G16B16A16_UINT => "R16G16B16A16_UINT",
+        dxgi::DXGI_FORMAT_R16G16B16A16_SNORM => "R16G16B16A16_SNORM",
+        dxgi::DXGI_FORMAT_R16G16B16A16_SINT => "R16G16B16A16_SINT",
+        dxgi::DXGI_FORMAT_R32G32_TYPELESS => "R32G32_TYPELESS",
+        dxgi::DXGI_FORMAT_R32G32_FLOAT => "R32G32_FLOAT",
+        dxgi::DXGI_FORMAT_R32G32_UINT => "R32G32_UINT",
+        dxgi::DXGI_FORMAT_R32G32_SINT => "R32G32_SINT",
+        dxgi::DXGI_FORMAT_R32G8X24_TYPELESS => "R32G8X24_TYPELESS",
+        dxgi::DXGI_FORMAT_D32_FLOAT_S8X24_UINT => "D32_FLOAT_S8X24_UINT",
+        dxgi::DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS => "R32_FLOAT_X8X24_TYPELESS",
+        dxgi::DXGI_FORMAT_X32_TYPELESS_G8X24_UINT => "X32_TYPELESS_G8X24_UINT",
+        dxgi::DXGI_FORMAT_R10G10B10A2_TYPELESS => "R10G10B10A2_TYPELESS",
+        dxgi::DXGI_FORMAT_R10G10B10A2_UNORM => "R10G10B10A2_UNORM",
+        dxgi::DXGI_FORMAT_R10G10B10A2_UINT => "R10G10B10A2_UINT",
+        dxgi::DXGI_FORMAT_R11G11B10_FLOAT => "R11G11B10_FLOAT",
+        dxgi::DXGI_FORMAT_R8G8B8A8_TYPELESS => "R8G8B8A8_TYPELESS",
+        dxgi::DXGI_FORMAT_R8G8B8A8_UNORM => "R8G8B8A8_UNORM",
+        dxgi::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB => "R8G8B8A8_UNORM_SRGB",
+        dxgi::DXGI_FORMAT_R8G8B8A8_UINT => "R8G8B8A8_UINT",
+        dxgi::DXGI_FORMAT_R8G8B8A8_SNORM => "R8G8B8A8_SNORM",
+        dxgi::DXGI_FORMAT_R8G8B8A8_SINT => "R8G8B8A8_SINT",
+        dxgi::DXGI_FORMAT_R16G16_TYPELESS => "R16G16_TYPELESS",
+        dxgi::DXGI_FORMAT_R16G16_FLOAT => "R16G16_FLOAT",
+        dxgi::DXGI_FORMAT_R16G16_UNORM => "R16G16_UNORM",
+        dxgi::DXGI_FORMAT_R16G16_UINT => "R16G16_UINT",
+        dxgi::DXGI_FORMAT_R16G16_SNORM => "R16G16_SNORM",
+        dxgi::DXGI_FORMAT_R16G16_SINT => "R16G16_SINT",
+        dxgi::DXGI_FORMAT_R32_TYPELESS => "R32_TYPELESS",
+        dxgi::DXGI_FORMAT_D32_FLOAT => "D32_FLOAT",
+        dxgi::DXGI_FORMAT_R32_FLOAT => "R32_FLOAT",
+        dxgi::DXGI_FORMAT_R32_UINT => "R32_UINT",
+        dxgi::DXGI_FORMAT_R32_SINT => "R32_SINT",
+        dxgi::DXGI_FORMAT_R24G8_TYPELESS => "R24G8_TYPELESS",
+        dxgi::DXGI_FORMAT_D24_UNORM_S8_UINT => "D24_UNORM_S8_UINT",
+        dxgi::DXGI_FORMAT_R24_UNORM_X8_TYPELESS => "R24_UNORM_X8_TYPELESS",
+        dxgi::DXGI_FORMAT_X24_TYPELESS_G8_UINT => "X24_TYPELESS_G8_UINT",
+        dxgi::DXGI_FORMAT_R8G8_TYPELESS => "R8G8_TYPELESS",
+        dxgi::DXGI_FORMAT_R8G8_UNORM => "R8G8_UNORM",
+        dxgi::DXGI_FORMAT_R8G8_UINT => "R8G8_UINT",
+        dxgi::DXGI_FORMAT_R8G8_SNORM => "R8G8_SNORM",
+        dxgi::DXGI_FORMAT_R8G8_SINT => "R8G8_SINT",
+        dxgi::DXGI_FORMAT_R16_TYPELESS => "R16_TYPELESS",
+        dxgi::DXGI_FORMAT_R16_FLOAT => "R16_FLOAT",
+        dxgi::DXGI_FORMAT_D16_UNORM => "D16_UNORM",
+        dxgi::DXGI_FORMAT_R16_UNORM => "R16_UNORM",
+        dxgi::DXGI_FORMAT_R16_UINT => "R16_UINT",
+        dxgi::DXGI_FORMAT_R16_SNORM => "R16_SNORM",
+        dxgi::DXGI_FORMAT_R16_SINT => "R16_SINT",
+        dxgi::DXGI_FORMAT_R8_TYPELESS => "R8_TYPELESS",
+        dxgi::DXGI_FORMAT_R8_UNORM => "R8_UNORM",
+        dxgi::DXGI_FORMAT_R8_UINT => "R8_UINT",
+        dxgi::DXGI_FORMAT_R8_SNORM => "R8_SNORM",
+        dxgi::DXGI_FORMAT_R8_SINT => "R8_SINT",
+        dxgi::DXGI_FORMAT_A8_UNORM => "A8_UNORM",
+        dxgi::DXGI_FORMAT_R1_UNORM => "R1_UNORM",
+        dxgi::DXGI_FORMAT_R9G9B9E5_SHAREDEXP => "R9G9B9E5_SHAREDEXP",
+        dxgi::DXGI_FORMAT_R8G8_B8G8_UNORM => "R8G8_B8G8_UNORM",
+        dxgi::DXGI_FORMAT_G8R8_G8B8_UNORM => "G8R8_G8B8_UNORM",
+        dxgi::DXGI_FORMAT_BC1_TYPELESS => "BC1_TYPELESS",
+        dxgi::DXGI_FORMAT_BC1_UNORM => "BC1_UNORM",
+        dxgi::DXGI_FORMAT_BC1_UNORM_SRGB => "BC1_UNORM_SRGB",
+        dxgi::DXGI_FORMAT_BC2_TYPELESS => "BC2_TYPELESS",
+        dxgi::DXGI_FORMAT_BC2_UNORM => "BC2_UNORM",
+        dxgi::DXGI_FORMAT_BC2_UNORM_SRGB => "BC2_UNORM_SRGB",
+        dxgi::DXGI_FORMAT_BC3_TYPELESS => "BC3_TYPELESS",
+        dxgi::DXGI_FORMAT_BC3_UNORM => "BC3_UNORM",
+        dxgi::DXGI_FORMAT_BC3_UNORM_SRGB => "BC3_UNORM_SRGB",
+        dxgi::DXGI_FORMAT_BC4_TYPELESS => "BC4_TYPELESS",
+        dxgi::DXGI_FORMAT_BC4_UNORM => "BC4_UNORM",
+        dxgi::DXGI_FORMAT_BC4_SNORM => "BC4_SNORM",
+        dxgi::DXGI_FORMAT_BC5_TYPELESS => "BC5_TYPELESS",
+        dxgi::DXGI_FORMAT_BC5_UNORM => "BC5_UNORM",
+        dxgi::DXGI_FORMAT_BC5_SNORM => "BC5_SNORM",
+        dxgi::DXGI_FORMAT_B5G6R5_UNORM => "B5G6R5_UNORM",
+        dxgi::DXGI_FORMAT_B5G5R5A1_UNORM => "B5G5R5A1_UNORM",
+        dxgi::DXGI_FORMAT_B8G8R8A8_UNORM => "B8G8R8A8_UNORM",
+        dxgi::DXGI_FORMAT_B8G8R8X8_UNORM => "B8G8R8X8_UNORM",
+        dxgi::DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM => "R10G10B10_XR_BIAS_A2_UNORM",
+        dxgi::DXGI_FORMAT_B8G8R8A8_TYPELESS => "B8G8R8A8_TYPELESS",
+        dxgi::DXGI_FORMAT_B8G8R8A8_UNORM_SRGB => "B8G8R8A8_UNORM_SRGB",
+        dxgi::DXGI_FORMAT_B8G8R8X8_TYPELESS => "B8G8R8X8_TYPELESS",
+        dxgi::DXGI_FORMAT_B8G8R8X8_UNORM_SRGB => "B8G8R8X8_UNORM_SRGB",
+        dxgi::DXGI_FORMAT_BC6H_TYPELESS => "BC6H_TYPELESS",
+        dxgi::DXGI_FORMAT_BC6H_UF16 => "BC6H_UF16",
+        dxgi::DXGI_FORMAT_BC6H_SF16 => "BC6H_SF16",
+        dxgi::DXGI_FORMAT_BC7_TYPELESS => "BC7_TYPELESS",
+        dxgi::DXGI_FORMAT_BC7_UNORM => "BC7_UNORM",
+        dxgi::DXGI_FORMAT_BC7_UNORM_SRGB => "BC7_UNORM_SRGB",
+        dxgi::DXGI_FORMAT_AYUV => "AYUV",
+        dxgi::DXGI_FORMAT_Y410 => "Y410",
+        dxgi::DXGI_FORMAT_Y416 => "Y416",
+        dxgi::DXGI_FORMAT_NV12 => "NV12",
+        dxgi::DXGI_FORMAT_P010 => "P010",
+        dxgi::DXGI_FORMAT_P016 => "P016",
+        dxgi::DXGI_FORMAT_420_OPAQUE => "420_OPAQUE",
+        dxgi::DXGI_FORMAT_YUY2 => "YUY2",
+        dxgi::DXGI_FORMAT_Y210 => "Y210",
+        dxgi::DXGI_FORMAT_Y216 => "Y216",
+        dxgi::DXGI_FORMAT_NV11 => "NV11",
+        dxgi::DXGI_FORMAT_AI44 => "AI44",
+        dxgi::DXGI_FORMAT_IA44 => "IA44",
+        dxgi::DXGI_FORMAT_P8 => "P8",
+        dxgi::DXGI_FORMAT_A8P8 => "A8P8",
+        dxgi::DXGI_FORMAT_B4G4R4A4_UNORM => "B4G4R4A4_UNORM",
+        dxgi::DXGI_FORMAT_P208 => "P208",
+        dxgi::DXGI_FORMAT_V208 => "V208",
+        dxgi::DXGI_FORMAT_V408 => "V408",
+        dxgi::DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE => "SAMPLER_FEEDBACK_MIN_MIP_OPAQUE",
+        dxgi::DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE => {
+            "SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE"
+        }
+        dxgi::DXGI_FORMAT_FORCE_UINT => "FORCE_UINT",
+        dxgi::DXGI_FORMAT_UNKNOWN | _ => "UNKNOWN",
+    }
+}
 
 impl Debugger {
     pub fn new() -> anyhow::Result<Debugger> {
@@ -48,7 +179,7 @@ impl Debugger {
                 texture,
                 width: desc.Width as u32,
                 height: desc.Height as u32,
-                format: desc.Format.0 as u32,
+                format: desc.Format,
             },
         );
     }
@@ -57,31 +188,36 @@ impl Debugger {
         use cimgui as ig;
 
         let mut open = true;
-        let rt_size = ig::Vec2::new(tex.width as f32 / 4.0, tex.height as f32 / 4.0);
 
+        let base_width = tex.width as f32 / 2.0;
+        let inverse_aspect_ratio = tex.height as f32 / tex.width as f32;
         ig::set_next_window_size(
-            ig::Vec2::new(rt_size.x, rt_size.y + 150.0),
-            Some(ig::Cond::FirstUseEver),
+            ig::Vec2::new(base_width, base_width * inverse_aspect_ratio + 40.0),
+            Some(ig::Cond::Once),
         );
+        ig::set_next_window_bg_alpha(1.0);
         if ig::begin(
-            &format!("Texture {:X?}", tex.texture),
+            &format!(
+                "Texture {:X?} ({}x{}, {})",
+                tex.texture,
+                tex.width,
+                tex.height,
+                dxgi_format_to_str(tex.format)
+            ),
             Some(&mut open),
             None,
         )? {
             use windows::Abi;
 
+            let ig::Vec2 { x: width, .. } = ig::get_window_size();
             ig::image(
                 unsafe { (*(*tex.texture).shader_resource_view_ptr()).abi() },
-                rt_size,
+                ig::Vec2::new(width, width * inverse_aspect_ratio),
                 None,
                 None,
                 None,
                 None,
             );
-
-            ig::textf!("Width: {}", tex.width);
-            ig::textf!("Height: {}", tex.height);
-            ig::textf!("Format: {}", tex.format);
 
             ig::end();
         }
@@ -141,7 +277,7 @@ impl Debugger {
         }
         {
             ig::table_next_column();
-            ig::textf!("{:?}", desc.Format);
+            ig::textf!("{}", dxgi_format_to_str(desc.Format));
         }
 
         Ok(())
