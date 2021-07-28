@@ -193,7 +193,8 @@ output = """#![allow(dead_code)]
 #![allow(non_snake_case)]
 
 use crate::singleton;
-use crate::debugger::{Debugger, D3DPayload};
+use crate::debugger::Debugger;
+use crate::debugger::d3d_payload::D3DPayload;
 use crate::hooks::Patcher;
 use crate::ct_config::*;
 
@@ -252,7 +253,7 @@ for function in functions:
     args_string = ', '.join([arg['name'] for arg in function['args'][1:]])
     output += signature + " {\n"
     output += f"    let ret = ((*(*(*This).original).vtbl).{function['name']})((*This).original as *mut _, {args_string});\n"
-    output += f"    push_back_payload(D3DPayload::{function['name']});\n"
+    output += f"    push_back_payload(D3DPayload::{function['name']}({args_string}));\n"
     output += f"    ret\n";
     output += "}\n"
 output += """
@@ -321,5 +322,18 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
     Ok(HookState(ptrs))
 }
 """
+
+PRINT_MATCH_CASES = False
+if PRINT_MATCH_CASES:
+    for function in functions:
+        if len(function['args']) == 1:
+            continue
+
+        args_string = ', '.join([arg['name'] for arg in function['args'][1:]])
+        print(f"Self::{function['name']}({args_string}) => {{")
+        for arg in function['args'][1:]:
+            print(f"\tig::bullet(); ig::textf!(\"{arg['name']}: {{:?}}\", {arg['name']});")
+        print("}")
+    print("_ => {}")
 
 pathlib.Path("native/src/hooks/graphics/d3d/device_context.rs").write_text(output)

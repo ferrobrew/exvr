@@ -2,7 +2,8 @@
 #![allow(non_snake_case)]
 
 use crate::singleton;
-use crate::debugger::{Debugger, D3DPayload};
+use crate::debugger::Debugger;
+use crate::debugger::d3d_payload::D3DPayload;
 use crate::hooks::Patcher;
 use crate::ct_config::*;
 
@@ -152,577 +153,577 @@ fn push_back_payload(payload: D3DPayload) {
 }
 unsafe extern "C" fn QueryInterface_hook(This: *mut ID3D11DeviceContextHooked, riid: *const Guid, ppvObject: *mut *mut c_void) -> HRESULT {
     let ret = ((*(*(*This).original).vtbl).QueryInterface)((*This).original as *mut _, riid, ppvObject);
-    push_back_payload(D3DPayload::QueryInterface);
+    push_back_payload(D3DPayload::QueryInterface(riid, ppvObject));
     ret
 }
 unsafe extern "C" fn AddRef_hook(This: *mut ID3D11DeviceContextHooked) -> u32 {
     let ret = ((*(*(*This).original).vtbl).AddRef)((*This).original as *mut _, );
-    push_back_payload(D3DPayload::AddRef);
+    push_back_payload(D3DPayload::AddRef());
     ret
 }
 unsafe extern "C" fn Release_hook(This: *mut ID3D11DeviceContextHooked) -> u32 {
     let ret = ((*(*(*This).original).vtbl).Release)((*This).original as *mut _, );
-    push_back_payload(D3DPayload::Release);
+    push_back_payload(D3DPayload::Release());
     ret
 }
 unsafe extern "C" fn GetDevice_hook(This: *mut ID3D11DeviceContextHooked, ppDevice: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).GetDevice)((*This).original as *mut _, ppDevice);
-    push_back_payload(D3DPayload::GetDevice);
+    push_back_payload(D3DPayload::GetDevice(ppDevice));
     ret
 }
 unsafe extern "C" fn GetPrivateData_hook(This: *mut ID3D11DeviceContextHooked, guid: *const Guid, pDataSize: *mut u32, pData: *mut c_void) -> HRESULT {
     let ret = ((*(*(*This).original).vtbl).GetPrivateData)((*This).original as *mut _, guid, pDataSize, pData);
-    push_back_payload(D3DPayload::GetPrivateData);
+    push_back_payload(D3DPayload::GetPrivateData(guid, pDataSize, pData));
     ret
 }
 unsafe extern "C" fn SetPrivateData_hook(This: *mut ID3D11DeviceContextHooked, guid: *const Guid, DataSize: u32, pData: *mut c_void) -> HRESULT {
     let ret = ((*(*(*This).original).vtbl).SetPrivateData)((*This).original as *mut _, guid, DataSize, pData);
-    push_back_payload(D3DPayload::SetPrivateData);
+    push_back_payload(D3DPayload::SetPrivateData(guid, DataSize, pData));
     ret
 }
 unsafe extern "C" fn SetPrivateDataInterface_hook(This: *mut ID3D11DeviceContextHooked, guid: *const Guid, pData: *mut IUnknown) -> HRESULT {
     let ret = ((*(*(*This).original).vtbl).SetPrivateDataInterface)((*This).original as *mut _, guid, pData);
-    push_back_payload(D3DPayload::SetPrivateDataInterface);
+    push_back_payload(D3DPayload::SetPrivateDataInterface(guid, pData));
     ret
 }
 unsafe extern "C" fn VSSetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).VSSetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::VSSetConstantBuffers);
+    push_back_payload(D3DPayload::VSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn PSSetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).PSSetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::PSSetShaderResources);
+    push_back_payload(D3DPayload::PSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn PSSetShader_hook(This: *mut ID3D11DeviceContextHooked, pPixelShader: *mut c_void, ppClassInstances: *mut *const c_void, NumClassInstances: u32) {
     let ret = ((*(*(*This).original).vtbl).PSSetShader)((*This).original as *mut _, pPixelShader, ppClassInstances, NumClassInstances);
-    push_back_payload(D3DPayload::PSSetShader);
+    push_back_payload(D3DPayload::PSSetShader(pPixelShader, ppClassInstances, NumClassInstances));
     ret
 }
 unsafe extern "C" fn PSSetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).PSSetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::PSSetSamplers);
+    push_back_payload(D3DPayload::PSSetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn VSSetShader_hook(This: *mut ID3D11DeviceContextHooked, pVertexShader: *mut c_void, ppClassInstances: *mut *const c_void, NumClassInstances: u32) {
     let ret = ((*(*(*This).original).vtbl).VSSetShader)((*This).original as *mut _, pVertexShader, ppClassInstances, NumClassInstances);
-    push_back_payload(D3DPayload::VSSetShader);
+    push_back_payload(D3DPayload::VSSetShader(pVertexShader, ppClassInstances, NumClassInstances));
     ret
 }
 unsafe extern "C" fn DrawIndexed_hook(This: *mut ID3D11DeviceContextHooked, IndexCount: u32, StartIndexLocation: u32, BaseVertexLocation: i32) {
     let ret = ((*(*(*This).original).vtbl).DrawIndexed)((*This).original as *mut _, IndexCount, StartIndexLocation, BaseVertexLocation);
-    push_back_payload(D3DPayload::DrawIndexed);
+    push_back_payload(D3DPayload::DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation));
     ret
 }
 unsafe extern "C" fn Draw_hook(This: *mut ID3D11DeviceContextHooked, VertexCount: u32, StartVertexLocation: u32) {
     let ret = ((*(*(*This).original).vtbl).Draw)((*This).original as *mut _, VertexCount, StartVertexLocation);
-    push_back_payload(D3DPayload::Draw);
+    push_back_payload(D3DPayload::Draw(VertexCount, StartVertexLocation));
     ret
 }
 unsafe extern "C" fn Map_hook(This: *mut ID3D11DeviceContextHooked, pResource: *mut c_void, Subresource: u32, MapType: D3D11_MAP, MapFlags: u32, pMappedResource: *mut D3D11_MAPPED_SUBRESOURCE) -> HRESULT {
     let ret = ((*(*(*This).original).vtbl).Map)((*This).original as *mut _, pResource, Subresource, MapType, MapFlags, pMappedResource);
-    push_back_payload(D3DPayload::Map);
+    push_back_payload(D3DPayload::Map(pResource, Subresource, MapType, MapFlags, pMappedResource));
     ret
 }
 unsafe extern "C" fn Unmap_hook(This: *mut ID3D11DeviceContextHooked, pResource: *mut c_void, Subresource: u32) {
     let ret = ((*(*(*This).original).vtbl).Unmap)((*This).original as *mut _, pResource, Subresource);
-    push_back_payload(D3DPayload::Unmap);
+    push_back_payload(D3DPayload::Unmap(pResource, Subresource));
     ret
 }
 unsafe extern "C" fn PSSetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).PSSetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::PSSetConstantBuffers);
+    push_back_payload(D3DPayload::PSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn IASetInputLayout_hook(This: *mut ID3D11DeviceContextHooked, pInputLayout: *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).IASetInputLayout)((*This).original as *mut _, pInputLayout);
-    push_back_payload(D3DPayload::IASetInputLayout);
+    push_back_payload(D3DPayload::IASetInputLayout(pInputLayout));
     ret
 }
 unsafe extern "C" fn IASetVertexBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppVertexBuffers: *mut *const c_void, pStrides: *mut u32, pOffsets: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).IASetVertexBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppVertexBuffers, pStrides, pOffsets);
-    push_back_payload(D3DPayload::IASetVertexBuffers);
+    push_back_payload(D3DPayload::IASetVertexBuffers(StartSlot, NumBuffers, ppVertexBuffers, pStrides, pOffsets));
     ret
 }
 unsafe extern "C" fn IASetIndexBuffer_hook(This: *mut ID3D11DeviceContextHooked, pIndexBuffer: *mut c_void, Format: DXGI_FORMAT, Offset: u32) {
     let ret = ((*(*(*This).original).vtbl).IASetIndexBuffer)((*This).original as *mut _, pIndexBuffer, Format, Offset);
-    push_back_payload(D3DPayload::IASetIndexBuffer);
+    push_back_payload(D3DPayload::IASetIndexBuffer(pIndexBuffer, Format, Offset));
     ret
 }
 unsafe extern "C" fn DrawIndexedInstanced_hook(This: *mut ID3D11DeviceContextHooked, IndexCountPerInstance: u32, InstanceCount: u32, StartIndexLocation: u32, BaseVertexLocation: i32, StartInstanceLocation: u32) {
     let ret = ((*(*(*This).original).vtbl).DrawIndexedInstanced)((*This).original as *mut _, IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
-    push_back_payload(D3DPayload::DrawIndexedInstanced);
+    push_back_payload(D3DPayload::DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation));
     ret
 }
 unsafe extern "C" fn DrawInstanced_hook(This: *mut ID3D11DeviceContextHooked, VertexCountPerInstance: u32, InstanceCount: u32, StartVertexLocation: u32, StartInstanceLocation: u32) {
     let ret = ((*(*(*This).original).vtbl).DrawInstanced)((*This).original as *mut _, VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
-    push_back_payload(D3DPayload::DrawInstanced);
+    push_back_payload(D3DPayload::DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation));
     ret
 }
 unsafe extern "C" fn GSSetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).GSSetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::GSSetConstantBuffers);
+    push_back_payload(D3DPayload::GSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn GSSetShader_hook(This: *mut ID3D11DeviceContextHooked, pShader: *mut c_void, ppClassInstances: *mut *const c_void, NumClassInstances: u32) {
     let ret = ((*(*(*This).original).vtbl).GSSetShader)((*This).original as *mut _, pShader, ppClassInstances, NumClassInstances);
-    push_back_payload(D3DPayload::GSSetShader);
+    push_back_payload(D3DPayload::GSSetShader(pShader, ppClassInstances, NumClassInstances));
     ret
 }
 unsafe extern "C" fn IASetPrimitiveTopology_hook(This: *mut ID3D11DeviceContextHooked, Topology: D3D_PRIMITIVE_TOPOLOGY) {
     let ret = ((*(*(*This).original).vtbl).IASetPrimitiveTopology)((*This).original as *mut _, Topology);
-    push_back_payload(D3DPayload::IASetPrimitiveTopology);
+    push_back_payload(D3DPayload::IASetPrimitiveTopology(Topology));
     ret
 }
 unsafe extern "C" fn VSSetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).VSSetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::VSSetShaderResources);
+    push_back_payload(D3DPayload::VSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn VSSetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).VSSetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::VSSetSamplers);
+    push_back_payload(D3DPayload::VSSetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn Begin_hook(This: *mut ID3D11DeviceContextHooked, pAsync: *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).Begin)((*This).original as *mut _, pAsync);
-    push_back_payload(D3DPayload::Begin);
+    push_back_payload(D3DPayload::Begin(pAsync));
     ret
 }
 unsafe extern "C" fn End_hook(This: *mut ID3D11DeviceContextHooked, pAsync: *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).End)((*This).original as *mut _, pAsync);
-    push_back_payload(D3DPayload::End);
+    push_back_payload(D3DPayload::End(pAsync));
     ret
 }
 unsafe extern "C" fn GetData_hook(This: *mut ID3D11DeviceContextHooked, pAsync: *mut c_void, pData: *mut c_void, DataSize: u32, GetDataFlags: u32) -> HRESULT {
     let ret = ((*(*(*This).original).vtbl).GetData)((*This).original as *mut _, pAsync, pData, DataSize, GetDataFlags);
-    push_back_payload(D3DPayload::GetData);
+    push_back_payload(D3DPayload::GetData(pAsync, pData, DataSize, GetDataFlags));
     ret
 }
 unsafe extern "C" fn SetPredication_hook(This: *mut ID3D11DeviceContextHooked, pPredicate: *mut c_void, PredicateValue: BOOL) {
     let ret = ((*(*(*This).original).vtbl).SetPredication)((*This).original as *mut _, pPredicate, PredicateValue);
-    push_back_payload(D3DPayload::SetPredication);
+    push_back_payload(D3DPayload::SetPredication(pPredicate, PredicateValue));
     ret
 }
 unsafe extern "C" fn GSSetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).GSSetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::GSSetShaderResources);
+    push_back_payload(D3DPayload::GSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn GSSetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).GSSetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::GSSetSamplers);
+    push_back_payload(D3DPayload::GSSetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn OMSetRenderTargets_hook(This: *mut ID3D11DeviceContextHooked, NumViews: u32, ppRenderTargetViews: *mut *const c_void, pDepthStencilView: *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).OMSetRenderTargets)((*This).original as *mut _, NumViews, ppRenderTargetViews, pDepthStencilView);
-    push_back_payload(D3DPayload::OMSetRenderTargets);
+    push_back_payload(D3DPayload::OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView));
     ret
 }
 unsafe extern "C" fn OMSetRenderTargetsAndUnorderedAccessViews_hook(This: *mut ID3D11DeviceContextHooked, NumRTVs: u32, ppRenderTargetViews: *mut *const c_void, pDepthStencilView: *mut c_void, UAVStartSlot: u32, NumUAVs: u32, ppUnorderedAccessViews: *mut *const c_void, pUAVInitialCounts: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).OMSetRenderTargetsAndUnorderedAccessViews)((*This).original as *mut _, NumRTVs, ppRenderTargetViews, pDepthStencilView, UAVStartSlot, NumUAVs, ppUnorderedAccessViews, pUAVInitialCounts);
-    push_back_payload(D3DPayload::OMSetRenderTargetsAndUnorderedAccessViews);
+    push_back_payload(D3DPayload::OMSetRenderTargetsAndUnorderedAccessViews(NumRTVs, ppRenderTargetViews, pDepthStencilView, UAVStartSlot, NumUAVs, ppUnorderedAccessViews, pUAVInitialCounts));
     ret
 }
 unsafe extern "C" fn OMSetBlendState_hook(This: *mut ID3D11DeviceContextHooked, pBlendState: *mut c_void, BlendFactor: *mut f32, SampleMask: u32) {
     let ret = ((*(*(*This).original).vtbl).OMSetBlendState)((*This).original as *mut _, pBlendState, BlendFactor, SampleMask);
-    push_back_payload(D3DPayload::OMSetBlendState);
+    push_back_payload(D3DPayload::OMSetBlendState(pBlendState, BlendFactor, SampleMask));
     ret
 }
 unsafe extern "C" fn OMSetDepthStencilState_hook(This: *mut ID3D11DeviceContextHooked, pDepthStencilState: *mut c_void, StencilRef: u32) {
     let ret = ((*(*(*This).original).vtbl).OMSetDepthStencilState)((*This).original as *mut _, pDepthStencilState, StencilRef);
-    push_back_payload(D3DPayload::OMSetDepthStencilState);
+    push_back_payload(D3DPayload::OMSetDepthStencilState(pDepthStencilState, StencilRef));
     ret
 }
 unsafe extern "C" fn SOSetTargets_hook(This: *mut ID3D11DeviceContextHooked, NumBuffers: u32, ppSOTargets: *mut *const c_void, pOffsets: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).SOSetTargets)((*This).original as *mut _, NumBuffers, ppSOTargets, pOffsets);
-    push_back_payload(D3DPayload::SOSetTargets);
+    push_back_payload(D3DPayload::SOSetTargets(NumBuffers, ppSOTargets, pOffsets));
     ret
 }
 unsafe extern "C" fn DrawAuto_hook(This: *mut ID3D11DeviceContextHooked) {
     let ret = ((*(*(*This).original).vtbl).DrawAuto)((*This).original as *mut _, );
-    push_back_payload(D3DPayload::DrawAuto);
+    push_back_payload(D3DPayload::DrawAuto());
     ret
 }
 unsafe extern "C" fn DrawIndexedInstancedIndirect_hook(This: *mut ID3D11DeviceContextHooked, pBufferForArgs: *mut c_void, AlignedByteOffsetForArgs: u32) {
     let ret = ((*(*(*This).original).vtbl).DrawIndexedInstancedIndirect)((*This).original as *mut _, pBufferForArgs, AlignedByteOffsetForArgs);
-    push_back_payload(D3DPayload::DrawIndexedInstancedIndirect);
+    push_back_payload(D3DPayload::DrawIndexedInstancedIndirect(pBufferForArgs, AlignedByteOffsetForArgs));
     ret
 }
 unsafe extern "C" fn DrawInstancedIndirect_hook(This: *mut ID3D11DeviceContextHooked, pBufferForArgs: *mut c_void, AlignedByteOffsetForArgs: u32) {
     let ret = ((*(*(*This).original).vtbl).DrawInstancedIndirect)((*This).original as *mut _, pBufferForArgs, AlignedByteOffsetForArgs);
-    push_back_payload(D3DPayload::DrawInstancedIndirect);
+    push_back_payload(D3DPayload::DrawInstancedIndirect(pBufferForArgs, AlignedByteOffsetForArgs));
     ret
 }
 unsafe extern "C" fn Dispatch_hook(This: *mut ID3D11DeviceContextHooked, ThreadGroupCountX: u32, ThreadGroupCountY: u32, ThreadGroupCountZ: u32) {
     let ret = ((*(*(*This).original).vtbl).Dispatch)((*This).original as *mut _, ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
-    push_back_payload(D3DPayload::Dispatch);
+    push_back_payload(D3DPayload::Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ));
     ret
 }
 unsafe extern "C" fn DispatchIndirect_hook(This: *mut ID3D11DeviceContextHooked, pBufferForArgs: *mut c_void, AlignedByteOffsetForArgs: u32) {
     let ret = ((*(*(*This).original).vtbl).DispatchIndirect)((*This).original as *mut _, pBufferForArgs, AlignedByteOffsetForArgs);
-    push_back_payload(D3DPayload::DispatchIndirect);
+    push_back_payload(D3DPayload::DispatchIndirect(pBufferForArgs, AlignedByteOffsetForArgs));
     ret
 }
 unsafe extern "C" fn RSSetState_hook(This: *mut ID3D11DeviceContextHooked, pRasterizerState: *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).RSSetState)((*This).original as *mut _, pRasterizerState);
-    push_back_payload(D3DPayload::RSSetState);
+    push_back_payload(D3DPayload::RSSetState(pRasterizerState));
     ret
 }
 unsafe extern "C" fn RSSetViewports_hook(This: *mut ID3D11DeviceContextHooked, NumViewports: u32, pViewports: *mut D3D11_VIEWPORT) {
     let ret = ((*(*(*This).original).vtbl).RSSetViewports)((*This).original as *mut _, NumViewports, pViewports);
-    push_back_payload(D3DPayload::RSSetViewports);
+    push_back_payload(D3DPayload::RSSetViewports(NumViewports, pViewports));
     ret
 }
 unsafe extern "C" fn RSSetScissorRects_hook(This: *mut ID3D11DeviceContextHooked, NumRects: u32, pRects: *mut RECT) {
     let ret = ((*(*(*This).original).vtbl).RSSetScissorRects)((*This).original as *mut _, NumRects, pRects);
-    push_back_payload(D3DPayload::RSSetScissorRects);
+    push_back_payload(D3DPayload::RSSetScissorRects(NumRects, pRects));
     ret
 }
 unsafe extern "C" fn CopySubresourceRegion_hook(This: *mut ID3D11DeviceContextHooked, pDstResource: *mut c_void, DstSubresource: u32, DstX: u32, DstY: u32, DstZ: u32, pSrcResource: *mut c_void, SrcSubresource: u32, pSrcBox: *mut D3D11_BOX) {
     let ret = ((*(*(*This).original).vtbl).CopySubresourceRegion)((*This).original as *mut _, pDstResource, DstSubresource, DstX, DstY, DstZ, pSrcResource, SrcSubresource, pSrcBox);
-    push_back_payload(D3DPayload::CopySubresourceRegion);
+    push_back_payload(D3DPayload::CopySubresourceRegion(pDstResource, DstSubresource, DstX, DstY, DstZ, pSrcResource, SrcSubresource, pSrcBox));
     ret
 }
 unsafe extern "C" fn CopyResource_hook(This: *mut ID3D11DeviceContextHooked, pDstResource: *mut c_void, pSrcResource: *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).CopyResource)((*This).original as *mut _, pDstResource, pSrcResource);
-    push_back_payload(D3DPayload::CopyResource);
+    push_back_payload(D3DPayload::CopyResource(pDstResource, pSrcResource));
     ret
 }
 unsafe extern "C" fn UpdateSubresource_hook(This: *mut ID3D11DeviceContextHooked, pDstResource: *mut c_void, DstSubresource: u32, pDstBox: *mut D3D11_BOX, pSrcData: *mut c_void, SrcRowPitch: u32, SrcDepthPitch: u32) {
     let ret = ((*(*(*This).original).vtbl).UpdateSubresource)((*This).original as *mut _, pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch);
-    push_back_payload(D3DPayload::UpdateSubresource);
+    push_back_payload(D3DPayload::UpdateSubresource(pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch));
     ret
 }
 unsafe extern "C" fn CopyStructureCount_hook(This: *mut ID3D11DeviceContextHooked, pDstBuffer: *mut c_void, DstAlignedByteOffset: u32, pSrcView: *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).CopyStructureCount)((*This).original as *mut _, pDstBuffer, DstAlignedByteOffset, pSrcView);
-    push_back_payload(D3DPayload::CopyStructureCount);
+    push_back_payload(D3DPayload::CopyStructureCount(pDstBuffer, DstAlignedByteOffset, pSrcView));
     ret
 }
 unsafe extern "C" fn ClearRenderTargetView_hook(This: *mut ID3D11DeviceContextHooked, pRenderTargetView: *mut c_void, ColorRGBA: *mut f32) {
     let ret = ((*(*(*This).original).vtbl).ClearRenderTargetView)((*This).original as *mut _, pRenderTargetView, ColorRGBA);
-    push_back_payload(D3DPayload::ClearRenderTargetView);
+    push_back_payload(D3DPayload::ClearRenderTargetView(pRenderTargetView, ColorRGBA));
     ret
 }
 unsafe extern "C" fn ClearUnorderedAccessViewUint_hook(This: *mut ID3D11DeviceContextHooked, pUnorderedAccessView: *mut c_void, Values: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).ClearUnorderedAccessViewUint)((*This).original as *mut _, pUnorderedAccessView, Values);
-    push_back_payload(D3DPayload::ClearUnorderedAccessViewUint);
+    push_back_payload(D3DPayload::ClearUnorderedAccessViewUint(pUnorderedAccessView, Values));
     ret
 }
 unsafe extern "C" fn ClearUnorderedAccessViewFloat_hook(This: *mut ID3D11DeviceContextHooked, pUnorderedAccessView: *mut c_void, Values: *mut f32) {
     let ret = ((*(*(*This).original).vtbl).ClearUnorderedAccessViewFloat)((*This).original as *mut _, pUnorderedAccessView, Values);
-    push_back_payload(D3DPayload::ClearUnorderedAccessViewFloat);
+    push_back_payload(D3DPayload::ClearUnorderedAccessViewFloat(pUnorderedAccessView, Values));
     ret
 }
 unsafe extern "C" fn ClearDepthStencilView_hook(This: *mut ID3D11DeviceContextHooked, pDepthStencilView: *mut c_void, ClearFlags: u32, Depth: f32, Stencil: u8) {
     let ret = ((*(*(*This).original).vtbl).ClearDepthStencilView)((*This).original as *mut _, pDepthStencilView, ClearFlags, Depth, Stencil);
-    push_back_payload(D3DPayload::ClearDepthStencilView);
+    push_back_payload(D3DPayload::ClearDepthStencilView(pDepthStencilView, ClearFlags, Depth, Stencil));
     ret
 }
 unsafe extern "C" fn GenerateMips_hook(This: *mut ID3D11DeviceContextHooked, pShaderResourceView: *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).GenerateMips)((*This).original as *mut _, pShaderResourceView);
-    push_back_payload(D3DPayload::GenerateMips);
+    push_back_payload(D3DPayload::GenerateMips(pShaderResourceView));
     ret
 }
 unsafe extern "C" fn SetResourceMinLOD_hook(This: *mut ID3D11DeviceContextHooked, pResource: *mut c_void, MinLOD: f32) {
     let ret = ((*(*(*This).original).vtbl).SetResourceMinLOD)((*This).original as *mut _, pResource, MinLOD);
-    push_back_payload(D3DPayload::SetResourceMinLOD);
+    push_back_payload(D3DPayload::SetResourceMinLOD(pResource, MinLOD));
     ret
 }
 unsafe extern "C" fn GetResourceMinLOD_hook(This: *mut ID3D11DeviceContextHooked, pResource: *mut c_void) -> f32 {
     let ret = ((*(*(*This).original).vtbl).GetResourceMinLOD)((*This).original as *mut _, pResource);
-    push_back_payload(D3DPayload::GetResourceMinLOD);
+    push_back_payload(D3DPayload::GetResourceMinLOD(pResource));
     ret
 }
 unsafe extern "C" fn ResolveSubresource_hook(This: *mut ID3D11DeviceContextHooked, pDstResource: *mut c_void, DstSubresource: u32, pSrcResource: *mut c_void, SrcSubresource: u32, Format: DXGI_FORMAT) {
     let ret = ((*(*(*This).original).vtbl).ResolveSubresource)((*This).original as *mut _, pDstResource, DstSubresource, pSrcResource, SrcSubresource, Format);
-    push_back_payload(D3DPayload::ResolveSubresource);
+    push_back_payload(D3DPayload::ResolveSubresource(pDstResource, DstSubresource, pSrcResource, SrcSubresource, Format));
     ret
 }
 unsafe extern "C" fn ExecuteCommandList_hook(This: *mut ID3D11DeviceContextHooked, pCommandList: *mut c_void, RestoreContextState: BOOL) {
     let ret = ((*(*(*This).original).vtbl).ExecuteCommandList)((*This).original as *mut _, pCommandList, RestoreContextState);
-    push_back_payload(D3DPayload::ExecuteCommandList);
+    push_back_payload(D3DPayload::ExecuteCommandList(pCommandList, RestoreContextState));
     ret
 }
 unsafe extern "C" fn HSSetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).HSSetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::HSSetShaderResources);
+    push_back_payload(D3DPayload::HSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn HSSetShader_hook(This: *mut ID3D11DeviceContextHooked, pHullShader: *mut c_void, ppClassInstances: *mut *const c_void, NumClassInstances: u32) {
     let ret = ((*(*(*This).original).vtbl).HSSetShader)((*This).original as *mut _, pHullShader, ppClassInstances, NumClassInstances);
-    push_back_payload(D3DPayload::HSSetShader);
+    push_back_payload(D3DPayload::HSSetShader(pHullShader, ppClassInstances, NumClassInstances));
     ret
 }
 unsafe extern "C" fn HSSetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).HSSetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::HSSetSamplers);
+    push_back_payload(D3DPayload::HSSetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn HSSetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).HSSetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::HSSetConstantBuffers);
+    push_back_payload(D3DPayload::HSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn DSSetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).DSSetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::DSSetShaderResources);
+    push_back_payload(D3DPayload::DSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn DSSetShader_hook(This: *mut ID3D11DeviceContextHooked, pDomainShader: *mut c_void, ppClassInstances: *mut *const c_void, NumClassInstances: u32) {
     let ret = ((*(*(*This).original).vtbl).DSSetShader)((*This).original as *mut _, pDomainShader, ppClassInstances, NumClassInstances);
-    push_back_payload(D3DPayload::DSSetShader);
+    push_back_payload(D3DPayload::DSSetShader(pDomainShader, ppClassInstances, NumClassInstances));
     ret
 }
 unsafe extern "C" fn DSSetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).DSSetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::DSSetSamplers);
+    push_back_payload(D3DPayload::DSSetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn DSSetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).DSSetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::DSSetConstantBuffers);
+    push_back_payload(D3DPayload::DSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn CSSetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).CSSetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::CSSetShaderResources);
+    push_back_payload(D3DPayload::CSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn CSSetUnorderedAccessViews_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumUAVs: u32, ppUnorderedAccessViews: *mut *const c_void, pUAVInitialCounts: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).CSSetUnorderedAccessViews)((*This).original as *mut _, StartSlot, NumUAVs, ppUnorderedAccessViews, pUAVInitialCounts);
-    push_back_payload(D3DPayload::CSSetUnorderedAccessViews);
+    push_back_payload(D3DPayload::CSSetUnorderedAccessViews(StartSlot, NumUAVs, ppUnorderedAccessViews, pUAVInitialCounts));
     ret
 }
 unsafe extern "C" fn CSSetShader_hook(This: *mut ID3D11DeviceContextHooked, pComputeShader: *mut c_void, ppClassInstances: *mut *const c_void, NumClassInstances: u32) {
     let ret = ((*(*(*This).original).vtbl).CSSetShader)((*This).original as *mut _, pComputeShader, ppClassInstances, NumClassInstances);
-    push_back_payload(D3DPayload::CSSetShader);
+    push_back_payload(D3DPayload::CSSetShader(pComputeShader, ppClassInstances, NumClassInstances));
     ret
 }
 unsafe extern "C" fn CSSetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).CSSetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::CSSetSamplers);
+    push_back_payload(D3DPayload::CSSetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn CSSetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *const c_void) {
     let ret = ((*(*(*This).original).vtbl).CSSetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::CSSetConstantBuffers);
+    push_back_payload(D3DPayload::CSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn VSGetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).VSGetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::VSGetConstantBuffers);
+    push_back_payload(D3DPayload::VSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn PSGetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).PSGetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::PSGetShaderResources);
+    push_back_payload(D3DPayload::PSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn PSGetShader_hook(This: *mut ID3D11DeviceContextHooked, ppPixelShader: *mut *mut c_void, ppClassInstances: *mut *mut c_void, pNumClassInstances: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).PSGetShader)((*This).original as *mut _, ppPixelShader, ppClassInstances, pNumClassInstances);
-    push_back_payload(D3DPayload::PSGetShader);
+    push_back_payload(D3DPayload::PSGetShader(ppPixelShader, ppClassInstances, pNumClassInstances));
     ret
 }
 unsafe extern "C" fn PSGetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).PSGetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::PSGetSamplers);
+    push_back_payload(D3DPayload::PSGetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn VSGetShader_hook(This: *mut ID3D11DeviceContextHooked, ppVertexShader: *mut *mut c_void, ppClassInstances: *mut *mut c_void, pNumClassInstances: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).VSGetShader)((*This).original as *mut _, ppVertexShader, ppClassInstances, pNumClassInstances);
-    push_back_payload(D3DPayload::VSGetShader);
+    push_back_payload(D3DPayload::VSGetShader(ppVertexShader, ppClassInstances, pNumClassInstances));
     ret
 }
 unsafe extern "C" fn PSGetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).PSGetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::PSGetConstantBuffers);
+    push_back_payload(D3DPayload::PSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn IAGetInputLayout_hook(This: *mut ID3D11DeviceContextHooked, ppInputLayout: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).IAGetInputLayout)((*This).original as *mut _, ppInputLayout);
-    push_back_payload(D3DPayload::IAGetInputLayout);
+    push_back_payload(D3DPayload::IAGetInputLayout(ppInputLayout));
     ret
 }
 unsafe extern "C" fn IAGetVertexBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppVertexBuffers: *mut *mut c_void, pStrides: *mut u32, pOffsets: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).IAGetVertexBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppVertexBuffers, pStrides, pOffsets);
-    push_back_payload(D3DPayload::IAGetVertexBuffers);
+    push_back_payload(D3DPayload::IAGetVertexBuffers(StartSlot, NumBuffers, ppVertexBuffers, pStrides, pOffsets));
     ret
 }
 unsafe extern "C" fn IAGetIndexBuffer_hook(This: *mut ID3D11DeviceContextHooked, pIndexBuffer: *mut *mut c_void, Format: *mut DXGI_FORMAT, Offset: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).IAGetIndexBuffer)((*This).original as *mut _, pIndexBuffer, Format, Offset);
-    push_back_payload(D3DPayload::IAGetIndexBuffer);
+    push_back_payload(D3DPayload::IAGetIndexBuffer(pIndexBuffer, Format, Offset));
     ret
 }
 unsafe extern "C" fn GSGetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).GSGetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::GSGetConstantBuffers);
+    push_back_payload(D3DPayload::GSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn GSGetShader_hook(This: *mut ID3D11DeviceContextHooked, ppGeometryShader: *mut *mut c_void, ppClassInstances: *mut *mut c_void, pNumClassInstances: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).GSGetShader)((*This).original as *mut _, ppGeometryShader, ppClassInstances, pNumClassInstances);
-    push_back_payload(D3DPayload::GSGetShader);
+    push_back_payload(D3DPayload::GSGetShader(ppGeometryShader, ppClassInstances, pNumClassInstances));
     ret
 }
 unsafe extern "C" fn IAGetPrimitiveTopology_hook(This: *mut ID3D11DeviceContextHooked, pTopology: *mut D3D_PRIMITIVE_TOPOLOGY) {
     let ret = ((*(*(*This).original).vtbl).IAGetPrimitiveTopology)((*This).original as *mut _, pTopology);
-    push_back_payload(D3DPayload::IAGetPrimitiveTopology);
+    push_back_payload(D3DPayload::IAGetPrimitiveTopology(pTopology));
     ret
 }
 unsafe extern "C" fn VSGetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).VSGetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::VSGetShaderResources);
+    push_back_payload(D3DPayload::VSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn VSGetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).VSGetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::VSGetSamplers);
+    push_back_payload(D3DPayload::VSGetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn GetPredication_hook(This: *mut ID3D11DeviceContextHooked, ppPredicate: *mut *mut c_void, pPredicateValue: *mut BOOL) {
     let ret = ((*(*(*This).original).vtbl).GetPredication)((*This).original as *mut _, ppPredicate, pPredicateValue);
-    push_back_payload(D3DPayload::GetPredication);
+    push_back_payload(D3DPayload::GetPredication(ppPredicate, pPredicateValue));
     ret
 }
 unsafe extern "C" fn GSGetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).GSGetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::GSGetShaderResources);
+    push_back_payload(D3DPayload::GSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn GSGetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).GSGetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::GSGetSamplers);
+    push_back_payload(D3DPayload::GSGetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn OMGetRenderTargets_hook(This: *mut ID3D11DeviceContextHooked, NumViews: u32, ppRenderTargetViews: *mut *mut c_void, ppDepthStencilView: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).OMGetRenderTargets)((*This).original as *mut _, NumViews, ppRenderTargetViews, ppDepthStencilView);
-    push_back_payload(D3DPayload::OMGetRenderTargets);
+    push_back_payload(D3DPayload::OMGetRenderTargets(NumViews, ppRenderTargetViews, ppDepthStencilView));
     ret
 }
 unsafe extern "C" fn OMGetRenderTargetsAndUnorderedAccessViews_hook(This: *mut ID3D11DeviceContextHooked, NumRTVs: u32, ppRenderTargetViews: *mut *mut c_void, ppDepthStencilView: *mut *mut c_void, UAVStartSlot: u32, NumUAVs: u32, ppUnorderedAccessViews: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).OMGetRenderTargetsAndUnorderedAccessViews)((*This).original as *mut _, NumRTVs, ppRenderTargetViews, ppDepthStencilView, UAVStartSlot, NumUAVs, ppUnorderedAccessViews);
-    push_back_payload(D3DPayload::OMGetRenderTargetsAndUnorderedAccessViews);
+    push_back_payload(D3DPayload::OMGetRenderTargetsAndUnorderedAccessViews(NumRTVs, ppRenderTargetViews, ppDepthStencilView, UAVStartSlot, NumUAVs, ppUnorderedAccessViews));
     ret
 }
 unsafe extern "C" fn OMGetBlendState_hook(This: *mut ID3D11DeviceContextHooked, ppBlendState: *mut *mut c_void, BlendFactor: *mut f32, pSampleMask: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).OMGetBlendState)((*This).original as *mut _, ppBlendState, BlendFactor, pSampleMask);
-    push_back_payload(D3DPayload::OMGetBlendState);
+    push_back_payload(D3DPayload::OMGetBlendState(ppBlendState, BlendFactor, pSampleMask));
     ret
 }
 unsafe extern "C" fn OMGetDepthStencilState_hook(This: *mut ID3D11DeviceContextHooked, ppDepthStencilState: *mut *mut c_void, pStencilRef: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).OMGetDepthStencilState)((*This).original as *mut _, ppDepthStencilState, pStencilRef);
-    push_back_payload(D3DPayload::OMGetDepthStencilState);
+    push_back_payload(D3DPayload::OMGetDepthStencilState(ppDepthStencilState, pStencilRef));
     ret
 }
 unsafe extern "C" fn SOGetTargets_hook(This: *mut ID3D11DeviceContextHooked, NumBuffers: u32, ppSOTargets: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).SOGetTargets)((*This).original as *mut _, NumBuffers, ppSOTargets);
-    push_back_payload(D3DPayload::SOGetTargets);
+    push_back_payload(D3DPayload::SOGetTargets(NumBuffers, ppSOTargets));
     ret
 }
 unsafe extern "C" fn RSGetState_hook(This: *mut ID3D11DeviceContextHooked, ppRasterizerState: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).RSGetState)((*This).original as *mut _, ppRasterizerState);
-    push_back_payload(D3DPayload::RSGetState);
+    push_back_payload(D3DPayload::RSGetState(ppRasterizerState));
     ret
 }
 unsafe extern "C" fn RSGetViewports_hook(This: *mut ID3D11DeviceContextHooked, pNumViewports: *mut u32, pViewports: *mut D3D11_VIEWPORT) {
     let ret = ((*(*(*This).original).vtbl).RSGetViewports)((*This).original as *mut _, pNumViewports, pViewports);
-    push_back_payload(D3DPayload::RSGetViewports);
+    push_back_payload(D3DPayload::RSGetViewports(pNumViewports, pViewports));
     ret
 }
 unsafe extern "C" fn RSGetScissorRects_hook(This: *mut ID3D11DeviceContextHooked, pNumRects: *mut u32, pRects: *mut RECT) {
     let ret = ((*(*(*This).original).vtbl).RSGetScissorRects)((*This).original as *mut _, pNumRects, pRects);
-    push_back_payload(D3DPayload::RSGetScissorRects);
+    push_back_payload(D3DPayload::RSGetScissorRects(pNumRects, pRects));
     ret
 }
 unsafe extern "C" fn HSGetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).HSGetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::HSGetShaderResources);
+    push_back_payload(D3DPayload::HSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn HSGetShader_hook(This: *mut ID3D11DeviceContextHooked, ppHullShader: *mut *mut c_void, ppClassInstances: *mut *mut c_void, pNumClassInstances: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).HSGetShader)((*This).original as *mut _, ppHullShader, ppClassInstances, pNumClassInstances);
-    push_back_payload(D3DPayload::HSGetShader);
+    push_back_payload(D3DPayload::HSGetShader(ppHullShader, ppClassInstances, pNumClassInstances));
     ret
 }
 unsafe extern "C" fn HSGetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).HSGetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::HSGetSamplers);
+    push_back_payload(D3DPayload::HSGetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn HSGetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).HSGetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::HSGetConstantBuffers);
+    push_back_payload(D3DPayload::HSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn DSGetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).DSGetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::DSGetShaderResources);
+    push_back_payload(D3DPayload::DSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn DSGetShader_hook(This: *mut ID3D11DeviceContextHooked, ppDomainShader: *mut *mut c_void, ppClassInstances: *mut *mut c_void, pNumClassInstances: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).DSGetShader)((*This).original as *mut _, ppDomainShader, ppClassInstances, pNumClassInstances);
-    push_back_payload(D3DPayload::DSGetShader);
+    push_back_payload(D3DPayload::DSGetShader(ppDomainShader, ppClassInstances, pNumClassInstances));
     ret
 }
 unsafe extern "C" fn DSGetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).DSGetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::DSGetSamplers);
+    push_back_payload(D3DPayload::DSGetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn DSGetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).DSGetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::DSGetConstantBuffers);
+    push_back_payload(D3DPayload::DSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn CSGetShaderResources_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumViews: u32, ppShaderResourceViews: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).CSGetShaderResources)((*This).original as *mut _, StartSlot, NumViews, ppShaderResourceViews);
-    push_back_payload(D3DPayload::CSGetShaderResources);
+    push_back_payload(D3DPayload::CSGetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
 }
 unsafe extern "C" fn CSGetUnorderedAccessViews_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumUAVs: u32, ppUnorderedAccessViews: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).CSGetUnorderedAccessViews)((*This).original as *mut _, StartSlot, NumUAVs, ppUnorderedAccessViews);
-    push_back_payload(D3DPayload::CSGetUnorderedAccessViews);
+    push_back_payload(D3DPayload::CSGetUnorderedAccessViews(StartSlot, NumUAVs, ppUnorderedAccessViews));
     ret
 }
 unsafe extern "C" fn CSGetShader_hook(This: *mut ID3D11DeviceContextHooked, ppComputeShader: *mut *mut c_void, ppClassInstances: *mut *mut c_void, pNumClassInstances: *mut u32) {
     let ret = ((*(*(*This).original).vtbl).CSGetShader)((*This).original as *mut _, ppComputeShader, ppClassInstances, pNumClassInstances);
-    push_back_payload(D3DPayload::CSGetShader);
+    push_back_payload(D3DPayload::CSGetShader(ppComputeShader, ppClassInstances, pNumClassInstances));
     ret
 }
 unsafe extern "C" fn CSGetSamplers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).CSGetSamplers)((*This).original as *mut _, StartSlot, NumSamplers, ppSamplers);
-    push_back_payload(D3DPayload::CSGetSamplers);
+    push_back_payload(D3DPayload::CSGetSamplers(StartSlot, NumSamplers, ppSamplers));
     ret
 }
 unsafe extern "C" fn CSGetConstantBuffers_hook(This: *mut ID3D11DeviceContextHooked, StartSlot: u32, NumBuffers: u32, ppConstantBuffers: *mut *mut c_void) {
     let ret = ((*(*(*This).original).vtbl).CSGetConstantBuffers)((*This).original as *mut _, StartSlot, NumBuffers, ppConstantBuffers);
-    push_back_payload(D3DPayload::CSGetConstantBuffers);
+    push_back_payload(D3DPayload::CSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers));
     ret
 }
 unsafe extern "C" fn ClearState_hook(This: *mut ID3D11DeviceContextHooked) {
     let ret = ((*(*(*This).original).vtbl).ClearState)((*This).original as *mut _, );
-    push_back_payload(D3DPayload::ClearState);
+    push_back_payload(D3DPayload::ClearState());
     ret
 }
 unsafe extern "C" fn Flush_hook(This: *mut ID3D11DeviceContextHooked) {
     let ret = ((*(*(*This).original).vtbl).Flush)((*This).original as *mut _, );
-    push_back_payload(D3DPayload::Flush);
+    push_back_payload(D3DPayload::Flush());
     ret
 }
 unsafe extern "C" fn GetType_hook(This: *mut ID3D11DeviceContextHooked) -> D3D11_DEVICE_CONTEXT_TYPE {
     let ret = ((*(*(*This).original).vtbl).GetType)((*This).original as *mut _, );
-    push_back_payload(D3DPayload::GetType);
+    push_back_payload(D3DPayload::GetType());
     ret
 }
 unsafe extern "C" fn GetContextFlags_hook(This: *mut ID3D11DeviceContextHooked) -> u32 {
     let ret = ((*(*(*This).original).vtbl).GetContextFlags)((*This).original as *mut _, );
-    push_back_payload(D3DPayload::GetContextFlags);
+    push_back_payload(D3DPayload::GetContextFlags());
     ret
 }
 unsafe extern "C" fn FinishCommandList_hook(This: *mut ID3D11DeviceContextHooked, RestoreDeferredContextState: BOOL, ppCommandList: *mut *mut c_void) -> HRESULT {
     let ret = ((*(*(*This).original).vtbl).FinishCommandList)((*This).original as *mut _, RestoreDeferredContextState, ppCommandList);
-    push_back_payload(D3DPayload::FinishCommandList);
+    push_back_payload(D3DPayload::FinishCommandList(RestoreDeferredContextState, ppCommandList));
     ret
 }
 

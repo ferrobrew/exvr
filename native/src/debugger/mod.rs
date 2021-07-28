@@ -1,3 +1,7 @@
+pub mod payload;
+pub mod shader_payload;
+pub mod d3d_payload;
+
 mod command_stream;
 pub use command_stream::*;
 

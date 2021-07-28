@@ -1,4 +1,9 @@
 use crate::ct_config;
+
+use crate::debugger::d3d_payload::*;
+use crate::debugger::payload::*;
+use crate::debugger::shader_payload::*;
+
 use crate::game::graphics::kernel;
 use crate::game::graphics::kernel::{ShaderCommandType, Texture};
 use crate::log;
@@ -6,251 +11,11 @@ use crate::module::Module;
 
 use std::collections::HashMap;
 use std::string::ToString;
-use std::time::{Duration, Instant};
-
-use strum::EnumCount;
-use strum_macros::{Display, EnumCount, EnumDiscriminants};
+use std::time::Instant;
 
 use cimgui as ig;
 
 const FRAMES_TO_CAPTURE: u32 = 1;
-
-struct Ptr<T>(*const T);
-unsafe impl<T> Send for Ptr<T> {}
-unsafe impl<T> Sync for Ptr<T> {}
-impl<T> Copy for Ptr<T> {}
-impl<T> Clone for Ptr<T> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-trait Payload {
-    fn title(&self) -> String;
-    fn colour(&self) -> ig::Color;
-    fn draw(&self) -> anyhow::Result<()>;
-}
-
-#[derive(Display, EnumDiscriminants, EnumCount, Clone)]
-enum ShaderPayload {
-    SetRenderTargets(Vec<Ptr<Texture>>),
-    SetViewports,
-    SetViewportsFancy,
-    SetScissorRect,
-    Clear,
-    Draw,
-    DrawIndexed,
-    DrawIndexedInstanced,
-    DispatchComputeShader,
-    XIVRHijack,
-    CopyTexture {
-        dst: Ptr<Texture>,
-        src: Ptr<Texture>,
-    },
-    UnknownDraw,
-    CopyResource,
-    ResetRendererMaybe,
-    Unknown1,
-    CopySubresourceRegion,
-    SomethingWithStrings,
-    XIVRMarker(String),
-}
-impl Payload for ShaderPayload {
-    fn title(&self) -> String {
-        match self {
-            Self::XIVRMarker(s) => s.to_string(),
-            _ => self.to_string(),
-        }
-    }
-
-    fn colour(&self) -> ig::Color {
-        let type_index = ShaderPayloadDiscriminants::from(self) as u32;
-        let hue = type_index as f32 / ShaderPayload::COUNT as f32;
-        ig::Color::from_hsv(hue, 0.6, 0.8)
-    }
-
-    fn draw(&self) -> anyhow::Result<()> {
-        match self {
-            ShaderPayload::SetRenderTargets(rts) => {
-                ig::text("Render Targets: ");
-
-                for rt in rts {
-                    ig::bullet();
-                    if ig::small_button(&format!("{:X?}", rt.0))? {
-                        // self.inspect_texture(rt.0);
-                    }
-                }
-            }
-            ShaderPayload::CopyTexture { dst, src } => {
-                ig::text("Destination: ");
-                ig::same_line(None, Some(0.0));
-                if ig::small_button(&format!("{:X?}", dst.0))? {
-                    // self.inspect_texture(dst.0);
-                }
-
-                ig::text("Source: ");
-                ig::same_line(None, Some(0.0));
-                if ig::small_button(&format!("{:X?}", src.0))? {
-                    // self.inspect_texture(src.0);
-                }
-            }
-            _ => {
-                ig::text("No additional data available.");
-            }
-        }
-
-        Ok(())
-    }
-}
-
-#[derive(Display, EnumDiscriminants, EnumCount, Clone)]
-#[allow(dead_code)]
-pub enum D3DPayload {
-    QueryInterface,
-    AddRef,
-    Release,
-    GetDevice,
-    GetPrivateData,
-    SetPrivateData,
-    SetPrivateDataInterface,
-    VSSetConstantBuffers,
-    PSSetShaderResources,
-    PSSetShader,
-    PSSetSamplers,
-    VSSetShader,
-    DrawIndexed,
-    Draw,
-    Map,
-    Unmap,
-    PSSetConstantBuffers,
-    IASetInputLayout,
-    IASetVertexBuffers,
-    IASetIndexBuffer,
-    DrawIndexedInstanced,
-    DrawInstanced,
-    GSSetConstantBuffers,
-    GSSetShader,
-    IASetPrimitiveTopology,
-    VSSetShaderResources,
-    VSSetSamplers,
-    Begin,
-    End,
-    GetData,
-    SetPredication,
-    GSSetShaderResources,
-    GSSetSamplers,
-    OMSetRenderTargets,
-    OMSetRenderTargetsAndUnorderedAccessViews,
-    OMSetBlendState,
-    OMSetDepthStencilState,
-    SOSetTargets,
-    DrawAuto,
-    DrawIndexedInstancedIndirect,
-    DrawInstancedIndirect,
-    Dispatch,
-    DispatchIndirect,
-    RSSetState,
-    RSSetViewports,
-    RSSetScissorRects,
-    CopySubresourceRegion,
-    CopyResource,
-    UpdateSubresource,
-    CopyStructureCount,
-    ClearRenderTargetView,
-    ClearUnorderedAccessViewUint,
-    ClearUnorderedAccessViewFloat,
-    ClearDepthStencilView,
-    GenerateMips,
-    SetResourceMinLOD,
-    GetResourceMinLOD,
-    ResolveSubresource,
-    ExecuteCommandList,
-    HSSetShaderResources,
-    HSSetShader,
-    HSSetSamplers,
-    HSSetConstantBuffers,
-    DSSetShaderResources,
-    DSSetShader,
-    DSSetSamplers,
-    DSSetConstantBuffers,
-    CSSetShaderResources,
-    CSSetUnorderedAccessViews,
-    CSSetShader,
-    CSSetSamplers,
-    CSSetConstantBuffers,
-    VSGetConstantBuffers,
-    PSGetShaderResources,
-    PSGetShader,
-    PSGetSamplers,
-    VSGetShader,
-    PSGetConstantBuffers,
-    IAGetInputLayout,
-    IAGetVertexBuffers,
-    IAGetIndexBuffer,
-    GSGetConstantBuffers,
-    GSGetShader,
-    IAGetPrimitiveTopology,
-    VSGetShaderResources,
-    VSGetSamplers,
-    GetPredication,
-    GSGetShaderResources,
-    GSGetSamplers,
-    OMGetRenderTargets,
-    OMGetRenderTargetsAndUnorderedAccessViews,
-    OMGetBlendState,
-    OMGetDepthStencilState,
-    SOGetTargets,
-    RSGetState,
-    RSGetViewports,
-    RSGetScissorRects,
-    HSGetShaderResources,
-    HSGetShader,
-    HSGetSamplers,
-    HSGetConstantBuffers,
-    DSGetShaderResources,
-    DSGetShader,
-    DSGetSamplers,
-    DSGetConstantBuffers,
-    CSGetShaderResources,
-    CSGetUnorderedAccessViews,
-    CSGetShader,
-    CSGetSamplers,
-    CSGetConstantBuffers,
-    ClearState,
-    Flush,
-    GetType,
-    GetContextFlags,
-    FinishCommandList,
-}
-impl Payload for D3DPayload {
-    fn title(&self) -> String {
-        match self {
-            _ => self.to_string(),
-        }
-    }
-
-    fn colour(&self) -> ig::Color {
-        let type_index = D3DPayloadDiscriminants::from(self) as u32;
-        let hue = type_index as f32 / D3DPayload::COUNT as f32;
-        ig::Color::from_hsv(hue, 0.6, 0.8)
-    }
-
-    fn draw(&self) -> anyhow::Result<()> {
-        Ok(())
-    }
-}
-
-#[derive(Clone)]
-struct Command<PayloadType> {
-    payload: PayloadType,
-    address: Option<*const kernel::ShaderCommand>,
-    backtrace: backtrace::Backtrace,
-    thread_id: u32,
-    duration: Duration,
-}
-
-type ShaderCommand = Command<ShaderPayload>;
-type D3DCommand = Command<D3DPayload>;
 
 struct Stream<CommandType> {
     stream: Vec<CommandType>,
@@ -452,7 +217,6 @@ impl CommandStreamUI {
             if ig::begin_tab_bar("xivr_debugger_command_stream_tabs", None)? {
                 let mut selected_thread_id = None;
                 for (thread_id, shader_stream) in shader_streams.iter_mut() {
-                    let mut select = false;
                     if let Some(selected_cmd_address) = self.selected_cmd_address {
                         if let Some(index) = shader_stream
                             .stream
