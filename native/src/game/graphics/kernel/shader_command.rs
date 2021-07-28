@@ -186,7 +186,7 @@ pub union ShaderCommandPayload {
 
 #[repr(u32)]
 #[allow(dead_code)]
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum ShaderCommandType {
 	SetRenderTargets = 0,
 	SetViewports = 1,

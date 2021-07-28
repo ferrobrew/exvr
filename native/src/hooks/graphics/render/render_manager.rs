@@ -22,6 +22,8 @@ impl Drop for HookState {
     }
 }
 
+pub static mut CURRENT_EYE_INDEX: u32 = 0;
+
 pub unsafe fn install() -> anyhow::Result<HookState> {
     use crate::module::GAME_MODULE;
     use std::mem;
@@ -45,6 +47,8 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
             use crate::xr::{VIEW_COUNT, XR};
 
             for i in 0..VIEW_COUNT {
+                CURRENT_EYE_INDEX = i;
+
                 if let Some(debugger) = Debugger::get_mut() {
                     let mut command_stream = debugger.command_stream.lock().unwrap();
                     command_stream
@@ -59,6 +63,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                         .unwrap();
                 }
 
+                if let Some(rc) = Context::get_for_current_thread() {
                 rc.push_back_xivr_command(
                     move |immediate_context, payload| {
                         if let XIVRCommandPayload::Integer(i) = payload {
@@ -70,6 +75,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                     },
                     XIVRCommandPayload::Integer(i),
                 );
+                }
             }
 
             0usize

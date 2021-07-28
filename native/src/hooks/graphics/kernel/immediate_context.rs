@@ -75,11 +75,11 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
 
             #[repr(C)]
             struct StreamCommand {
-                cmd: *mut ShaderCommand,
                 sort_key: u64,
+                cmd: *mut ShaderCommand,
             }
 
-            let mut p = (a2 + 8) as *mut StreamCommand;
+            let mut p = a2 as *mut StreamCommand;
 
             if let Some(debugger) = Debugger::get_mut() {
                 let mut command_stream = debugger.command_stream.lock().unwrap();

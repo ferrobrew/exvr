@@ -42,6 +42,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
         if let Some(xr) = XR::get_mut() {
             xr.post_update().unwrap();
         }
+
         ret
     })?;
     GameMain_Update_Detour.enable()?;
