@@ -193,7 +193,6 @@ impl CommandStreamUI {
                             .position(|cmd| cmd.address == Some(selected_cmd_address))
                         {
                             shader_stream.selected_index = Some(index);
-                            self.selected_cmd_address = None;
                             selected_thread_id = Some(*thread_id);
                         }
                     }
@@ -210,10 +209,16 @@ impl CommandStreamUI {
                 )? {
                     if ig::begin_tab_bar("xivr_debugger_command_stream_tabs_game", None)? {
                         for (thread_id, shader_stream) in shader_streams {
+                            let is_selected = selected_thread_id == Some(*thread_id);
+                            if is_selected {
+                                // Delay removal of the address until we're sure we've switched
+                                self.selected_cmd_address = None;
+                            }
+
                             self.draw_stream(
                                 &format!("{}", thread_id),
                                 shader_stream,
-                                selected_thread_id == Some(*thread_id),
+                                is_selected,
                             )?;
                         }
                         ig::end_tab_bar();
@@ -307,7 +312,7 @@ impl CommandStream {
                     .stream
                     .push(cmd.clone());
             }
-            
+
             self.state = CommandStreamState::Captured {
                 shader_streams,
                 processed_shader_stream: Stream {
