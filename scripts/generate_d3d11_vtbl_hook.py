@@ -117,6 +117,38 @@ void(*Flush)(ID3D11DeviceContext *This);
 D3D11_DEVICE_CONTEXT_TYPE(*GetType)(ID3D11DeviceContext *This);
 UINT(*GetContextFlags)(ID3D11DeviceContext *This);
 HRESULT(*FinishCommandList)(ID3D11DeviceContext *This, BOOL RestoreDeferredContextState, ID3D11CommandList **ppCommandList);
+void(*CopySubresourceRegion1)(ID3D11DeviceContext *This, ID3D11Resource *pDstResource, UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ, ID3D11Resource *pSrcResource, UINT SrcSubresource, const D3D11_BOX *pSrcBox, UINT CopyFlags);
+void(*UpdateSubresource1)(ID3D11DeviceContext *This, ID3D11Resource *pDstResource, UINT DstSubresource, const D3D11_BOX *pDstBox, const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch, UINT CopyFlags);
+void(*DiscardResource)(ID3D11DeviceContext *This, ID3D11Resource *pResource);
+void(*DiscardView)(ID3D11DeviceContext *This, ID3D11View *pResourceView);
+void(*VSSetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers, const UINT *pFirstConstant, const UINT *pNumConstants);
+void(*HSSetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers, const UINT *pFirstConstant, const UINT *pNumConstants);
+void(*DSSetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers, const UINT *pFirstConstant, const UINT *pNumConstants);
+void(*GSSetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers, const UINT *pFirstConstant, const UINT *pNumConstants);
+void(*PSSetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers, const UINT *pFirstConstant, const UINT *pNumConstants);
+void(*CSSetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers, const UINT *pFirstConstant, const UINT *pNumConstants);
+void(*VSGetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers, UINT *pFirstConstant, UINT *pNumConstants);
+void(*HSGetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers, UINT *pFirstConstant, UINT *pNumConstants);
+void(*DSGetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers, UINT *pFirstConstant, UINT *pNumConstants);
+void(*GSGetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers, UINT *pFirstConstant, UINT *pNumConstants);
+void(*PSGetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers, UINT *pFirstConstant, UINT *pNumConstants);
+void(*CSGetConstantBuffers1)(ID3D11DeviceContext *This, UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers, UINT *pFirstConstant, UINT *pNumConstants);
+void(*SwapDeviceContextState)(ID3D11DeviceContext *This, ID3DDeviceContextState *pState, ID3DDeviceContextState **ppPreviousState);
+void(*ClearView)(ID3D11DeviceContext *This, ID3D11View *pView, const FLOAT Color[4], const D3D11_RECT *pRect, UINT NumRects);
+void(*DiscardView1)(ID3D11DeviceContext *This, ID3D11View *pResourceView, const D3D11_RECT *pRects, UINT NumRects);
+HRESULT(*UpdateTileMappings)(ID3D11DeviceContext *This, ID3D11Resource *pTiledResource, UINT NumTiledResourceRegions, const D3D11_TILED_RESOURCE_COORDINATE *pTiledResourceRegionStartCoordinates, const D3D11_TILE_REGION_SIZE *pTiledResourceRegionSizes, ID3D11Buffer *pTilePool, UINT NumRanges, const UINT *pRangeFlags, const UINT *pTilePoolStartOffsets, const UINT *pRangeTileCounts, UINT Flags);
+HRESULT(*CopyTileMappings)(ID3D11DeviceContext *This, ID3D11Resource *pDestTiledResource, const D3D11_TILED_RESOURCE_COORDINATE *pDestRegionStartCoordinate, ID3D11Resource *pSourceTiledResource, const D3D11_TILED_RESOURCE_COORDINATE *pSourceRegionStartCoordinate, const D3D11_TILE_REGION_SIZE *pTileRegionSize, UINT Flags);
+void(*CopyTiles)(ID3D11DeviceContext *This, ID3D11Resource *pTiledResource, const D3D11_TILED_RESOURCE_COORDINATE *pTileRegionStartCoordinate, const D3D11_TILE_REGION_SIZE *pTileRegionSize, ID3D11Buffer *pBuffer, UINT64 BufferStartOffsetInBytes, UINT Flags);
+void(*UpdateTiles)(ID3D11DeviceContext *This, ID3D11Resource *pDestTiledResource, const D3D11_TILED_RESOURCE_COORDINATE *pDestTileRegionStartCoordinate, const D3D11_TILE_REGION_SIZE *pDestTileRegionSize, const void *pSourceTileData, UINT Flags);
+HRESULT(*ResizeTilePool)(ID3D11DeviceContext *This, ID3D11Buffer *pTilePool, UINT64 NewSizeInBytes);
+void(*TiledResourceBarrier)(ID3D11DeviceContext *This, ID3D11DeviceChild *pTiledResourceOrViewAccessBeforeBarrier, ID3D11DeviceChild *pTiledResourceOrViewAccessAfterBarrier);
+BOOL(*IsAnnotationEnabled)(ID3D11DeviceContext *This);
+void(*SetMarkerInt)(ID3D11DeviceContext *This, LPCWSTR pLabel, INT Data);
+void(*BeginEventInt)(ID3D11DeviceContext *This, LPCWSTR pLabel, INT Data);
+void(*EndEvent)(ID3D11DeviceContext *This);
+void(*Flush1)(ID3D11DeviceContext *This, D3D11_CONTEXT_TYPE ContextType, HANDLE hEvent);
+void(*SetHardwareProtectionState)(ID3D11DeviceContext *This, BOOL HwProtectionEnable);
+void(*GetHardwareProtectionState)(ID3D11DeviceContext *This, BOOL *pHwProtectionEnable);
 """
 
 signature_regex = re.compile('(.*?)' + '\(\*(.*?)\)' + '\((.*?)\)')
@@ -132,7 +164,7 @@ def process_arg(arg):
 
     return {'type': type, 'name': name}
 
-def sanitize_fragment(fragment, dc_type_replacement):
+def sanitize_fragment(fragment):
     if fragment == '*':
         return '*mut'
     if fragment == '**':
@@ -145,29 +177,29 @@ def sanitize_fragment(fragment, dc_type_replacement):
         return 'u32'
     elif fragment == 'ULONG':
         return 'u32'
+    elif fragment == 'UINT64':
+        return 'u64'
     elif fragment == 'REFGUID':
         return '*const Guid'
     elif fragment == 'REFIID':
         return '*const Guid'
+    elif fragment == 'LPCWSTR':
+        return '*const PWSTR'
     elif fragment == 'FLOAT':
         return 'f32'
     elif fragment == 'void':
         return 'c_void'
-    elif fragment == 'ID3D11DeviceContext':
-        return dc_type_replacement
     elif fragment == 'D3D11_PRIMITIVE_TOPOLOGY':
         return 'D3D_PRIMITIVE_TOPOLOGY'
     elif fragment == 'D3D11_RECT':
         return 'RECT'
-    elif fragment.startswith("ID3D11"):
+    elif fragment.startswith("ID3D"):
         return 'c_void'
     else:
         return fragment
 
-def cpp_type_to_rust_type(type, dc_type_replacement = 'DeviceContextType'):
-    fragments = ' '.join([sanitize_fragment(fragment, dc_type_replacement) for fragment in type.split(' ')[::-1]]).split(' ')
-    # if fragments[-1].startswith("ID3D11") and fragments[-1] != "ID3D11DeviceContextHooked":
-    #     del fragments[-2]
+def cpp_type_to_rust_type(type):
+    fragments = ' '.join([sanitize_fragment(fragment) for fragment in type.split(' ')[::-1]]).split(' ')
 
     if fragments[-1] == 'const':
         fragments.pop()
@@ -192,7 +224,6 @@ for function in device_context_vtbl.splitlines():
 output = """#![allow(dead_code)]
 #![allow(non_snake_case)]
 
-use crate::singleton;
 use crate::debugger::Debugger;
 use crate::debugger::d3d_payload::D3DPayload;
 use crate::hooks::Patcher;
@@ -200,27 +231,22 @@ use crate::ct_config::*;
 
 use bindings::Windows::Win32::Graphics::Direct3D11::{
     D3D_PRIMITIVE_TOPOLOGY, D3D11_MAPPED_SUBRESOURCE, D3D11_MAP, D3D11_VIEWPORT, D3D11_BOX,
-    D3D11_DEVICE_CONTEXT_TYPE
+    D3D11_DEVICE_CONTEXT_TYPE, D3D11_TILED_RESOURCE_COORDINATE, D3D11_TILE_REGION_SIZE,
+    D3D11_CONTEXT_TYPE,
 };
 use bindings::Windows::Win32::Graphics::Dxgi::{DXGI_FORMAT};
-use bindings::Windows::Win32::Foundation::{BOOL, RECT};
+use bindings::Windows::Win32::Foundation::{BOOL, RECT, HANDLE, PWSTR};
 
 use windows::*;
 use std::os::raw::c_void;
 
-struct ID3D11DeviceContextUnhooked {
-    vtbl: *const ID3D11DeviceContextVtbl<ID3D11DeviceContextUnhooked>,
+struct ID3D11DeviceContext {
+    vtbl: *const ID3D11DeviceContextVtbl,
 }
 
-pub struct ID3D11DeviceContextHooked {
-    vtbl: *const ID3D11DeviceContextVtbl<ID3D11DeviceContextHooked>,
-    original: *mut ID3D11DeviceContextUnhooked,
-    vtbl_instance: ID3D11DeviceContextVtbl<ID3D11DeviceContextHooked>,
-}
-singleton!(ID3D11DeviceContextHooked, original: *mut c_void);
 """
 
-output += "struct ID3D11DeviceContextVtbl<DeviceContextType> {\n"
+output += "struct ID3D11DeviceContextVtbl {\n"
 for function in functions:
     function_decl = f"    {function['name']}: unsafe extern \"C\" fn("
     function_decl += ', '.join([f"{cpp_type_to_rust_type(arg['type'])}" for arg in function['args']])
@@ -234,6 +260,14 @@ for function in functions:
 output += "}\n"
 
 output += """
+static mut ORIGINAL_VTABLE: Option<*const ID3D11DeviceContextVtbl> = None;
+static HOOKED_VTABLE: ID3D11DeviceContextVtbl = ID3D11DeviceContextVtbl {
+"""
+for function in functions:
+    output += f"    {function['name']}: {function['name']}_hook,\n"
+output += "};\n"
+
+output += """
 fn push_back_payload(payload: D3DPayload) {
     if let Some(debugger) = Debugger::get_mut() {
         let mut command_stream = debugger.command_stream.lock().unwrap();
@@ -244,7 +278,7 @@ fn push_back_payload(payload: D3DPayload) {
 
 for function in functions:
     signature = f"unsafe extern \"C\" fn {function['name']}_hook("
-    signature += ', '.join([f"{arg['name']}: {cpp_type_to_rust_type(arg['type'], 'ID3D11DeviceContextHooked')}" for arg in function['args']])
+    signature += ', '.join([f"{arg['name']}: {cpp_type_to_rust_type(arg['type'])}" for arg in function['args']])
 
     signature += ")"
     if function['return_type'] != 'void':
@@ -252,29 +286,11 @@ for function in functions:
 
     args_string = ', '.join([arg['name'] for arg in function['args'][1:]])
     output += signature + " {\n"
-    output += f"    let ret = ((*(*(*This).original).vtbl).{function['name']})((*This).original as *mut _, {args_string});\n"
+    output += f"    let ret = ((*ORIGINAL_VTABLE.unwrap()).{function['name']})(This, {args_string});\n"
     output += f"    push_back_payload(D3DPayload::{function['name']}({args_string}));\n"
     output += f"    ret\n";
     output += "}\n"
 output += """
-impl ID3D11DeviceContextHooked {
-    pub fn new(original: *mut c_void) -> anyhow::Result<ID3D11DeviceContextHooked> {
-        Ok(ID3D11DeviceContextHooked {
-            vtbl: std::ptr::null(),
-            original: original as *mut _,
-            vtbl_instance: ID3D11DeviceContextVtbl::<ID3D11DeviceContextHooked> {
-"""
-for function in functions:
-    output += f"                {function['name']}: {function['name']}_hook,\n"
-output += """            }
-        })
-    }
-
-    pub fn initialize(&mut self) {
-        self.vtbl = &self.vtbl_instance;
-    }
-}
-
 pub struct HookState(Vec<*mut u8>);
 impl Drop for HookState {
     fn drop(&mut self) {
@@ -284,7 +300,6 @@ impl Drop for HookState {
                     Patcher::get_mut().unwrap().unpatch(*patch);
                 }
             }
-            ID3D11DeviceContextHooked::destroy();
         }
     }
 }
@@ -296,44 +311,47 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
         return Ok(HookState(vec![]));
     }
 
-    let immediate_context: &'static mut _ = *Device::get().immediate_context_ptr_mut();
-    let device_context_ptr_ptr = immediate_context.device_context_ptr_mut();
-    ID3D11DeviceContextHooked::create((*device_context_ptr_ptr).abi())?;
-    let device_context_hooked_bytes = {
-        let device_context_hooked = ID3D11DeviceContextHooked::get_mut()
-            .ok_or(anyhow::Error::msg("Failed to retrieve hooked instance"))?;
-        device_context_hooked.initialize();
-
-        let device_context_hooked_ptr = device_context_hooked as *mut ID3D11DeviceContextHooked;
-        (device_context_hooked_ptr as usize).to_le_bytes()
-    };
+    let immediate_context: &mut _ = Device::get().immediate_context_mut();
+    let device_context = immediate_context.device_context_mut();
+    let device_context_ptr = device_context.abi() as *mut ID3D11DeviceContext;
+    let device_context_vtable_ptr = std::ptr::addr_of_mut!((*device_context_ptr).vtbl);
+    ORIGINAL_VTABLE = Some(*device_context_vtable_ptr);
+    let device_context_new_vtable_ptr_bytes = (std::ptr::addr_of!(HOOKED_VTABLE) as usize).to_le_bytes();
 
     let patcher = Patcher::get_mut().ok_or(anyhow::Error::msg("Failed to retrieve patcher"))?;
-    let mut ptrs = vec![];
-    {
-        let device_context_ptr_ptr = device_context_ptr_ptr as *mut u8;
-        ptrs.push(patcher.patch(device_context_ptr_ptr, &device_context_hooked_bytes));
-    }
-    {
-        let device_context_ptr_ptr = Device::get().device_context_ptr_mut() as *mut u8;
-        ptrs.push(patcher.patch(device_context_ptr_ptr, &device_context_hooked_bytes));
-    }
+    let ptrs = vec![
+        patcher.patch(device_context_vtable_ptr as *mut u8, &device_context_new_vtable_ptr_bytes)
+    ];
 
     Ok(HookState(ptrs))
 }
 """
 
+
+PRINT_ENUM = False
 PRINT_MATCH_CASES = False
+if PRINT_ENUM:
+    print("""#[derive(Display, EnumDiscriminants, EnumCount, Clone)]
+#[allow(dead_code)]
+#[rustfmt::skip]
+pub enum D3DPayload {""")
+    for function in functions:
+        args_string = ', '.join([cpp_type_to_rust_type(arg['type']) for arg in function['args'][1:]])
+        print(f"\t{function['name']}({args_string}),")
+    print("}")
+
 if PRINT_MATCH_CASES:
+    print("match self {")
     for function in functions:
         if len(function['args']) == 1:
             continue
 
         args_string = ', '.join([arg['name'] for arg in function['args'][1:]])
-        print(f"Self::{function['name']}({args_string}) => {{")
+        print(f"\tSelf::{function['name']}({args_string}) => {{")
         for arg in function['args'][1:]:
-            print(f"\tig::bulletf!(\"{arg['name']}: {{:?}}\", {arg['name']});")
-        print("}")
-    print("_ => {}")
+            print(f"\t\tig::bulletf!(\"{arg['name']}: {{:?}}\", {arg['name']});")
+        print("\t}")
+    print("\t_ => {}")
+    print("}")
 
 pathlib.Path("native/src/hooks/graphics/d3d/device_context.rs").write_text(output)

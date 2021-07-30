@@ -1,8 +1,10 @@
 use crate::debugger::payload::*;
 
-use bindings::Windows::Win32::Foundation::{BOOL, RECT};
+use bindings::Windows::Win32::Foundation::{BOOL, HANDLE, PWSTR, RECT};
 use bindings::Windows::Win32::Graphics::Direct3D11::{
-    D3D11_BOX, D3D11_MAP, D3D11_MAPPED_SUBRESOURCE, D3D11_VIEWPORT, D3D_PRIMITIVE_TOPOLOGY,
+    D3D11_BOX, D3D11_CONTEXT_TYPE, D3D11_MAP, D3D11_MAPPED_SUBRESOURCE,
+    D3D11_TILED_RESOURCE_COORDINATE, D3D11_TILE_REGION_SIZE, D3D11_VIEWPORT,
+    D3D_PRIMITIVE_TOPOLOGY,
 };
 use bindings::Windows::Win32::Graphics::Dxgi::DXGI_FORMAT;
 use windows::{Guid, IUnknown};
@@ -133,10 +135,45 @@ pub enum D3DPayload {
     GetType(),
     GetContextFlags(),
     FinishCommandList(BOOL, *mut *mut c_void),
+	CopySubresourceRegion1(*mut c_void, u32, u32, u32, u32, *mut c_void, u32, *mut D3D11_BOX, u32),
+	UpdateSubresource1(*mut c_void, u32, *mut D3D11_BOX, *mut c_void, u32, u32, u32),
+	DiscardResource(*mut c_void),
+	DiscardView(*mut c_void),
+	VSSetConstantBuffers1(u32, u32, *mut *const c_void, *mut u32, *mut u32),
+	HSSetConstantBuffers1(u32, u32, *mut *const c_void, *mut u32, *mut u32),
+	DSSetConstantBuffers1(u32, u32, *mut *const c_void, *mut u32, *mut u32),
+	GSSetConstantBuffers1(u32, u32, *mut *const c_void, *mut u32, *mut u32),
+	PSSetConstantBuffers1(u32, u32, *mut *const c_void, *mut u32, *mut u32),
+	CSSetConstantBuffers1(u32, u32, *mut *const c_void, *mut u32, *mut u32),
+	VSGetConstantBuffers1(u32, u32, *mut *mut c_void, *mut u32, *mut u32),
+	HSGetConstantBuffers1(u32, u32, *mut *mut c_void, *mut u32, *mut u32),
+	DSGetConstantBuffers1(u32, u32, *mut *mut c_void, *mut u32, *mut u32),
+	GSGetConstantBuffers1(u32, u32, *mut *mut c_void, *mut u32, *mut u32),
+	PSGetConstantBuffers1(u32, u32, *mut *mut c_void, *mut u32, *mut u32),
+	CSGetConstantBuffers1(u32, u32, *mut *mut c_void, *mut u32, *mut u32),
+	SwapDeviceContextState(*mut c_void, *mut *mut c_void),
+	ClearView(*mut c_void, *mut f32, *mut RECT, u32),
+	DiscardView1(*mut c_void, *mut RECT, u32),
+	UpdateTileMappings(*mut c_void, u32, *mut D3D11_TILED_RESOURCE_COORDINATE, *mut D3D11_TILE_REGION_SIZE, *mut c_void, u32, *mut u32, *mut u32, *mut u32, u32),
+	CopyTileMappings(*mut c_void, *mut D3D11_TILED_RESOURCE_COORDINATE, *mut c_void, *mut D3D11_TILED_RESOURCE_COORDINATE, *mut D3D11_TILE_REGION_SIZE, u32),
+	CopyTiles(*mut c_void, *mut D3D11_TILED_RESOURCE_COORDINATE, *mut D3D11_TILE_REGION_SIZE, *mut c_void, u64, u32),
+	UpdateTiles(*mut c_void, *mut D3D11_TILED_RESOURCE_COORDINATE, *mut D3D11_TILE_REGION_SIZE, *mut c_void, u32),
+	ResizeTilePool(*mut c_void, u64),
+	TiledResourceBarrier(*mut c_void, *mut c_void),
+	IsAnnotationEnabled(),
+	SetMarkerInt(*const PWSTR, i32),
+	BeginEventInt(*const PWSTR, i32),
+	EndEvent(),
+	Flush1(D3D11_CONTEXT_TYPE, HANDLE),
+	SetHardwareProtectionState(BOOL),
+	GetHardwareProtectionState(*mut BOOL),
 }
 impl Payload for D3DPayload {
     fn title(&self) -> String {
         match self {
+            Self::Draw(vertex_count, start_vertex_location) => {
+                format!("Draw({}, {})", vertex_count, start_vertex_location)
+            }
             _ => self.to_string(),
         }
     }
@@ -674,6 +711,192 @@ impl Payload for D3DPayload {
             Self::FinishCommandList(RestoreDeferredContextState, ppCommandList) => {
                 ig::bulletf!("RestoreDeferredContextState: {:?}", RestoreDeferredContextState);
                 ig::bulletf!("ppCommandList: {:?}", ppCommandList);
+            }
+            Self::CopySubresourceRegion1(pDstResource, DstSubresource, DstX, DstY, DstZ, pSrcResource, SrcSubresource, pSrcBox, CopyFlags) => {
+                ig::bulletf!("pDstResource: {:?}", pDstResource);
+                ig::bulletf!("DstSubresource: {:?}", DstSubresource);
+                ig::bulletf!("DstX: {:?}", DstX);
+                ig::bulletf!("DstY: {:?}", DstY);
+                ig::bulletf!("DstZ: {:?}", DstZ);
+                ig::bulletf!("pSrcResource: {:?}", pSrcResource);
+                ig::bulletf!("SrcSubresource: {:?}", SrcSubresource);
+                ig::bulletf!("pSrcBox: {:?}", pSrcBox);
+                ig::bulletf!("CopyFlags: {:?}", CopyFlags);
+            }
+            Self::UpdateSubresource1(pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch, CopyFlags) => {
+                ig::bulletf!("pDstResource: {:?}", pDstResource);
+                ig::bulletf!("DstSubresource: {:?}", DstSubresource);
+                ig::bulletf!("pDstBox: {:?}", pDstBox);
+                ig::bulletf!("pSrcData: {:?}", pSrcData);
+                ig::bulletf!("SrcRowPitch: {:?}", SrcRowPitch);
+                ig::bulletf!("SrcDepthPitch: {:?}", SrcDepthPitch);
+                ig::bulletf!("CopyFlags: {:?}", CopyFlags);
+            }
+            Self::DiscardResource(pResource) => {
+                ig::bulletf!("pResource: {:?}", pResource);
+            }
+            Self::DiscardView(pResourceView) => {
+                ig::bulletf!("pResourceView: {:?}", pResourceView);
+            }
+            Self::VSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::HSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::DSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::GSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::PSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::CSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::VSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::HSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::DSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::GSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::PSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::CSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants) => {
+                ig::bulletf!("StartSlot: {:?}", StartSlot);
+                ig::bulletf!("NumBuffers: {:?}", NumBuffers);
+                ig::bulletf!("ppConstantBuffers: {:?}", ppConstantBuffers);
+                ig::bulletf!("pFirstConstant: {:?}", pFirstConstant);
+                ig::bulletf!("pNumConstants: {:?}", pNumConstants);
+            }
+            Self::SwapDeviceContextState(pState, ppPreviousState) => {
+                ig::bulletf!("pState: {:?}", pState);
+                ig::bulletf!("ppPreviousState: {:?}", ppPreviousState);
+            }
+            Self::ClearView(pView, Color, pRect, NumRects) => {
+                ig::bulletf!("pView: {:?}", pView);
+                ig::bulletf!("Color: {:?}", Color);
+                ig::bulletf!("pRect: {:?}", pRect);
+                ig::bulletf!("NumRects: {:?}", NumRects);
+            }
+            Self::DiscardView1(pResourceView, pRects, NumRects) => {
+                ig::bulletf!("pResourceView: {:?}", pResourceView);
+                ig::bulletf!("pRects: {:?}", pRects);
+                ig::bulletf!("NumRects: {:?}", NumRects);
+            }
+            Self::UpdateTileMappings(pTiledResource, NumTiledResourceRegions, pTiledResourceRegionStartCoordinates, pTiledResourceRegionSizes, pTilePool, NumRanges, pRangeFlags, pTilePoolStartOffsets, pRangeTileCounts, Flags) => {
+                ig::bulletf!("pTiledResource: {:?}", pTiledResource);
+                ig::bulletf!("NumTiledResourceRegions: {:?}", NumTiledResourceRegions);
+                ig::bulletf!("pTiledResourceRegionStartCoordinates: {:?}", pTiledResourceRegionStartCoordinates);
+                ig::bulletf!("pTiledResourceRegionSizes: {:?}", pTiledResourceRegionSizes);
+                ig::bulletf!("pTilePool: {:?}", pTilePool);
+                ig::bulletf!("NumRanges: {:?}", NumRanges);
+                ig::bulletf!("pRangeFlags: {:?}", pRangeFlags);
+                ig::bulletf!("pTilePoolStartOffsets: {:?}", pTilePoolStartOffsets);
+                ig::bulletf!("pRangeTileCounts: {:?}", pRangeTileCounts);
+                ig::bulletf!("Flags: {:?}", Flags);
+            }
+            Self::CopyTileMappings(pDestTiledResource, pDestRegionStartCoordinate, pSourceTiledResource, pSourceRegionStartCoordinate, pTileRegionSize, Flags) => {
+                ig::bulletf!("pDestTiledResource: {:?}", pDestTiledResource);
+                ig::bulletf!("pDestRegionStartCoordinate: {:?}", pDestRegionStartCoordinate);
+                ig::bulletf!("pSourceTiledResource: {:?}", pSourceTiledResource);
+                ig::bulletf!("pSourceRegionStartCoordinate: {:?}", pSourceRegionStartCoordinate);
+                ig::bulletf!("pTileRegionSize: {:?}", pTileRegionSize);
+                ig::bulletf!("Flags: {:?}", Flags);
+            }
+            Self::CopyTiles(pTiledResource, pTileRegionStartCoordinate, pTileRegionSize, pBuffer, BufferStartOffsetInBytes, Flags) => {
+                ig::bulletf!("pTiledResource: {:?}", pTiledResource);
+                ig::bulletf!("pTileRegionStartCoordinate: {:?}", pTileRegionStartCoordinate);
+                ig::bulletf!("pTileRegionSize: {:?}", pTileRegionSize);
+                ig::bulletf!("pBuffer: {:?}", pBuffer);
+                ig::bulletf!("BufferStartOffsetInBytes: {:?}", BufferStartOffsetInBytes);
+                ig::bulletf!("Flags: {:?}", Flags);
+            }
+            Self::UpdateTiles(pDestTiledResource, pDestTileRegionStartCoordinate, pDestTileRegionSize, pSourceTileData, Flags) => {
+                ig::bulletf!("pDestTiledResource: {:?}", pDestTiledResource);
+                ig::bulletf!("pDestTileRegionStartCoordinate: {:?}", pDestTileRegionStartCoordinate);
+                ig::bulletf!("pDestTileRegionSize: {:?}", pDestTileRegionSize);
+                ig::bulletf!("pSourceTileData: {:?}", pSourceTileData);
+                ig::bulletf!("Flags: {:?}", Flags);
+            }
+            Self::ResizeTilePool(pTilePool, NewSizeInBytes) => {
+                ig::bulletf!("pTilePool: {:?}", pTilePool);
+                ig::bulletf!("NewSizeInBytes: {:?}", NewSizeInBytes);
+            }
+            Self::TiledResourceBarrier(pTiledResourceOrViewAccessBeforeBarrier, pTiledResourceOrViewAccessAfterBarrier) => {
+                ig::bulletf!("pTiledResourceOrViewAccessBeforeBarrier: {:?}", pTiledResourceOrViewAccessBeforeBarrier);
+                ig::bulletf!("pTiledResourceOrViewAccessAfterBarrier: {:?}", pTiledResourceOrViewAccessAfterBarrier);
+            }
+            Self::SetMarkerInt(pLabel, Data) => {
+                ig::bulletf!("pLabel: {:?}", pLabel);
+                ig::bulletf!("Data: {:?}", Data);
+            }
+            Self::BeginEventInt(pLabel, Data) => {
+                ig::bulletf!("pLabel: {:?}", pLabel);
+                ig::bulletf!("Data: {:?}", Data);
+            }
+            Self::Flush1(ContextType, hEvent) => {
+                ig::bulletf!("ContextType: {:?}", ContextType);
+                ig::bulletf!("hEvent: {:?}", hEvent);
+            }
+            Self::SetHardwareProtectionState(HwProtectionEnable) => {
+                ig::bulletf!("HwProtectionEnable: {:?}", HwProtectionEnable);
+            }
+            Self::GetHardwareProtectionState(pHwProtectionEnable) => {
+                ig::bulletf!("pHwProtectionEnable: {:?}", pHwProtectionEnable);
             }
             _ => {}
         }
