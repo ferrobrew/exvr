@@ -49,7 +49,7 @@ impl Context {
     pub fn get_for_current_thread() -> Option<&'static mut Context> {
         unsafe {
             let module = GAME_MODULE.get()?;
-            let tls_index = get_tls_index(&module);
+            let tls_index = get_tls_index(module);
 
             Some(get_context(tls_index))
         }

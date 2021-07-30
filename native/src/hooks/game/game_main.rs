@@ -22,7 +22,7 @@ impl Drop for HookState {
 pub unsafe fn install() -> anyhow::Result<HookState> {
     let module = GAME_MODULE
         .get()
-        .ok_or(anyhow::Error::msg("Failed to retrieve game module"))?;
+        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
     let gamemain_update: fn(usize) -> usize =
         mem::transmute(module.rel_to_abs_addr(offsets::functions::Game_GameMain_Update as isize));
 

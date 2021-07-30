@@ -32,7 +32,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
 
     let module = GAME_MODULE
         .get()
-        .ok_or(anyhow::Error::msg("Failed to retrieve game module"))?;
+        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
     let context_pushbackcmd: fn(usize, &'static ShaderCommand) -> usize =
         mem::transmute(module.scan("83 41 30 FF")?);
 

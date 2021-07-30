@@ -7,8 +7,6 @@ use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
 use bindings::Windows::Win32::Graphics::Dxgi as dxgi;
 use windows::Abi;
 
-use openxr;
-
 pub use crate::ct_config::xr::VIEW_COUNT;
 const VIEW_TYPE: openxr::ViewConfigurationType = openxr::ViewConfigurationType::PRIMARY_STEREO;
 
@@ -260,7 +258,7 @@ impl XR {
         if ct_config::xr::RUN_XR_PER_FRAME {
             let frame_state = &self
                 .frame_state
-                .ok_or(anyhow::Error::msg("failed to get frame state"))?;
+                .ok_or_else(|| anyhow::Error::msg("failed to get frame state"))?;
 
             self.frame_stream.end(
                 frame_state.predicted_display_time,

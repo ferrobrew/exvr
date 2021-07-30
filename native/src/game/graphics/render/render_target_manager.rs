@@ -51,7 +51,7 @@ impl RenderTargetManager {
             for offset in offsets {
                 let rt_ptr = self_ptr.add(offset) as *const *const Texture;
                 let rt = *rt_ptr;
-                if rt == std::ptr::null() {
+                if rt.is_null() {
                     continue;
                 }
                 ret.push((offset as u32, rt));

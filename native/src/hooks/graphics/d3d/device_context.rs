@@ -1091,7 +1091,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
     ORIGINAL_VTABLE = Some(*device_context_vtable_ptr);
     let device_context_new_vtable_ptr_bytes = (std::ptr::addr_of!(HOOKED_VTABLE) as usize).to_le_bytes();
 
-    let patcher = Patcher::get_mut().ok_or(anyhow::Error::msg("Failed to retrieve patcher"))?;
+    let patcher = Patcher::get_mut().ok_or_else(|| anyhow::Error::msg("Failed to retrieve patcher"))?;
     let ptrs = vec![
         patcher.patch(device_context_vtable_ptr as *mut u8, &device_context_new_vtable_ptr_bytes)
     ];

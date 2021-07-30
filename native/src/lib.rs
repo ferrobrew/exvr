@@ -52,7 +52,7 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
         let ffxiv_module = modules
             .iter_mut()
             .find(|x| x.filename().as_deref() == Some("ffxiv_dx11.exe"))
-            .ok_or(Error::msg("failed to find ff14 module"))?;
+            .ok_or_else(|| Error::msg("failed to find ff14 module"))?;
         ffxiv_module.backup_image();
 
         unsafe {
@@ -82,13 +82,14 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
         Ok(Err(err)) => Err(err),
         Err(msg) => Err(Error::msg(
             msg.downcast_ref::<&str>()
-                .map(|x| *x)
+                .copied()
                 .unwrap_or("Failed initialisation"),
         )),
     }
 }
 
 #[no_mangle]
+#[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn xivr_load(parameters: *const LoadParameters) -> bool {
     let result = xivr_load_impl(parameters);
     match result {
@@ -101,6 +102,7 @@ pub unsafe extern "system" fn xivr_load(parameters: *const LoadParameters) -> bo
 }
 
 #[no_mangle]
+#[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn xivr_unload() {
     log!("unloading!");
     xr::XR::destroy();
@@ -112,6 +114,7 @@ pub unsafe extern "system" fn xivr_unload() {
 }
 
 #[no_mangle]
+#[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn xivr_draw_ui() {
     if let Some(debugger) = debugger::Debugger::get_mut() {
         debugger.draw_ui().unwrap();
@@ -120,6 +123,7 @@ pub unsafe extern "system" fn xivr_draw_ui() {
 
 #[no_mangle]
 #[allow(non_snake_case)]
+#[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn DllMain(_module: HINSTANCE, _reason: u32, _: *mut c_void) -> bool {
     true
 }

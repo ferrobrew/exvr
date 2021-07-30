@@ -81,10 +81,10 @@ impl Module {
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        if self.image_backup.len() > 0 {
-            &self.image_backup
-        } else {
+        if self.image_backup.is_empty() {
             self.as_bytes_from_memory()
+        } else {
+            &self.image_backup
         }
     }
 
@@ -92,8 +92,8 @@ impl Module {
         Ok(
             patternscan::scan_first_match(io::Cursor::new(self.as_bytes()), pattern)
                 .transpose()
-                .ok_or(anyhow::Error::msg("failed to scan"))?
-                .map(|o| unsafe { self.base.offset(o as isize) })?,
+                .ok_or_else(|| anyhow::Error::msg("failed to scan"))?
+                .map(|o| unsafe { self.base.add(o) })?,
         )
     }
 
@@ -111,7 +111,7 @@ impl Module {
         Ok(
             patternscan::scan_first_match(io::Cursor::new(slice), pattern)
                 .transpose()
-                .ok_or(anyhow::Error::msg("failed to scan"))?
+                .ok_or_else(|| anyhow::Error::msg("failed to scan"))?
                 .map(|o| self.rel_to_abs_addr((index + o) as isize))?,
         )
     }

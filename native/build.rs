@@ -28,20 +28,20 @@ fn main() -> Result<()> {
 
     let version = data["version"]
         .as_str()
-        .ok_or(Error::msg("Invalid version"))?;
+        .ok_or_else(|| Error::msg("Invalid version"))?;
     let globals = data["globals"]
         .as_hash()
-        .ok_or(Error::msg("Not a hash"))?
+        .ok_or_else(|| Error::msg("Not a hash"))?
         .iter()
         .map(transform_pair);
     let functions = data["functions"]
         .as_hash()
-        .ok_or(Error::msg("Not a hash"))?
+        .ok_or_else(|| Error::msg("Not a hash"))?
         .iter()
         .map(transform_pair);
 
     let tokens = quote! {
-        pub const VERSION: &'static str = #version;
+        pub const VERSION: &str = #version;
         #[allow(dead_code, non_upper_case_globals)]
         pub mod offsets {
             pub mod globals {

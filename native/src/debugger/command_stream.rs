@@ -38,14 +38,19 @@ enum CommandStreamState {
     },
 }
 struct CommandStreamUI {
-    module_name_lookup: HashMap<*mut u8, String>,
+    module_name_lookup: HashMap<*const u8, String>,
     selected_cmd_address: Option<*const kernel::ShaderCommand>,
 }
 impl CommandStreamUI {
     pub fn new() -> CommandStreamUI {
         let module_name_lookup: HashMap<_, _> = Module::get_all()
             .iter()
-            .map(|m| (m.base, m.filename().unwrap_or("unknown".to_string())))
+            .map(|m| {
+                (
+                    m.base as *const u8,
+                    m.filename().unwrap_or_else(|| "unknown".to_string()),
+                )
+            })
             .collect();
 
         CommandStreamUI {
@@ -56,7 +61,7 @@ impl CommandStreamUI {
 
     fn module_name_from_mba(&self, mba: *const u8) -> String {
         self.module_name_lookup
-            .get(&(mba as *mut _))
+            .get(&mba)
             .cloned()
             .unwrap_or(format!("{:X?}", mba))
     }
@@ -96,6 +101,7 @@ impl CommandStreamUI {
                 cmd.payload.draw()?;
             }
 
+            #[allow(clippy::collapsible_if)]
             if ig::collapsing_header("Callstack", None, None)? {
                 if ig::begin_table("xivr_debugger_callstack", 2, None, None, None)? {
                     ig::table_setup_column("Module", None, None, None)?;
@@ -329,10 +335,7 @@ impl CommandStream {
     }
 
     pub fn is_capturing(&self) -> bool {
-        match self.state {
-            CommandStreamState::Capturing { .. } => true,
-            _ => false,
-        }
+        matches!(self.state, CommandStreamState::Capturing { .. })
     }
 
     fn push_back_command_to_stream<PayloadType>(

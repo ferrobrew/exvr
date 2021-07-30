@@ -29,6 +29,7 @@ singleton!(Debugger);
 
 fn dxgi_format_to_str(dxgi_format: dxgi::DXGI_FORMAT) -> &'static str {
     match dxgi_format {
+        dxgi::DXGI_FORMAT_UNKNOWN => "UNKNOWN",
         dxgi::DXGI_FORMAT_R32G32B32A32_TYPELESS => "R32G32B32A32_TYPELESS",
         dxgi::DXGI_FORMAT_R32G32B32A32_FLOAT => "R32G32B32A32_FLOAT",
         dxgi::DXGI_FORMAT_R32G32B32A32_UINT => "R32G32B32A32_UINT",
@@ -152,7 +153,7 @@ fn dxgi_format_to_str(dxgi_format: dxgi::DXGI_FORMAT) -> &'static str {
             "SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE"
         }
         dxgi::DXGI_FORMAT_FORCE_UINT => "FORCE_UINT",
-        dxgi::DXGI_FORMAT_UNKNOWN | _ => "UNKNOWN",
+        _ => "UNKNOWN",
     }
 }
 
@@ -166,7 +167,7 @@ impl Debugger {
         let module = unsafe {
             GAME_MODULE
                 .get()
-                .ok_or(anyhow::Error::msg("Failed to retrieve game module"))?
+                .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?
         };
 
         let mystery_function: fn() -> *const u8 = unsafe {
@@ -396,7 +397,7 @@ impl Debugger {
 
         let mut textures_to_remove = vec![];
         for inspected_texture in self.inspected_textures.values() {
-            if !self.draw_inspected_texture(&inspected_texture)? {
+            if !self.draw_inspected_texture(inspected_texture)? {
                 textures_to_remove.push(inspected_texture.texture);
             }
         }

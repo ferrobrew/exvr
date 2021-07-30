@@ -64,7 +64,7 @@ impl Drop for HookState {
 pub unsafe fn install() -> anyhow::Result<HookState> {
     let module = GAME_MODULE
         .get()
-        .ok_or(anyhow::Error::msg("Failed to retrieve game module"))?;
+        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
 
     let process_commands =
         module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 4B 30 FF 15 ? ? ? ?")?;
@@ -128,7 +128,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
 
     let padding_rel = module.abs_to_rel_addr(padding) as i32;
     hooks::Patcher::get_mut()
-        .ok_or(anyhow::Error::msg("Failed to retrieve patcher"))?
+        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve patcher"))?
         .patch(
             (&mut jump_table_slice[SHADER_COMMAND_HIJACKED_TYPE]) as *mut _ as *mut u8,
             &padding_rel.to_ne_bytes(),

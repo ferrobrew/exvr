@@ -294,7 +294,7 @@ fn generate_functions(
             quote! {
                 pub unsafe fn #name(#(#args, )*) #output {
                     static mut ADDRESS: *mut u8 = ::std::ptr::null_mut();
-                    if ADDRESS == ::std::ptr::null_mut() {
+                    if ADDRESS.is_null() {
                         let module = crate::module::GAME_MODULE.get().unwrap();
                         ADDRESS = module.scan(#code_signature).unwrap();
                     }
