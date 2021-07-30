@@ -164,7 +164,7 @@ impl ShaderCommandPayloadSetRenderTargets {
 		unsafe {
 			std::slice::from_raw_parts(
 				std::mem::transmute(self.render_targets_ptr()),
-				self.render_target_count as usize,
+				*self.render_target_count() as usize,
 			)
 		}
 	}

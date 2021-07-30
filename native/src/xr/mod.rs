@@ -1,6 +1,5 @@
 use crate::ct_config;
-use crate::game::graphics::kernel;
-use crate::game::graphics::render;
+use crate::game::graphics::{kernel, render};
 use crate::game::system::framework;
 use crate::singleton;
 
@@ -90,8 +89,7 @@ impl XR {
             views[1].recommended_swapchain_sample_count
         );
 
-        let window: &framework::Window = framework::Framework::get().window;
-        let old_window_size = window.get_size();
+        let old_window_size = unsafe { framework::Framework::get().window().get_size() };
         let new_window_size = if ct_config::xr::CHANGE_WINDOW_SIZE {
             (
                 views[0].recommended_image_rect_width,
@@ -105,7 +103,7 @@ impl XR {
             instance.create_session::<openxr::D3D11>(
                 system,
                 &openxr::d3d::SessionCreateInfo {
-                    device: std::mem::transmute((*kernel::Device::get().device_ptr()).abi()),
+                    device: std::mem::transmute(kernel::Device::get().device().abi()),
                 },
             )?
         };
@@ -161,7 +159,7 @@ impl XR {
         let mut buffer_images: Vec<_> = vec![];
         let mut buffer_srvs: Vec<_> = vec![];
         for _ in 0..VIEW_COUNT {
-            let device = unsafe { (*kernel::Device::get().device_ptr()).clone() };
+            let device = unsafe { kernel::Device::get().device() };
             let texture: d3d::ID3D11Texture2D =
                 unsafe { device.CreateTexture2D(&texture_desc, std::ptr::null())? };
 
@@ -175,15 +173,17 @@ impl XR {
                     },
                 },
             };
-
             let srv = unsafe { device.CreateShaderResourceView(texture.clone(), &srv_desc)? };
 
             buffer_images.push(texture);
             buffer_srvs.push(srv);
         }
 
-        window.set_resizing_enabled(false);
-        window.set_size(new_window_size);
+        unsafe {
+            let window = framework::Framework::get().window_mut();
+            window.set_resizing_enabled(false);
+            window.set_size(new_window_size);
+        }
 
         Ok(XR {
             instance,
@@ -343,13 +343,10 @@ impl XR {
 
     pub fn copy_backbuffer_to_buffer(&mut self, index: u32) {
         unsafe {
-            let device_context = kernel::Device::get().device_context_ptr();
-            let texture: &'static _ = *render::RenderTargetManager::get().rendered_game_ptr();
+            let dc = kernel::Device::get().device_context();
+            let texture: &'static _ = render::RenderTargetManager::get().rendered_game().texture();
 
-            (*device_context).CopyResource(
-                self.buffer_images[index as usize].clone(),
-                (*texture.texture_ptr()).clone(),
-            );
+            dc.CopyResource(self.buffer_images[index as usize].clone(), texture.clone());
         }
     }
 
@@ -383,12 +380,12 @@ impl XR {
 impl Drop for XR {
     fn drop(&mut self) {
         if ct_config::xr::CHANGE_WINDOW_SIZE {
-            framework::Framework::get()
-                .window
-                .set_resizing_enabled(true);
-            framework::Framework::get()
-                .window
-                .set_size(self.old_window_size);
+            unsafe {
+                let window: &mut _ = framework::Framework::get().window_mut();
+
+                window.set_resizing_enabled(true);
+                window.set_size(self.old_window_size);
+            }
         }
     }
 }

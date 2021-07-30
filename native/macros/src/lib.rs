@@ -4,9 +4,13 @@ use quote::{format_ident, quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{
-    braced, bracketed, parenthesized, parse_macro_input, parse_quote, Expr, Ident, LitInt, LitStr,
-    Result, Signature, Token, Type,
+    braced, bracketed, parenthesized, parse_macro_input, Expr, Ident, LitInt, LitStr, Result,
+    Signature, Token, Type,
 };
+
+// will print the AST every time a game class is instantiated with the set prefix.
+// mostly useful for debugging what the produced AST is.
+const DEBUG_PRINT_CLASS_WITH_PREFIX: &str = "";
 
 mod kw {
     syn::custom_keyword!(size);
@@ -185,31 +189,15 @@ fn retrieve_properties(
 
 fn generate_fields(
     size: Option<u32>,
-    fields: &[(u32, Ident, Type)],
+    _fields: &[(u32, Ident, Type)],
 ) -> syn::Result<Vec<proc_macro2::TokenStream>> {
+    // We used to generate fields here, but we've disabled that after the Rust compiler
+    // deprecated taking unaligned references of fields. They're not much use if you
+    // can't use them directly.
     let mut fields_calculated: Vec<proc_macro2::TokenStream> = vec![];
 
-    let mut index = 0u32;
-    let mut last_offset = 0u32;
-    let mut last_type: Type = parse_quote! { () };
-    for (offset, name, type_expr) in fields {
-        let delta = offset - last_offset;
-        let pad_ident = format_ident!("__pad{}", index);
-        fields_calculated
-            .push(quote! { #pad_ident: [u8; #delta as usize - std::mem::size_of::<#last_type>()] });
-
-        last_type = type_expr.clone();
-        last_offset = *offset;
-
-        fields_calculated.push(quote! { pub #name: #type_expr });
-        index += 1;
-    }
-
-    if let Some(size) = size {
-        let delta = size - last_offset;
-        let pad_ident = format_ident!("__pad{}", index);
-        fields_calculated
-            .push(quote! { #pad_ident: [u8; #delta as usize - std::mem::size_of::<#last_type>()] });
+    if let Some(size) = size.map(|x| x as usize) {
+        fields_calculated.push(quote! { __pad: [u8; #size] });
     }
 
     Ok(fields_calculated)
@@ -218,12 +206,10 @@ fn generate_fields(
 fn generate_get(name: &proc_macro2::Ident, location: Option<Expr>) -> proc_macro2::TokenStream {
     match location {
         Some(e) => quote! {
-            pub fn get() -> &'static mut #name {
-                unsafe {
-                    let m = crate::module::GAME_MODULE.get().unwrap();
-                    let p: *mut #name = *(m.rel_to_abs_addr(#e as isize) as *const *mut #name);
-                    &mut *p
-                }
+            pub unsafe fn get() -> &'static mut #name {
+                let m = crate::module::GAME_MODULE.get().unwrap();
+                let p: *mut #name = *(m.rel_to_abs_addr(#e as isize) as *const *mut #name);
+                &mut *p
             }
         },
         None => quote! {},
@@ -233,17 +219,39 @@ fn generate_get(name: &proc_macro2::Ident, location: Option<Expr>) -> proc_macro
 fn generate_getters(fields: &[(u32, Ident, Type)]) -> Vec<proc_macro2::TokenStream> {
     fields
         .iter()
-        .map(|(_, name, field_type)| {
-            let function_name = format_ident!("{}_ptr", name);
-            let function_name_mut = format_ident!("{}_ptr_mut", name);
+        .map(|(offset, name, field_type)| {
+            let offset = *offset as usize;
+
+            let name_ptr = format_ident!("{}_ptr", name);
+            let name_ptr_mut = format_ident!("{}_ptr_mut", name);
+
+            let ref_methods = if offset % 4 == 0 {
+                let name = format_ident!("{}", name);
+                let name_mut = format_ident!("{}_mut", name);
+
+                quote! {
+                    pub unsafe fn #name(&self) -> &'static #field_type {
+                        &*self.#name_ptr()
+                    }
+                    pub unsafe fn #name_mut(&mut self) -> &'static mut #field_type {
+                        &mut *self.#name_ptr_mut()
+                    }
+                }
+            } else {
+                quote! {}
+            };
 
             quote! {
-                pub unsafe fn #function_name(&self) -> *const #field_type {
-                    ::std::ptr::addr_of!(self.#name)
+                pub unsafe fn #name_ptr(&self) -> *const #field_type {
+                    let u8_self = self as *const _ as *const u8;
+                    (self as *const _ as *const u8).add(#offset) as *const #field_type
                 }
-                pub unsafe fn #function_name_mut(&mut self) -> *mut #field_type {
-                    ::std::ptr::addr_of_mut!(self.#name)
+                pub unsafe fn #name_ptr_mut(&mut self) -> *mut #field_type {
+                    let u8_self = self as *mut _ as *mut u8;
+                    (self as *mut _ as *mut u8).add(#offset) as *mut #field_type
                 }
+
+                #ref_methods
             }
         })
         .collect()
@@ -284,18 +292,16 @@ fn generate_functions(
             let LocationType::Signature(code_signature) = &f.location;
 
             quote! {
-                pub fn #name(#(#args, )*) #output {
-                    unsafe {
-                        static mut ADDRESS: *mut u8 = ::std::ptr::null_mut();
-                        if ADDRESS == ::std::ptr::null_mut() {
-                            let module = crate::module::GAME_MODULE.get().unwrap();
-                            ADDRESS = module.scan(#code_signature).unwrap();
-                        }
-
-                        type FunctionType = extern "system" fn(#(#args_type), *) #output;
-                        let f: FunctionType = ::std::mem::transmute(ADDRESS);
-                        f(#(#args_call, )*)
+                pub unsafe fn #name(#(#args, )*) #output {
+                    static mut ADDRESS: *mut u8 = ::std::ptr::null_mut();
+                    if ADDRESS == ::std::ptr::null_mut() {
+                        let module = crate::module::GAME_MODULE.get().unwrap();
+                        ADDRESS = module.scan(#code_signature).unwrap();
                     }
+
+                    type FunctionType = extern "system" fn(#(#args_type), *) #output;
+                    let f: FunctionType = ::std::mem::transmute(ADDRESS);
+                    f(#(#args_call, )*)
                 }
             }
         })
@@ -333,9 +339,13 @@ pub fn game_class(item: TokenStream) -> TokenStream {
         }
     };
 
-    // if name.to_string().starts_with("ShaderCommand") {
-    //     println!("{}", expanded);
-    // }
+    // will print the AST every time a game class is instantiated with the set prefix.
+    // mostly useful for debugging what the produced AST is.
+    if !DEBUG_PRINT_CLASS_WITH_PREFIX.is_empty()
+        && name.to_string().starts_with(DEBUG_PRINT_CLASS_WITH_PREFIX)
+    {
+        println!("{}", expanded);
+    }
 
     TokenStream::from(expanded)
 }

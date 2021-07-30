@@ -23,6 +23,7 @@ struct InspectedTexture {
 pub struct Debugger {
     pub command_stream: Mutex<CommandStream>,
     inspected_textures: HashMap<*const Texture, InspectedTexture>,
+    some_global_struct: *const u8,
 }
 singleton!(Debugger);
 
@@ -157,11 +158,26 @@ fn dxgi_format_to_str(dxgi_format: dxgi::DXGI_FORMAT) -> &'static str {
 
 impl Debugger {
     pub fn new() -> anyhow::Result<Debugger> {
+        use crate::module::GAME_MODULE;
+
         let command_stream = Mutex::new(CommandStream::new());
         let inspected_textures = HashMap::new();
+
+        let module = unsafe {
+            GAME_MODULE
+                .get()
+                .ok_or(anyhow::Error::msg("Failed to retrieve game module"))?
+        };
+
+        let mystery_function: fn() -> *const u8 = unsafe {
+            std::mem::transmute(module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 58 60")?)
+        };
+        let some_global_struct = mystery_function();
+
         Ok(Debugger {
             command_stream,
             inspected_textures,
+            some_global_struct,
         })
     }
 
@@ -186,6 +202,7 @@ impl Debugger {
 
     fn draw_inspected_texture(&self, tex: &InspectedTexture) -> anyhow::Result<bool> {
         use cimgui as ig;
+        use windows::Abi;
 
         let mut open = true;
 
@@ -207,17 +224,19 @@ impl Debugger {
             Some(&mut open),
             None,
         )? {
-            use windows::Abi;
-
             let ig::Vec2 { x: width, .. } = ig::get_window_size();
             ig::image(
-                unsafe { (*(*tex.texture).shader_resource_view_ptr()).abi() },
+                unsafe { (*tex.texture).shader_resource_view().abi() },
                 ig::Vec2::new(width, width * inverse_aspect_ratio),
                 None,
                 None,
                 None,
                 None,
             );
+
+            unsafe {
+                ig::bulletf!("Texture pointer: {:X?}", (*tex.texture).texture().abi());
+            }
 
             ig::end();
         }
@@ -287,42 +306,54 @@ impl Debugger {
         use crate::game::graphics::{kernel, render};
         use cimgui as ig;
 
-        if ig::collapsing_header("Swapchain", None, None)? {
-            let swapchain = unsafe { &*kernel::Device::get().swapchain_ptr() };
-            if ig::begin_table("xivr_debug_tab_rts_swapchain", 6, None, None, None)? {
-                ig::table_setup_column("Preview", None, None, None)?;
-                ig::table_setup_column("Address", None, None, None)?;
-                ig::table_setup_column("Description", None, None, None)?;
-                ig::table_setup_column("Width", None, None, None)?;
-                ig::table_setup_column("Height", None, None, None)?;
-                ig::table_setup_column("Format", None, None, None)?;
-                ig::table_headers_row();
-
-                self.draw_render_target("Backbuffer", unsafe {
-                    *swapchain.back_buffer_ptr() as *const Texture
-                })?;
-
-                ig::end_table();
+        let setup_columns = |headers| -> anyhow::Result<()> {
+            for header in headers {
+                ig::table_setup_column(header, None, None, None)?;
             }
-        }
+            ig::table_headers_row();
+            Ok(())
+        };
 
-        if ig::collapsing_header("Render Target Manager", None, None)? {
-            let textures = render::RenderTargetManager::get().get_render_targets();
-            if ig::begin_table("xivr_debug_tab_rts_rtm", 6, None, None, None)? {
-                ig::table_setup_column("Preview", None, None, None)?;
-                ig::table_setup_column("Address", None, None, None)?;
-                ig::table_setup_column("Offset", None, None, None)?;
-                ig::table_setup_column("Width", None, None, None)?;
-                ig::table_setup_column("Height", None, None, None)?;
-                ig::table_setup_column("Format", None, None, None)?;
-                ig::table_headers_row();
+        if ig::begin_child("xivr_debug_tab_rts_child", None, None, None)? {
+            if ig::collapsing_header("Mystery structure", None, None)? {
+                let texture_ptr: *const Texture = unsafe {
+                    let some_struct = *(self.some_global_struct.add(0x60) as *const *const u8);
+                    *(some_struct.add(0x10) as *const *const Texture)
+                };
 
-                for (offset, texture) in textures.into_iter() {
-                    self.draw_render_target(&format!("0x{:X}", offset), texture)?;
+                if ig::begin_table("xivr_debug_tab_rts_swapchain", 6, None, None, None)? {
+                    setup_columns(["Preview", "Address", "Title", "Width", "Height", "Format"])?;
+
+                    self.draw_render_target("Backbuffer (real?)", texture_ptr)?;
+
+                    ig::end_table();
                 }
-
-                ig::end_table();
             }
+
+            if ig::collapsing_header("Swapchain", None, None)? {
+                let swapchain = unsafe { &*kernel::Device::get().swapchain_ptr() };
+                if ig::begin_table("xivr_debug_tab_rts_swapchain", 6, None, None, None)? {
+                    setup_columns(["Preview", "Address", "Title", "Width", "Height", "Format"])?;
+
+                    self.draw_render_target("Backbuffer", unsafe { *swapchain.back_buffer() as *const _ })?;
+
+                    ig::end_table();
+                }
+            }
+
+            if ig::collapsing_header("Render Target Manager", None, None)? {
+                let textures = unsafe { render::RenderTargetManager::get().get_render_targets() };
+                if ig::begin_table("xivr_debug_tab_rts_rtm", 6, None, None, None)? {
+                    setup_columns(["Preview", "Address", "Offset", "Width", "Height", "Format"])?;
+
+                    for (offset, texture) in textures.into_iter() {
+                        self.draw_render_target(&format!("0x{:X}", offset), texture)?;
+                    }
+
+                    ig::end_table();
+                }
+            }
+            ig::end_child();
         }
 
         Ok(())

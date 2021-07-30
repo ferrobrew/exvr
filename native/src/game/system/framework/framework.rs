@@ -6,6 +6,6 @@ use macros::game_class;
 game_class!(Framework, {
     location: offsets::globals::Framework,
     fields: {
-        [0x7A8] window: &'static self::Window,
+        [0x7A8] window: &'static mut self::Window,
     }
 });

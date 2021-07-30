@@ -10,6 +10,6 @@ game_class!(SwapChain, {
         [0x3C] height: u32,
         [0x58] back_buffer: &'static mut Texture,
         [0x60] depth_stencil: &'static mut Texture,
-        [0x68] dxgi_swap_chain: &'static mut IDXGISwapChain,
+        [0x68] swapchain: IDXGISwapChain,
     }
 });

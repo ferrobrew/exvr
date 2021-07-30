@@ -1,6 +1,7 @@
 #![feature(global_asm)]
 #![feature(naked_functions)]
 #![feature(asm)]
+#![feature(core_intrinsics)]
 
 mod game;
 mod hooks;

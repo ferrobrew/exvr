@@ -307,7 +307,7 @@ impl CommandStream {
                     .stream
                     .push(cmd.clone());
             }
-
+            
             self.state = CommandStreamState::Captured {
                 shader_streams,
                 processed_shader_stream: Stream {
@@ -366,9 +366,10 @@ impl CommandStream {
     }
 
     fn shader_command_to_payload(cmd: &'static kernel::ShaderCommand) -> ShaderPayload {
-        match cmd.cmd_type {
+        let cmd_type = unsafe { cmd.cmd_type() };
+        match cmd_type {
             ShaderCommandType::SetRenderTargets => unsafe {
-                let rts = cmd.payload.set_render_targets.get_render_target_slice();
+                let rts = cmd.payload().set_render_targets.get_render_target_slice();
                 ShaderPayload::SetRenderTargets(rts.iter().map(|x| Ptr(*x)).collect())
             },
             ShaderCommandType::SetViewports => ShaderPayload::SetViewports,
@@ -381,7 +382,7 @@ impl CommandStream {
             ShaderCommandType::DispatchComputeShader => ShaderPayload::DispatchComputeShader,
             ShaderCommandType::XIVRHijack => ShaderPayload::XIVRHijack,
             ShaderCommandType::CopyTexture => unsafe {
-                let p = &cmd.payload.copy_texture;
+                let p = &cmd.payload().copy_texture;
                 ShaderPayload::CopyTexture {
                     dst: Ptr(*p.dst_resource_ptr()),
                     src: Ptr(*p.src_resource_ptr()),
