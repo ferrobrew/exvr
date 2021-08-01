@@ -2,167 +2,50 @@ pub mod d3d_payload;
 pub mod payload;
 pub mod shader_payload;
 
+mod util;
+
 mod command_stream;
 pub use command_stream::*;
 
-use crate::game::graphics::kernel::Texture;
+use crate::game::graphics::kernel::{Device, Texture};
 use crate::singleton;
 
-use std::collections::HashMap;
+use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 use std::sync::Mutex;
 
-use bindings::Windows::Win32::Graphics::Dxgi as dxgi;
+use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
+use util::dxgi_format_to_str;
 
-struct InspectedTexture {
-    texture: *const Texture,
-    width: u32,
-    height: u32,
-    format: dxgi::DXGI_FORMAT,
+#[derive(PartialEq, Eq)]
+enum InspectedResource {
+    Texture(d3d::ID3D11Texture2D, d3d::ID3D11ShaderResourceView),
+}
+
+impl Hash for InspectedResource {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        use windows::Abi;
+        match self {
+            InspectedResource::Texture(tex, ..) => tex.abi().hash(state),
+        }
+    }
 }
 
 pub struct Debugger {
     pub command_stream: Mutex<CommandStream>,
-    inspected_textures: HashMap<*const Texture, InspectedTexture>,
+    inspected_textures: HashSet<&'static Texture>,
+    inspected_resources: HashSet<InspectedResource>,
     some_global_struct: *const u8,
 }
 singleton!(Debugger);
-
-fn dxgi_format_to_str(dxgi_format: dxgi::DXGI_FORMAT) -> &'static str {
-    match dxgi_format {
-        dxgi::DXGI_FORMAT_UNKNOWN => "UNKNOWN",
-        dxgi::DXGI_FORMAT_R32G32B32A32_TYPELESS => "R32G32B32A32_TYPELESS",
-        dxgi::DXGI_FORMAT_R32G32B32A32_FLOAT => "R32G32B32A32_FLOAT",
-        dxgi::DXGI_FORMAT_R32G32B32A32_UINT => "R32G32B32A32_UINT",
-        dxgi::DXGI_FORMAT_R32G32B32A32_SINT => "R32G32B32A32_SINT",
-        dxgi::DXGI_FORMAT_R32G32B32_TYPELESS => "R32G32B32_TYPELESS",
-        dxgi::DXGI_FORMAT_R32G32B32_FLOAT => "R32G32B32_FLOAT",
-        dxgi::DXGI_FORMAT_R32G32B32_UINT => "R32G32B32_UINT",
-        dxgi::DXGI_FORMAT_R32G32B32_SINT => "R32G32B32_SINT",
-        dxgi::DXGI_FORMAT_R16G16B16A16_TYPELESS => "R16G16B16A16_TYPELESS",
-        dxgi::DXGI_FORMAT_R16G16B16A16_FLOAT => "R16G16B16A16_FLOAT",
-        dxgi::DXGI_FORMAT_R16G16B16A16_UNORM => "R16G16B16A16_UNORM",
-        dxgi::DXGI_FORMAT_R16G16B16A16_UINT => "R16G16B16A16_UINT",
-        dxgi::DXGI_FORMAT_R16G16B16A16_SNORM => "R16G16B16A16_SNORM",
-        dxgi::DXGI_FORMAT_R16G16B16A16_SINT => "R16G16B16A16_SINT",
-        dxgi::DXGI_FORMAT_R32G32_TYPELESS => "R32G32_TYPELESS",
-        dxgi::DXGI_FORMAT_R32G32_FLOAT => "R32G32_FLOAT",
-        dxgi::DXGI_FORMAT_R32G32_UINT => "R32G32_UINT",
-        dxgi::DXGI_FORMAT_R32G32_SINT => "R32G32_SINT",
-        dxgi::DXGI_FORMAT_R32G8X24_TYPELESS => "R32G8X24_TYPELESS",
-        dxgi::DXGI_FORMAT_D32_FLOAT_S8X24_UINT => "D32_FLOAT_S8X24_UINT",
-        dxgi::DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS => "R32_FLOAT_X8X24_TYPELESS",
-        dxgi::DXGI_FORMAT_X32_TYPELESS_G8X24_UINT => "X32_TYPELESS_G8X24_UINT",
-        dxgi::DXGI_FORMAT_R10G10B10A2_TYPELESS => "R10G10B10A2_TYPELESS",
-        dxgi::DXGI_FORMAT_R10G10B10A2_UNORM => "R10G10B10A2_UNORM",
-        dxgi::DXGI_FORMAT_R10G10B10A2_UINT => "R10G10B10A2_UINT",
-        dxgi::DXGI_FORMAT_R11G11B10_FLOAT => "R11G11B10_FLOAT",
-        dxgi::DXGI_FORMAT_R8G8B8A8_TYPELESS => "R8G8B8A8_TYPELESS",
-        dxgi::DXGI_FORMAT_R8G8B8A8_UNORM => "R8G8B8A8_UNORM",
-        dxgi::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB => "R8G8B8A8_UNORM_SRGB",
-        dxgi::DXGI_FORMAT_R8G8B8A8_UINT => "R8G8B8A8_UINT",
-        dxgi::DXGI_FORMAT_R8G8B8A8_SNORM => "R8G8B8A8_SNORM",
-        dxgi::DXGI_FORMAT_R8G8B8A8_SINT => "R8G8B8A8_SINT",
-        dxgi::DXGI_FORMAT_R16G16_TYPELESS => "R16G16_TYPELESS",
-        dxgi::DXGI_FORMAT_R16G16_FLOAT => "R16G16_FLOAT",
-        dxgi::DXGI_FORMAT_R16G16_UNORM => "R16G16_UNORM",
-        dxgi::DXGI_FORMAT_R16G16_UINT => "R16G16_UINT",
-        dxgi::DXGI_FORMAT_R16G16_SNORM => "R16G16_SNORM",
-        dxgi::DXGI_FORMAT_R16G16_SINT => "R16G16_SINT",
-        dxgi::DXGI_FORMAT_R32_TYPELESS => "R32_TYPELESS",
-        dxgi::DXGI_FORMAT_D32_FLOAT => "D32_FLOAT",
-        dxgi::DXGI_FORMAT_R32_FLOAT => "R32_FLOAT",
-        dxgi::DXGI_FORMAT_R32_UINT => "R32_UINT",
-        dxgi::DXGI_FORMAT_R32_SINT => "R32_SINT",
-        dxgi::DXGI_FORMAT_R24G8_TYPELESS => "R24G8_TYPELESS",
-        dxgi::DXGI_FORMAT_D24_UNORM_S8_UINT => "D24_UNORM_S8_UINT",
-        dxgi::DXGI_FORMAT_R24_UNORM_X8_TYPELESS => "R24_UNORM_X8_TYPELESS",
-        dxgi::DXGI_FORMAT_X24_TYPELESS_G8_UINT => "X24_TYPELESS_G8_UINT",
-        dxgi::DXGI_FORMAT_R8G8_TYPELESS => "R8G8_TYPELESS",
-        dxgi::DXGI_FORMAT_R8G8_UNORM => "R8G8_UNORM",
-        dxgi::DXGI_FORMAT_R8G8_UINT => "R8G8_UINT",
-        dxgi::DXGI_FORMAT_R8G8_SNORM => "R8G8_SNORM",
-        dxgi::DXGI_FORMAT_R8G8_SINT => "R8G8_SINT",
-        dxgi::DXGI_FORMAT_R16_TYPELESS => "R16_TYPELESS",
-        dxgi::DXGI_FORMAT_R16_FLOAT => "R16_FLOAT",
-        dxgi::DXGI_FORMAT_D16_UNORM => "D16_UNORM",
-        dxgi::DXGI_FORMAT_R16_UNORM => "R16_UNORM",
-        dxgi::DXGI_FORMAT_R16_UINT => "R16_UINT",
-        dxgi::DXGI_FORMAT_R16_SNORM => "R16_SNORM",
-        dxgi::DXGI_FORMAT_R16_SINT => "R16_SINT",
-        dxgi::DXGI_FORMAT_R8_TYPELESS => "R8_TYPELESS",
-        dxgi::DXGI_FORMAT_R8_UNORM => "R8_UNORM",
-        dxgi::DXGI_FORMAT_R8_UINT => "R8_UINT",
-        dxgi::DXGI_FORMAT_R8_SNORM => "R8_SNORM",
-        dxgi::DXGI_FORMAT_R8_SINT => "R8_SINT",
-        dxgi::DXGI_FORMAT_A8_UNORM => "A8_UNORM",
-        dxgi::DXGI_FORMAT_R1_UNORM => "R1_UNORM",
-        dxgi::DXGI_FORMAT_R9G9B9E5_SHAREDEXP => "R9G9B9E5_SHAREDEXP",
-        dxgi::DXGI_FORMAT_R8G8_B8G8_UNORM => "R8G8_B8G8_UNORM",
-        dxgi::DXGI_FORMAT_G8R8_G8B8_UNORM => "G8R8_G8B8_UNORM",
-        dxgi::DXGI_FORMAT_BC1_TYPELESS => "BC1_TYPELESS",
-        dxgi::DXGI_FORMAT_BC1_UNORM => "BC1_UNORM",
-        dxgi::DXGI_FORMAT_BC1_UNORM_SRGB => "BC1_UNORM_SRGB",
-        dxgi::DXGI_FORMAT_BC2_TYPELESS => "BC2_TYPELESS",
-        dxgi::DXGI_FORMAT_BC2_UNORM => "BC2_UNORM",
-        dxgi::DXGI_FORMAT_BC2_UNORM_SRGB => "BC2_UNORM_SRGB",
-        dxgi::DXGI_FORMAT_BC3_TYPELESS => "BC3_TYPELESS",
-        dxgi::DXGI_FORMAT_BC3_UNORM => "BC3_UNORM",
-        dxgi::DXGI_FORMAT_BC3_UNORM_SRGB => "BC3_UNORM_SRGB",
-        dxgi::DXGI_FORMAT_BC4_TYPELESS => "BC4_TYPELESS",
-        dxgi::DXGI_FORMAT_BC4_UNORM => "BC4_UNORM",
-        dxgi::DXGI_FORMAT_BC4_SNORM => "BC4_SNORM",
-        dxgi::DXGI_FORMAT_BC5_TYPELESS => "BC5_TYPELESS",
-        dxgi::DXGI_FORMAT_BC5_UNORM => "BC5_UNORM",
-        dxgi::DXGI_FORMAT_BC5_SNORM => "BC5_SNORM",
-        dxgi::DXGI_FORMAT_B5G6R5_UNORM => "B5G6R5_UNORM",
-        dxgi::DXGI_FORMAT_B5G5R5A1_UNORM => "B5G5R5A1_UNORM",
-        dxgi::DXGI_FORMAT_B8G8R8A8_UNORM => "B8G8R8A8_UNORM",
-        dxgi::DXGI_FORMAT_B8G8R8X8_UNORM => "B8G8R8X8_UNORM",
-        dxgi::DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM => "R10G10B10_XR_BIAS_A2_UNORM",
-        dxgi::DXGI_FORMAT_B8G8R8A8_TYPELESS => "B8G8R8A8_TYPELESS",
-        dxgi::DXGI_FORMAT_B8G8R8A8_UNORM_SRGB => "B8G8R8A8_UNORM_SRGB",
-        dxgi::DXGI_FORMAT_B8G8R8X8_TYPELESS => "B8G8R8X8_TYPELESS",
-        dxgi::DXGI_FORMAT_B8G8R8X8_UNORM_SRGB => "B8G8R8X8_UNORM_SRGB",
-        dxgi::DXGI_FORMAT_BC6H_TYPELESS => "BC6H_TYPELESS",
-        dxgi::DXGI_FORMAT_BC6H_UF16 => "BC6H_UF16",
-        dxgi::DXGI_FORMAT_BC6H_SF16 => "BC6H_SF16",
-        dxgi::DXGI_FORMAT_BC7_TYPELESS => "BC7_TYPELESS",
-        dxgi::DXGI_FORMAT_BC7_UNORM => "BC7_UNORM",
-        dxgi::DXGI_FORMAT_BC7_UNORM_SRGB => "BC7_UNORM_SRGB",
-        dxgi::DXGI_FORMAT_AYUV => "AYUV",
-        dxgi::DXGI_FORMAT_Y410 => "Y410",
-        dxgi::DXGI_FORMAT_Y416 => "Y416",
-        dxgi::DXGI_FORMAT_NV12 => "NV12",
-        dxgi::DXGI_FORMAT_P010 => "P010",
-        dxgi::DXGI_FORMAT_P016 => "P016",
-        dxgi::DXGI_FORMAT_420_OPAQUE => "420_OPAQUE",
-        dxgi::DXGI_FORMAT_YUY2 => "YUY2",
-        dxgi::DXGI_FORMAT_Y210 => "Y210",
-        dxgi::DXGI_FORMAT_Y216 => "Y216",
-        dxgi::DXGI_FORMAT_NV11 => "NV11",
-        dxgi::DXGI_FORMAT_AI44 => "AI44",
-        dxgi::DXGI_FORMAT_IA44 => "IA44",
-        dxgi::DXGI_FORMAT_P8 => "P8",
-        dxgi::DXGI_FORMAT_A8P8 => "A8P8",
-        dxgi::DXGI_FORMAT_B4G4R4A4_UNORM => "B4G4R4A4_UNORM",
-        dxgi::DXGI_FORMAT_P208 => "P208",
-        dxgi::DXGI_FORMAT_V208 => "V208",
-        dxgi::DXGI_FORMAT_V408 => "V408",
-        dxgi::DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE => "SAMPLER_FEEDBACK_MIN_MIP_OPAQUE",
-        dxgi::DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE => {
-            "SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE"
-        }
-        dxgi::DXGI_FORMAT_FORCE_UINT => "FORCE_UINT",
-        _ => "UNKNOWN",
-    }
-}
 
 impl Debugger {
     pub fn new() -> anyhow::Result<Debugger> {
         use crate::module::GAME_MODULE;
 
         let command_stream = Mutex::new(CommandStream::new());
-        let inspected_textures = HashMap::new();
+        let inspected_textures = HashSet::new();
+        let inspected_resources = HashSet::new();
 
         let module = unsafe {
             GAME_MODULE
@@ -178,37 +61,61 @@ impl Debugger {
         Ok(Debugger {
             command_stream,
             inspected_textures,
+            inspected_resources,
             some_global_struct,
         })
     }
 
-    pub fn inspect_texture(&mut self, texture: *const Texture) {
-        use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
-
-        let mut desc: d3d::D3D11_TEXTURE2D_DESC = unsafe { std::mem::zeroed() };
-        unsafe {
-            (*(*texture).texture_ptr()).GetDesc(&mut desc);
-        }
-
-        self.inspected_textures.insert(
-            texture,
-            InspectedTexture {
-                texture,
-                width: desc.Width as u32,
-                height: desc.Height as u32,
-                format: desc.Format,
-            },
-        );
+    pub fn inspect_texture(&mut self, texture: &'static Texture) {
+        self.inspected_textures.insert(texture);
     }
 
-    fn draw_inspected_texture(&self, tex: &InspectedTexture) -> anyhow::Result<bool> {
+    pub fn inspect_resource(&mut self, resource: d3d::ID3D11Resource) -> anyhow::Result<()> {
+        use windows::Interface;
+        use windows::Abi;
+        if let Ok(tex) = resource.cast::<d3d::ID3D11Texture2D>() {
+            let device = unsafe { Device::get().device() };
+
+            let desc = unsafe {
+                let mut desc: d3d::D3D11_TEXTURE2D_DESC = std::mem::zeroed();
+                tex.GetDesc(&mut desc);
+                desc
+            };
+
+            let srv_desc = d3d::D3D11_SHADER_RESOURCE_VIEW_DESC {
+                Format: desc.Format,
+                ViewDimension: d3d::D3D_SRV_DIMENSION_TEXTURE2D,
+                Anonymous: d3d::D3D11_SHADER_RESOURCE_VIEW_DESC_0 {
+                    Texture2D: d3d::D3D11_TEX2D_SRV {
+                        MostDetailedMip: 0,
+                        MipLevels: desc.MipLevels,
+                    },
+                },
+            };
+            let srv = unsafe { device.CreateShaderResourceView(tex.clone(), &srv_desc)? };
+
+            self.inspected_resources
+                .insert(InspectedResource::Texture(tex, srv));
+        }
+
+        Ok(())
+    }
+
+    fn draw_inspected_texture_internal(
+        tex: d3d::ID3D11Texture2D,
+        srv: d3d::ID3D11ShaderResourceView,
+    ) -> anyhow::Result<bool> {
         use cimgui as ig;
         use windows::Abi;
 
         let mut open = true;
+        let mut desc: d3d::D3D11_TEXTURE2D_DESC = unsafe { std::mem::zeroed() };
+        unsafe {
+            tex.GetDesc(&mut desc);
+        }
 
-        let base_width = tex.width as f32 / 2.0;
-        let inverse_aspect_ratio = tex.height as f32 / tex.width as f32;
+        let base_width = desc.Width as f32 / 2.0;
+        let inverse_aspect_ratio = desc.Height as f32 / desc.Width as f32;
         ig::set_next_window_size(
             ig::Vec2::new(base_width, base_width * inverse_aspect_ratio + 40.0),
             Some(ig::Cond::Once),
@@ -217,45 +124,51 @@ impl Debugger {
         if ig::begin(
             &format!(
                 "Texture {:X?} ({}x{}, {})",
-                tex.texture,
-                tex.width,
-                tex.height,
-                dxgi_format_to_str(tex.format)
+                tex.abi(),
+                desc.Width,
+                desc.Height,
+                dxgi_format_to_str(desc.Format)
             ),
             Some(&mut open),
             None,
         )? {
             let ig::Vec2 { x: width, .. } = ig::get_window_size();
-            ig::image(
-                unsafe { (*tex.texture).shader_resource_view().abi() },
-                ig::Vec2::new(width, width * inverse_aspect_ratio),
-                None,
-                None,
-                None,
-                None,
-            );
-
-            unsafe {
-                ig::bulletf!("Texture pointer: {:X?}", (*tex.texture).texture().abi());
-            }
-
+            let size = ig::Vec2::new(width, width * inverse_aspect_ratio);
+            ig::image(srv.abi(), size, None, None, None, None);
+            ig::bulletf!("Texture pointer: {:X?}", tex.abi());
             ig::end();
         }
 
         Ok(open)
     }
 
+    fn draw_inspected_texture(tex: &Texture) -> anyhow::Result<bool> {
+        unsafe {
+            Self::draw_inspected_texture_internal(
+                tex.texture().clone().into(),
+                tex.shader_resource_view().clone().into(),
+            )
+        }
+    }
+
+    fn draw_inspected_resource(res: &InspectedResource) -> anyhow::Result<bool> {
+        match res {
+            InspectedResource::Texture(tex, srv) => {
+                Self::draw_inspected_texture_internal(tex.clone().into(), srv.clone().into())
+            }
+        }
+    }
+
     fn draw_render_target(
         &mut self,
         description: &str,
-        texture: *const Texture,
+        texture: &'static Texture,
     ) -> anyhow::Result<()> {
-        use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
         use cimgui as ig;
 
         let mut desc: d3d::D3D11_TEXTURE2D_DESC = unsafe { std::mem::zeroed() };
         unsafe {
-            (*(*texture).texture_ptr()).GetDesc(&mut desc);
+            texture.texture().GetDesc(&mut desc);
         }
 
         const PREVIEW_HEIGHT: f32 = 64.0;
@@ -266,7 +179,7 @@ impl Debugger {
             let rt_size = ig::Vec2::new(aspect_ratio * PREVIEW_HEIGHT, PREVIEW_HEIGHT);
 
             ig::table_next_column();
-            let img = unsafe { (*(*texture).shader_resource_view_ptr()).abi() };
+            let img = unsafe { texture.shader_resource_view().abi() };
             if ig::image_button(
                 img,
                 rt_size,
@@ -281,7 +194,7 @@ impl Debugger {
         }
         {
             ig::table_next_column();
-            ig::textf!("{:X?}", texture);
+            ig::textf!("{:X?}", texture as *const _);
         }
         {
             ig::table_next_column();
@@ -317,9 +230,9 @@ impl Debugger {
 
         if ig::begin_child("xivr_debug_tab_rts_child", None, None, None)? {
             if ig::collapsing_header("Mystery structure", None, None)? {
-                let texture_ptr: *const Texture = unsafe {
+                let texture_ptr: &Texture = unsafe {
                     let some_struct = *(self.some_global_struct.add(0x60) as *const *const u8);
-                    *(some_struct.add(0x10) as *const *const Texture)
+                    &**(some_struct.add(0x10) as *const *const Texture)
                 };
 
                 if ig::begin_table("xivr_debug_tab_rts_swapchain", 6, None, None, None)? {
@@ -336,7 +249,9 @@ impl Debugger {
                 if ig::begin_table("xivr_debug_tab_rts_swapchain", 6, None, None, None)? {
                     setup_columns(["Preview", "Address", "Title", "Width", "Height", "Format"])?;
 
-                    self.draw_render_target("Backbuffer", unsafe { *swapchain.back_buffer() as *const _ })?;
+                    self.draw_render_target("Backbuffer", unsafe {
+                        &*(*swapchain.back_buffer() as *const _)
+                    })?;
 
                     ig::end_table();
                 }
@@ -348,7 +263,7 @@ impl Debugger {
                     setup_columns(["Preview", "Address", "Offset", "Width", "Height", "Format"])?;
 
                     for (offset, texture) in textures.into_iter() {
-                        self.draw_render_target(&format!("0x{:X}", offset), texture)?;
+                        self.draw_render_target(&format!("0x{:X}", offset), unsafe { &*texture })?;
                     }
 
                     ig::end_table();
@@ -394,16 +309,11 @@ impl Debugger {
             }
             ig::end();
         }
-
-        let mut textures_to_remove = vec![];
-        for inspected_texture in self.inspected_textures.values() {
-            if !self.draw_inspected_texture(inspected_texture)? {
-                textures_to_remove.push(inspected_texture.texture);
-            }
-        }
-        for texture in textures_to_remove {
-            self.inspected_textures.remove(&texture);
-        }
+        // It seems a little dubious to me to mutate inside a method like this, but if it works, it works
+        self.inspected_textures
+            .retain(|t| Self::draw_inspected_texture(t).unwrap_or(false));
+        self.inspected_resources
+            .retain(|t| Self::draw_inspected_resource(t).unwrap_or(false));
 
         Ok(())
     }

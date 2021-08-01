@@ -33,7 +33,10 @@ pub enum ShaderPayload {
         dst: Ptr<Texture>,
         src: Ptr<Texture>,
     },
-    UnknownDraw,
+    UnknownDraw {
+        render_target: Ptr<Texture>,
+        sampled_texture: Ptr<Texture>,
+    },
     CopyResource,
     ResetRendererMaybe,
     Unknown1,
@@ -66,7 +69,7 @@ impl Payload for ShaderPayload {
                     for rt in rts {
                         ig::bullet();
                         if ig::small_button(&format!("{:X?}", rt.0))? {
-                            debugger.inspect_texture(rt.0);
+                            debugger.inspect_texture(unsafe { &*rt.0 });
                         }
                     }
                 }
@@ -74,13 +77,26 @@ impl Payload for ShaderPayload {
                     ig::text("Destination: ");
                     ig::same_line(None, Some(0.0));
                     if ig::small_button(&format!("{:X?}", dst.0))? {
-                        debugger.inspect_texture(dst.0);
+                        debugger.inspect_texture(unsafe { &*dst.0 });
                     }
 
                     ig::text("Source: ");
                     ig::same_line(None, Some(0.0));
                     if ig::small_button(&format!("{:X?}", src.0))? {
-                        debugger.inspect_texture(src.0);
+                        debugger.inspect_texture(unsafe { &*src.0 });
+                    }
+                }
+                ShaderPayload::UnknownDraw { render_target, sampled_texture } => {
+                    ig::text("Render Target: ");
+                    ig::same_line(None, Some(0.0));
+                    if ig::small_button(&format!("{:X?}", render_target.0))? {
+                        debugger.inspect_texture(unsafe { &*render_target.0 });
+                    }
+
+                    ig::text("Sampled Texture: ");
+                    ig::same_line(None, Some(0.0));
+                    if ig::small_button(&format!("{:X?}", sampled_texture.0))? {
+                        debugger.inspect_texture(unsafe { &*sampled_texture.0 });
                     }
                 }
                 _ => {

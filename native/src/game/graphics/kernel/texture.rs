@@ -1,6 +1,8 @@
 use bindings::Windows::Win32::Graphics::Direct3D11::{ID3D11ShaderResourceView1, ID3D11Texture2D};
 use macros::game_class;
 
+use std::hash::Hash;
+
 #[repr(u32)]
 #[allow(dead_code)]
 pub enum TextureFormat {
@@ -10,6 +12,7 @@ pub enum TextureFormat {
 
 game_class!(Texture, {
     size: 0xA8,
+    attributes: #[derive(PartialEq, Eq, Hash)],
     fields: {
         [0x38] width: u32,
         [0x3C] height: u32,

@@ -121,28 +121,6 @@ static_assert(sizeof(CopyTexture) + sizeof(ShaderCommandType) == 0x48);
 struct
 {
 	int field_4;
-	game::graphics::kernel::Texture* texture;
-	int field_10;
-	int field_14;
-	uint64_t field_18;
-	uint64_t field_20;
-	int field_28;
-	int field_2C;
-	uint64_t field_30;
-	int field_38;
-	int field_3C;
-	int field_40;
-	int field_44;
-	int field_48;
-	int field_4C;
-	int field_50;
-	int field_54;
-} UnknownDraw;
-static_assert(sizeof(UnknownDraw) + sizeof(ShaderCommandType) == 0x58);
-
-struct
-{
-	int field_4;
 	uint64_t callback;
 	uint64_t field_10;
 	int field_18;
@@ -179,9 +157,18 @@ game_class!(ShaderCommandPayloadCopyTexture, {
 	}
 });
 
+game_class!(ShaderCommandUnknownDraw, {
+	size: 0x30,
+	fields: {
+		[0x4] render_target: *const game::graphics::kernel::Texture,
+		[0x1C] sampled_texture: *const game::graphics::kernel::Texture,
+	}
+});
+
 pub union ShaderCommandPayload {
 	pub set_render_targets: std::mem::ManuallyDrop<ShaderCommandPayloadSetRenderTargets>,
 	pub copy_texture: std::mem::ManuallyDrop<ShaderCommandPayloadCopyTexture>,
+	pub unknown_draw: std::mem::ManuallyDrop<ShaderCommandUnknownDraw>,
 }
 
 #[repr(u32)]

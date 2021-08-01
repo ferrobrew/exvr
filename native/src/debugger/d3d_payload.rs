@@ -1,8 +1,9 @@
 use crate::debugger::payload::*;
+use crate::debugger::util::dxgi_format_to_str;
 
 use bindings::Windows::Win32::Foundation::{BOOL, HANDLE, PWSTR, RECT};
 use bindings::Windows::Win32::Graphics::Direct3D11::{
-    D3D11_BOX, D3D11_CONTEXT_TYPE, D3D11_MAP, D3D11_MAPPED_SUBRESOURCE,
+    ID3D11Resource, D3D11_BOX, D3D11_CONTEXT_TYPE, D3D11_MAP, D3D11_MAPPED_SUBRESOURCE,
     D3D11_TILED_RESOURCE_COORDINATE, D3D11_TILE_REGION_SIZE, D3D11_VIEWPORT,
     D3D_PRIMITIVE_TOPOLOGY,
 };
@@ -53,7 +54,7 @@ pub enum D3DPayload {
     SetPredication(*mut c_void, BOOL),
     GSSetShaderResources(u32, u32, *mut *const c_void),
     GSSetSamplers(u32, u32, *mut *const c_void),
-    OMSetRenderTargets(u32, *mut *const c_void, *mut c_void),
+    OMSetRenderTargets(u32, *mut *const c_void, *mut c_void, Vec<ID3D11Resource>),
     OMSetRenderTargetsAndUnorderedAccessViews(u32, *mut *const c_void, *mut c_void, u32, u32, *mut *const c_void, *mut u32),
     OMSetBlendState(*mut c_void, *mut f32, u32),
     OMSetDepthStencilState(*mut c_void, u32),
@@ -107,7 +108,7 @@ pub enum D3DPayload {
     VSGetShaderResources(u32, u32, *mut *mut c_void),
     VSGetSamplers(u32, u32, *mut *mut c_void),
     GetPredication(*mut *mut c_void, *mut BOOL),
-    GSGetShaderResources(u32, u32, *mut *mut c_void),
+    GSGetShaderResources(u32, u32, *mut *mut c_void),   
     GSGetSamplers(u32, u32, *mut *mut c_void),
     OMGetRenderTargets(u32, *mut *mut c_void, *mut *mut c_void),
     OMGetRenderTargetsAndUnorderedAccessViews(u32, *mut *mut c_void, *mut *mut c_void, u32, u32, *mut *mut c_void),
@@ -336,10 +337,23 @@ impl Payload for D3DPayload {
                 ig::bulletf!("NumSamplers: {:?}", NumSamplers);
                 ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
-            Self::OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView) => {
+            Self::OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView, resources) => {
+                use crate::debugger::Debugger;
+                use windows::Abi;
+
                 ig::bulletf!("NumViews: {:?}", NumViews);
                 ig::bulletf!("ppRenderTargetViews: {:?}", ppRenderTargetViews);
                 ig::bulletf!("pDepthStencilView: {:?}", pDepthStencilView);
+
+                ig::bulletf!("resources: ");
+                if let Some(debugger) = Debugger::get_mut() {
+                    for resource in resources {
+                        ig::same_line(None, Some(0.0));
+                        if ig::small_button(&format!("{:X?}", resource.abi()))? {
+                            debugger.inspect_resource(resource.clone())?;
+                        }
+                    }
+                }
             }
             Self::OMSetRenderTargetsAndUnorderedAccessViews(NumRTVs, ppRenderTargetViews, pDepthStencilView, UAVStartSlot, NumUAVs, ppUnorderedAccessViews, pUAVInitialCounts) => {
                 ig::bulletf!("NumRTVs: {:?}", NumRTVs);

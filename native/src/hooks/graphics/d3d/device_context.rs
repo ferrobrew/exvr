@@ -9,7 +9,7 @@ use crate::ct_config::*;
 use bindings::Windows::Win32::Graphics::Direct3D11::{
     D3D_PRIMITIVE_TOPOLOGY, D3D11_MAPPED_SUBRESOURCE, D3D11_MAP, D3D11_VIEWPORT, D3D11_BOX,
     D3D11_DEVICE_CONTEXT_TYPE, D3D11_TILED_RESOURCE_COORDINATE, D3D11_TILE_REGION_SIZE,
-    D3D11_CONTEXT_TYPE,
+    D3D11_CONTEXT_TYPE
 };
 use bindings::Windows::Win32::Graphics::Dxgi::{DXGI_FORMAT};
 use bindings::Windows::Win32::Foundation::{BOOL, RECT, HANDLE, PWSTR};
@@ -457,7 +457,7 @@ unsafe extern "C" fn VSSetShaderResources_hook(This: *mut c_void, StartSlot: u32
     let ret = ((*ORIGINAL_VTABLE.unwrap()).VSSetShaderResources)(This, StartSlot, NumViews, ppShaderResourceViews);
     push_back_payload(D3DPayload::VSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
-}
+}   
 unsafe extern "C" fn VSSetSamplers_hook(This: *mut c_void, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *const c_void) {
     let ret = ((*ORIGINAL_VTABLE.unwrap()).VSSetSamplers)(This, StartSlot, NumSamplers, ppSamplers);
     push_back_payload(D3DPayload::VSSetSamplers(StartSlot, NumSamplers, ppSamplers));
@@ -494,8 +494,25 @@ unsafe extern "C" fn GSSetSamplers_hook(This: *mut c_void, StartSlot: u32, NumSa
     ret
 }
 unsafe extern "C" fn OMSetRenderTargets_hook(This: *mut c_void, NumViews: u32, ppRenderTargetViews: *mut *const c_void, pDepthStencilView: *mut c_void) {
-    let ret = ((*ORIGINAL_VTABLE.unwrap()).OMSetRenderTargets)(This, NumViews, ppRenderTargetViews, pDepthStencilView);
-    push_back_payload(D3DPayload::OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView));
+    use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
+    let ret = ((*ORIGINAL_VTABLE.unwrap()).OMSetRenderTargets)(This, NumViews, ppRenderTargetViews, pDepthStencilView); 
+
+    let resources = {
+        let ppRenderTargetViews = ppRenderTargetViews as *const d3d::ID3D11RenderTargetView;
+        if ppRenderTargetViews.is_null() { 
+            vec![]
+        } else {
+            let rtvs = std::slice::from_raw_parts(ppRenderTargetViews, NumViews as usize);
+            rtvs.iter().filter_map(|rtv| {
+                if rtv.abi().is_null() { return None; }
+                
+                let mut resource = None;
+                rtv.GetResource(&mut resource);
+                resource
+            }).collect()
+        }
+    };
+    push_back_payload(D3DPayload::OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView, resources));
     ret
 }
 unsafe extern "C" fn OMSetRenderTargetsAndUnorderedAccessViews_hook(This: *mut c_void, NumRTVs: u32, ppRenderTargetViews: *mut *const c_void, pDepthStencilView: *mut c_void, UAVStartSlot: u32, NumUAVs: u32, ppUnorderedAccessViews: *mut *const c_void, pUAVInitialCounts: *mut u32) {

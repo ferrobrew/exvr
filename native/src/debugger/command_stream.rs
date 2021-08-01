@@ -396,7 +396,13 @@ impl CommandStream {
                     src: Ptr(*p.src_resource_ptr()),
                 }
             },
-            ShaderCommandType::UnknownDraw => ShaderPayload::UnknownDraw,
+            ShaderCommandType::UnknownDraw => unsafe {
+                let p = &cmd.payload().unknown_draw;
+                ShaderPayload::UnknownDraw {
+                    render_target: Ptr(*p.render_target_ptr()),
+                    sampled_texture: Ptr(*p.sampled_texture_ptr()),
+                }
+            },
             ShaderCommandType::CopyResource => ShaderPayload::CopyResource,
             ShaderCommandType::ResetRendererMaybe => ShaderPayload::ResetRendererMaybe,
             ShaderCommandType::Unknown1 => ShaderPayload::Unknown1,
