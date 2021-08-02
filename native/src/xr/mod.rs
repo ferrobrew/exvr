@@ -1,5 +1,6 @@
 use crate::ct_config;
-use crate::game::graphics::{kernel, render};
+use crate::debugger::Debugger;
+use crate::game::graphics::kernel;
 use crate::game::system::framework;
 use crate::singleton;
 
@@ -143,7 +144,7 @@ impl XR {
             Height: swapchain_desc.Height,
             MipLevels: 1,
             ArraySize: 1,
-            Format: dxgi::DXGI_FORMAT_R16G16B16A16_FLOAT,
+            Format: dxgi::DXGI_FORMAT_R8G8B8A8_UNORM,
             SampleDesc: dxgi::DXGI_SAMPLE_DESC {
                 Count: 1,
                 Quality: 0,
@@ -278,17 +279,17 @@ impl XR {
         let srv_width = (width * 0.5) - 32.0;
 
         if ig::begin_table("xivr_debug_tab_framebuffers_table", 2, None, None, None)? {
-            for buffer_srv in self.buffer_srvs.iter() {
+            for (buffer_image, buffer_srv) in self.buffer_images.iter().zip(self.buffer_srvs.iter())
+            {
                 ig::table_next_column();
-                ig::image_button(
-                    buffer_srv.abi(),
-                    ig::Vec2::new(srv_width, srv_width * inverse_aspect_ratio),
-                    None,
-                    None,
-                    None,
-                    Some(ig::Color::new(0.0, 0.0, 0.0, 1.0)),
-                    None,
-                );
+                let size = ig::Vec2::new(srv_width, srv_width * inverse_aspect_ratio);
+                let color = Some(ig::Color::new(0.0, 0.0, 0.0, 1.0));
+                if ig::image_button(buffer_srv.abi(), size, None, None, None, color, None) {
+                    if let Some(debugger) = Debugger::get_mut() {
+                        debugger
+                            .inspect_d3d_texture(buffer_image.clone(), Some(buffer_srv.clone()))?;
+                    }
+                }
             }
             ig::end_table();
         }
@@ -342,9 +343,15 @@ impl XR {
     pub fn copy_backbuffer_to_buffer(&mut self, index: u32) {
         unsafe {
             let dc = kernel::Device::get().device_context();
-            let texture: &'static _ = render::RenderTargetManager::get().rendered_game().texture();
+            let backbuffer = kernel::Device::get().swapchain().back_buffer();
 
-            dc.CopyResource(self.buffer_images[index as usize].clone(), texture.clone());
+            dc.ResolveSubresource(
+                self.buffer_images[index as usize].clone(),
+                0,
+                backbuffer.texture().clone(),
+                0,
+                dxgi::DXGI_FORMAT_R8G8B8A8_UNORM,
+            );
         }
     }
 

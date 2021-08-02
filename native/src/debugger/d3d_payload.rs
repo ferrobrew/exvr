@@ -1,5 +1,4 @@
 use crate::debugger::payload::*;
-use crate::debugger::util::dxgi_format_to_str;
 
 use bindings::Windows::Win32::Foundation::{BOOL, HANDLE, PWSTR, RECT};
 use bindings::Windows::Win32::Graphics::Direct3D11::{
@@ -188,6 +187,9 @@ impl Payload for D3DPayload {
     #[allow(non_snake_case)]
     #[rustfmt::skip]
     fn draw(&self) -> anyhow::Result<()> {
+        use crate::debugger::Debugger;
+        use windows::Abi;
+
         match self {
             Self::QueryInterface(riid, ppvObject) => {
                 ig::bulletf!("riid: {:?}", riid);
@@ -338,9 +340,6 @@ impl Payload for D3DPayload {
                 ig::bulletf!("ppSamplers: {:?}", ppSamplers);
             }
             Self::OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView, resources) => {
-                use crate::debugger::Debugger;
-                use windows::Abi;
-
                 ig::bulletf!("NumViews: {:?}", NumViews);
                 ig::bulletf!("ppRenderTargetViews: {:?}", ppRenderTargetViews);
                 ig::bulletf!("pDepthStencilView: {:?}", pDepthStencilView);
@@ -350,7 +349,7 @@ impl Payload for D3DPayload {
                     for resource in resources {
                         ig::same_line(None, Some(0.0));
                         if ig::small_button(&format!("{:X?}", resource.abi()))? {
-                            debugger.inspect_resource(resource.clone())?;
+                            debugger.inspect_d3d_resource(resource.clone())?;
                         }
                     }
                 }
@@ -416,9 +415,20 @@ impl Payload for D3DPayload {
                 ig::bulletf!("SrcSubresource: {:?}", SrcSubresource);
                 ig::bulletf!("pSrcBox: {:?}", pSrcBox);
             }
-            Self::CopyResource(pDstResource, pSrcResource) => {
-                ig::bulletf!("pDstResource: {:?}", pDstResource);
-                ig::bulletf!("pSrcResource: {:?}", pSrcResource);
+            Self::CopyResource(pDstResource, pSrcResource) => unsafe {
+                if let Some(debugger) = Debugger::get_mut() {
+                    ig::bulletf!("pDstResource: ");
+                    ig::same_line(None, Some(0.0));
+                    if ig::small_button(&format!("{:X?}", *pDstResource))? {
+                        debugger.inspect_d3d_resource(ID3D11Resource::from_abi(*pDstResource)?)?;
+                    }
+
+                    ig::bulletf!("pSrcResource: ");
+                    ig::same_line(None, Some(0.0));
+                    if ig::small_button(&format!("{:X?}", *pSrcResource))? {
+                        debugger.inspect_d3d_resource(ID3D11Resource::from_abi(*pSrcResource)?)?;
+                    }
+                }
             }
             Self::UpdateSubresource(pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch) => {
                 ig::bulletf!("pDstResource: {:?}", pDstResource);

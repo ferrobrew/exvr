@@ -32,6 +32,8 @@ game_class!(RenderTargetManager, {
         [0x240] far_shadow_map_width: u32,
         [0x244] far_shadow_map_height: u32,
         [0x248] unk_bool_1: bool,
+
+        [0x358] some_rgb8_buffer: &'static Texture,
     }
 });
 

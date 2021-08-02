@@ -7,6 +7,7 @@ mod util;
 mod command_stream;
 pub use command_stream::*;
 
+use crate::debugger::util::dxgi_format_to_str;
 use crate::game::graphics::kernel::{Device, Texture};
 use crate::singleton;
 
@@ -15,11 +16,10 @@ use std::hash::{Hash, Hasher};
 use std::sync::Mutex;
 
 use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
-use util::dxgi_format_to_str;
 
 #[derive(PartialEq, Eq)]
 enum InspectedResource {
-    Texture(d3d::ID3D11Texture2D, d3d::ID3D11ShaderResourceView),
+    Texture(d3d::ID3D11Texture2D, Option<d3d::ID3D11ShaderResourceView>),
 }
 
 impl Hash for InspectedResource {
@@ -70,9 +70,8 @@ impl Debugger {
         self.inspected_textures.insert(texture);
     }
 
-    pub fn inspect_resource(&mut self, resource: d3d::ID3D11Resource) -> anyhow::Result<()> {
+    pub fn inspect_d3d_resource(&mut self, resource: d3d::ID3D11Resource) -> anyhow::Result<()> {
         use windows::Interface;
-        use windows::Abi;
         if let Ok(tex) = resource.cast::<d3d::ID3D11Texture2D>() {
             let device = unsafe { Device::get().device() };
 
@@ -92,18 +91,26 @@ impl Debugger {
                     },
                 },
             };
-            let srv = unsafe { device.CreateShaderResourceView(tex.clone(), &srv_desc)? };
-
-            self.inspected_resources
-                .insert(InspectedResource::Texture(tex, srv));
+            let srv = unsafe { device.CreateShaderResourceView(tex.clone(), &srv_desc).ok() };
+            self.inspect_d3d_texture(tex, srv)?;
         }
 
         Ok(())
     }
 
+    pub fn inspect_d3d_texture(
+        &mut self,
+        tex: d3d::ID3D11Texture2D,
+        srv: Option<d3d::ID3D11ShaderResourceView>,
+    ) -> anyhow::Result<()> {
+        self.inspected_resources
+            .insert(InspectedResource::Texture(tex, srv));
+        Ok(())
+    }
+
     fn draw_inspected_texture_internal(
         tex: d3d::ID3D11Texture2D,
-        srv: d3d::ID3D11ShaderResourceView,
+        srv: Option<d3d::ID3D11ShaderResourceView>,
     ) -> anyhow::Result<bool> {
         use cimgui as ig;
         use windows::Abi;
@@ -133,9 +140,20 @@ impl Debugger {
             None,
         )? {
             let ig::Vec2 { x: width, .. } = ig::get_window_size();
-            let size = ig::Vec2::new(width, width * inverse_aspect_ratio);
-            ig::image(srv.abi(), size, None, None, None, None);
+            if let Some(srv) = srv {
+                let size = ig::Vec2::new(width, width * inverse_aspect_ratio);
+                ig::image(srv.abi(), size, None, None, None, None);
+            } else {
+                ig::text("Unable to bind texture to SRV");
+            }
             ig::bulletf!("Texture pointer: {:X?}", tex.abi());
+            ig::bulletf!("Width: {}", desc.Width);
+            ig::bulletf!("Height: {}", desc.Height);
+            ig::bulletf!("Array Size: {}", desc.ArraySize);
+            ig::bulletf!("Mip Levels: {}", desc.MipLevels);
+            ig::bulletf!("Sample Count: {}", desc.SampleDesc.Count);
+            ig::bulletf!("Format: {}", dxgi_format_to_str(desc.Format));
+            ig::bulletf!("Bind Flags: {}", desc.BindFlags.0);
             ig::end();
         }
 
@@ -144,18 +162,26 @@ impl Debugger {
 
     fn draw_inspected_texture(tex: &Texture) -> anyhow::Result<bool> {
         unsafe {
+            use windows::Abi;
+            let srv = tex.shader_resource_view();
+
             Self::draw_inspected_texture_internal(
                 tex.texture().clone().into(),
-                tex.shader_resource_view().clone().into(),
+                if srv.abi().is_null() {
+                    None
+                } else {
+                    Some(srv.clone().into())
+                },
             )
         }
     }
 
     fn draw_inspected_resource(res: &InspectedResource) -> anyhow::Result<bool> {
         match res {
-            InspectedResource::Texture(tex, srv) => {
-                Self::draw_inspected_texture_internal(tex.clone().into(), srv.clone().into())
-            }
+            InspectedResource::Texture(tex, srv) => Self::draw_inspected_texture_internal(
+                tex.clone().into(),
+                srv.as_ref().map(|x| x.clone().into()),
+            ),
         }
     }
 
@@ -230,15 +256,15 @@ impl Debugger {
 
         if ig::begin_child("xivr_debug_tab_rts_child", None, None, None)? {
             if ig::collapsing_header("Mystery structure", None, None)? {
-                let texture_ptr: &Texture = unsafe {
+                let texture: &Texture = unsafe {
                     let some_struct = *(self.some_global_struct.add(0x60) as *const *const u8);
                     &**(some_struct.add(0x10) as *const *const Texture)
                 };
 
-                if ig::begin_table("xivr_debug_tab_rts_swapchain", 6, None, None, None)? {
+                if ig::begin_table("xivr_debug_tab_rts_mystery", 6, None, None, None)? {
                     setup_columns(["Preview", "Address", "Title", "Width", "Height", "Format"])?;
 
-                    self.draw_render_target("Backbuffer (real?)", texture_ptr)?;
+                    self.draw_render_target("Backbuffer (real?)", texture)?;
 
                     ig::end_table();
                 }
