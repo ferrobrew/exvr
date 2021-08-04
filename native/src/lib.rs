@@ -120,9 +120,6 @@ pub unsafe extern "system" fn xivr_unload() {
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn xivr_draw_ui() {
-    if let Some(xr) = xr::XR::get_mut() {
-        xr.copy_backbuffer_to_buffer(0);
-    }
     if let Some(debugger) = debugger::Debugger::get_mut() {
         handle_error(debugger.draw_ui());
     }
