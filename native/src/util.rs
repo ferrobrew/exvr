@@ -16,6 +16,7 @@ macro_rules! singleton {
             }
 
             pub fn destroy() {
+                if unsafe { INSTANCE.get() }.is_none() { return; }
                 let _ = unsafe { INSTANCE.take().unwrap() };
             }
 
