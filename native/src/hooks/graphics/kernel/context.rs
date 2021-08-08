@@ -1,6 +1,6 @@
 use crate::debugger::Debugger;
 use crate::game::graphics::kernel::ShaderCommand;
-use crate::log;
+use crate::{log, util};
 use crate::module::GAME_MODULE;
 
 use detour::static_detour;
@@ -20,10 +20,14 @@ impl Drop for HookState {
 }
 
 fn context_pushbackcmd_hook(ctx: usize, cmd: &'static ShaderCommand) -> usize {
-    if let Some(debugger) = Debugger::get_mut() {
-        let mut command_stream = debugger.command_stream.lock().unwrap();
-        command_stream.add_command(cmd).unwrap();
-    }
+    util::handle_error_in_block(|| {
+        if let Some(debugger) = Debugger::get_mut() {
+            if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                command_stream.add_command(cmd)?;
+            }
+        }
+        Ok(())
+    });
     Context_PushBackCmd_Detour.call(ctx, cmd)
 }
 

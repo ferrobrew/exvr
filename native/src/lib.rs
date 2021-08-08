@@ -88,21 +88,11 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
     }
 }
 
-fn handle_error(result: anyhow::Result<()>) -> bool {
-    match result {
-        Ok(_) => true,
-        Err(e) => {
-            log!("Top-level uncaught error: {:?} {:?}", e, e.backtrace());
-            false
-        }
-    }
-}
-
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn xivr_load(parameters: *const LoadParameters) -> bool {
     let result = xivr_load_impl(parameters);
-    handle_error(result)
+    util::handle_error(result).is_some()
 }
 
 #[no_mangle]
@@ -120,9 +110,12 @@ pub unsafe extern "system" fn xivr_unload() {
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn xivr_draw_ui() {
-    if let Some(debugger) = debugger::Debugger::get_mut() {
-        handle_error(debugger.draw_ui());
-    }
+    util::handle_error_in_block(|| {
+        if let Some(debugger) = debugger::Debugger::get_mut() {
+            debugger.draw_ui()?;
+        }
+        Ok(())
+    });
 }
 
 #[no_mangle]

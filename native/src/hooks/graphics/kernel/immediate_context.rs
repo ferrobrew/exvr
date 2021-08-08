@@ -1,7 +1,6 @@
 use crate::ct_config::rendering::SHADER_COMMAND_HIJACKED_TYPE;
 use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand};
-use crate::hooks;
-use crate::log;
+use crate::{hooks, log, util};
 use crate::module::GAME_MODULE;
 use detour::{static_detour, RawDetour};
 
@@ -72,38 +71,41 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
     ImmediateContext_ProcessCommands_Detour.initialize(
         std::mem::transmute(process_commands),
         |ic, a2, command_count| {
-            use crate::debugger::Debugger;
-            use crate::xr::XR;
+            util::handle_error_in_block(|| {
+                use crate::debugger::Debugger;
+                use crate::xr::XR;
 
-            #[repr(C)]
-            struct StreamCommand {
-                sort_key: u64,
-                cmd: *mut ShaderCommand,
-            }
+                #[repr(C)]
+                struct StreamCommand {
+                    sort_key: u64,
+                    cmd: *mut ShaderCommand,
+                }
 
-            let p = a2 as *mut StreamCommand;
+                let p = a2 as *mut StreamCommand;
 
-            if let Some(debugger) = Debugger::get_mut() {
-                let mut command_stream = debugger.command_stream.lock().unwrap();
-                if command_stream.is_capturing() {
-                    for i in 0..command_count {
-                        let stream_cmd: &StreamCommand = &*p.add(i as usize);
-                        let cmd: &ShaderCommand = &*stream_cmd.cmd;
+                if let Some(debugger) = Debugger::get_mut() {
+                    if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                        if command_stream.is_capturing() {
+                            for i in 0..command_count {
+                                let stream_cmd: &StreamCommand = &*p.add(i as usize);
+                                let cmd: &ShaderCommand = &*stream_cmd.cmd;
 
-                        command_stream.add_processed_command(cmd).unwrap();
+                                command_stream.add_processed_command(cmd)?;
+                            }
+                        }
                     }
                 }
-            }
 
-            if let Some(xr) = XR::get_mut() {
-                ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
-                xr.copy_backbuffer_to_buffer(0);
-                ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
-                xr.copy_backbuffer_to_buffer(1);
-            } else {
-                ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
-            }
-            0u64
+                if let Some(xr) = XR::get_mut() {
+                    ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
+                    xr.copy_backbuffer_to_buffer(0);
+                    ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
+                    xr.copy_backbuffer_to_buffer(1);
+                } else {
+                    ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
+                }
+                Ok(0u64)
+            })
         },
     )?;
     ImmediateContext_ProcessCommands_Detour.enable()?;

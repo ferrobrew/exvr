@@ -1,6 +1,7 @@
 use crate::game::offsets;
 use crate::log;
 use crate::module::GAME_MODULE;
+use crate::util;
 
 use detour::static_detour;
 use std::mem;
@@ -27,23 +28,25 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
         mem::transmute(module.rel_to_abs_addr(offsets::functions::Game_GameMain_Update as isize));
 
     GameMain_Update_Detour.initialize(gamemain_update, |s| {
-        use crate::debugger::Debugger;
-        use crate::xr::XR;
-        if let Some(debugger) = Debugger::get_mut() {
-            debugger.pre_update().unwrap();
-        }
+        util::handle_error_in_block(|| {
+            use crate::debugger::Debugger;
+            use crate::xr::XR;
+            if let Some(debugger) = Debugger::get_mut() {
+                debugger.pre_update()?;
+            }
 
-        if let Some(xr) = XR::get_mut() {
-            xr.pre_update().unwrap();
-        }
+            if let Some(xr) = XR::get_mut() {
+                xr.pre_update()?;
+            }
 
-        let ret = GameMain_Update_Detour.call(s);
+            let ret = GameMain_Update_Detour.call(s);
 
-        if let Some(xr) = XR::get_mut() {
-            xr.post_update().unwrap();
-        }
+            if let Some(xr) = XR::get_mut() {
+                xr.post_update()?;
+            }
 
-        ret
+            Ok(ret)
+        })
     })?;
     GameMain_Update_Detour.enable()?;
 

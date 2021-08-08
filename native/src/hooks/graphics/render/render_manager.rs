@@ -1,4 +1,6 @@
 use crate::ct_config::*;
+use crate::util;
+
 use detour::static_detour;
 
 static_detour! {
@@ -35,27 +37,26 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
     RenderManager_Render_Detour.initialize(
         mem::transmute(rendermanager_render_addr),
         move |s| {
-            if rendering::DISABLE_GAME {
-                return 0usize;
-            }
+            util::handle_error_in_block(|| {
+                if rendering::DISABLE_GAME {
+                    return Ok(0usize);
+                }
 
-            use crate::debugger::Debugger;
+                use crate::debugger::Debugger;
+                if let Some(debugger) = Debugger::get_mut() {
+                    if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                        command_stream.add_marker("RenderManager::Render pre-call")?;
+                    }
+                }
+                RenderManager_Render_Detour.call(s);
+                if let Some(debugger) = Debugger::get_mut() {
+                    if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                        command_stream.add_marker("RenderManager::Render post-call")?;
+                    }
+                }
 
-            if let Some(debugger) = Debugger::get_mut() {
-                let mut command_stream = debugger.command_stream.lock().unwrap();
-                command_stream
-                    .add_marker("RenderManager::Render pre-call")
-                    .unwrap();
-            }
-            RenderManager_Render_Detour.call(s);
-            if let Some(debugger) = Debugger::get_mut() {
-                let mut command_stream = debugger.command_stream.lock().unwrap();
-                command_stream
-                    .add_marker("RenderManager::Render post-call")
-                    .unwrap();
-            }
-
-            0usize
+                Ok(0usize)
+            })
         },
     )?;
     RenderManager_Render_Detour.enable()?;
@@ -66,26 +67,26 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
     RenderManager_RenderUI_Detour.initialize(
         mem::transmute(rendermanager_renderui_addr),
         move |s, a| {
-            if rendering::DISABLE_UI {
-                return 0usize;
-            }
+            util::handle_error_in_block(|| {
+                if rendering::DISABLE_UI {
+                    return Ok(0usize);
+                }
 
-            use crate::debugger::Debugger;
-            if let Some(debugger) = Debugger::get_mut() {
-                let mut command_stream = debugger.command_stream.lock().unwrap();
-                command_stream
-                    .add_marker("RenderManager::RenderUI pre-call")
-                    .unwrap();
-            }
-            let ret = RenderManager_RenderUI_Detour.call(s, a);
-            if let Some(debugger) = Debugger::get_mut() {
-                let mut command_stream = debugger.command_stream.lock().unwrap();
-                command_stream
-                    .add_marker("RenderManager::RenderUI post-call")
-                    .unwrap();
-            }
+                use crate::debugger::Debugger;
+                if let Some(debugger) = Debugger::get_mut() {
+                    if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                        command_stream.add_marker("RenderManager::RenderUI pre-call")?;
+                    }
+                }
+                let ret = RenderManager_RenderUI_Detour.call(s, a);
+                if let Some(debugger) = Debugger::get_mut() {
+                    if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                        command_stream.add_marker("RenderManager::RenderUI post-call")?;
+                    }
+                }
 
-            ret
+                Ok(ret)
+            })
         },
     )?;
     RenderManager_RenderUI_Detour.enable()?;
