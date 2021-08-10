@@ -31,3 +31,19 @@ macro_rules! log {
         crate::log::Logger::get_mut().unwrap().log(&format!($($arg)*))
     }
 }
+
+#[macro_export]
+macro_rules! dlog {
+    ($e:expr) => {
+        match $e {
+            tmp => {
+                crate::log::Logger::get_mut().unwrap().log(&format!(
+                    "{}: {:?}",
+                    stringify!($e),
+                    tmp
+                ));
+                tmp
+            }
+        }
+    };
+}

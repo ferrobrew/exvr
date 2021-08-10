@@ -37,6 +37,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
 
             if let Some(xr) = XR::get_mut() {
                 xr.pre_update()?;
+                xr.update()?;
             }
 
             let ret = GameMain_Update_Detour.call(s);

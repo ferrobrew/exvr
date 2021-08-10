@@ -1,7 +1,7 @@
 use crate::ct_config::rendering::SHADER_COMMAND_HIJACKED_TYPE;
 use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand};
-use crate::{hooks, log, util};
 use crate::module::GAME_MODULE;
+use crate::{hooks, log, util};
 use detour::{static_detour, RawDetour};
 
 #[no_mangle]
@@ -97,10 +97,12 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 }
 
                 if let Some(xr) = XR::get_mut() {
+                    xr.prepare_buffer()?;
                     ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
-                    xr.copy_backbuffer_to_buffer(0);
+                    xr.copy_backbuffer_to_buffer(0)?;
                     ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
-                    xr.copy_backbuffer_to_buffer(1);
+                    xr.copy_backbuffer_to_buffer(1)?;
+                    xr.copy_buffers_to_swapchain()?;
                 } else {
                     ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
                 }
