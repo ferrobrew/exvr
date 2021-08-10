@@ -1,5 +1,5 @@
-use macros::game_class;
 use crate::game::graphics::kernel::Texture;
+use macros::game_class;
 
 use bindings::Windows::Win32::Graphics::Dxgi::IDXGISwapChain;
 

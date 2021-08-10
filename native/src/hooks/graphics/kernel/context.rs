@@ -1,7 +1,7 @@
 use crate::debugger::Debugger;
 use crate::game::graphics::kernel::ShaderCommand;
-use crate::{log, util};
 use crate::module::GAME_MODULE;
+use crate::{log, util};
 
 use detour::static_detour;
 

@@ -98,6 +98,8 @@ impl Module {
     }
 
     pub fn scan_for_relative_callsite(&self, pattern: &str) -> anyhow::Result<*mut u8> {
+        use std::convert::TryInto;
+
         let p = self.scan(pattern)?;
         let call = unsafe { slice::from_raw_parts(p as *const u8, 5) };
         let offset = i32::from_ne_bytes(call[1..].try_into()?) + 5;

@@ -86,7 +86,10 @@ impl Payload for ShaderPayload {
                         debugger.inspect_texture(unsafe { &*src.0 });
                     }
                 }
-                ShaderPayload::UnknownDraw { render_target, sampled_texture } => {
+                ShaderPayload::UnknownDraw {
+                    render_target,
+                    sampled_texture,
+                } => {
                     ig::text("Render Target: ");
                     ig::same_line(None, Some(0.0));
                     if ig::small_button(&format!("{:X?}", render_target.0))? {
