@@ -124,12 +124,20 @@ namespace XIVR
                 // On unload, we resize the window. This causes the D3D device to be invalidated,
                 // and we don't want to start up OpenXR with an invalid device.
                 // Instead, let's use more jank to delay the startup until we can be sure we're good to go.
-                this.Unload(() => Task.Delay(250).ContinueWith(_ => this.Load()));
+                this.Unload(() => Task.Delay(2500).ContinueWith(_ => this.Load()));
             }
             else
             {
                 this.Load();
             }
+        }
+
+        private void DestroyModule()
+        {
+            if (this.module == IntPtr.Zero) return;
+
+            NativeMethods.FreeLibrary(this.module);
+            this.module = IntPtr.Zero;
         }
 
         private void Unload(Action onUnload)
@@ -142,9 +150,7 @@ namespace XIVR
             // before we free, maybe?
             Task.Delay(1000).ContinueWith(_ =>
             {
-                NativeMethods.FreeLibrary(this.module);
-                this.module = IntPtr.Zero;
-
+                this.DestroyModule();
                 onUnload();
             });
         }
@@ -152,45 +158,57 @@ namespace XIVR
         private void Load()
         {
             if (this.module != IntPtr.Zero) return;
-
-            File.Copy(ModulePath("dll"), ModuleLoadedPath("dll"), true);
-            File.Copy(ModulePath("pdb"), ModuleLoadedPath("pdb"), true);
-
-            this.module = NativeMethods.LoadLibrary(ModuleLoadedPath("dll"));
-            if (this.module == IntPtr.Zero)
+            try
             {
-                PluginLog.Error("Failed to load native module: {0}", Marshal.GetLastWin32Error());
-            }
+                File.Copy(ModulePath("dll"), ModuleLoadedPath("dll"), true);
+                File.Copy(ModulePath("pdb"), ModuleLoadedPath("pdb"), true);
 
-            unsafe
+                this.module = NativeMethods.LoadLibrary(ModuleLoadedPath("dll"));
+                if (this.module == IntPtr.Zero)
+                {
+                    PluginLog.Error("Failed to load native module: {0}", Marshal.GetLastWin32Error());
+                }
+
+                unsafe
+                {
+                    LoadParameters parameters = default;
+                    parameters.logger = this.logDelegate;
+                    parameters.imguiContext = ImGui.GetCurrentContext();
+                    ImGui.GetAllocatorFunctions(
+                        ref parameters.imguiAllocatorAlloc,
+                        ref parameters.imguiAllocatorFree,
+                        ref parameters.imguiAllocatorUserData
+                    );
+
+                    IntPtr ptr = Marshal.AllocHGlobal(Marshal.SizeOf(parameters));
+                    Marshal.StructureToPtr(parameters, ptr, false);
+
+                    try
+                    {
+                        ModuleFunction<LoadType>("xivr_load")(ptr);
+                    }
+                    finally
+                    {
+                        Marshal.FreeHGlobal(ptr);
+                    }
+                }
+            }
+            finally
             {
-                LoadParameters parameters = default;
-                parameters.logger = this.logDelegate;
-                parameters.imguiContext = ImGui.GetCurrentContext();
-                ImGui.GetAllocatorFunctions(
-                    ref parameters.imguiAllocatorAlloc, 
-                    ref parameters.imguiAllocatorFree, 
-                    ref parameters.imguiAllocatorUserData
-                );
-
-                IntPtr ptr = Marshal.AllocHGlobal(Marshal.SizeOf(parameters));
-                Marshal.StructureToPtr(parameters, ptr, false);
-
-                try
-                {
-                    ModuleFunction<LoadType>("xivr_load")(ptr);
-                }
-                finally
-                {
-                    Marshal.FreeHGlobal(ptr);
-                }
+                this.ReloadQueued = false;
             }
-            this.ReloadQueued = false;
         }
 
         private void OnDraw()
         {
-            ModuleFunction<DrawType>("xivr_draw_ui")();
+            try
+            {
+                ModuleFunction<DrawType>("xivr_draw_ui")();
+            }
+            finally
+            {
+                this.Unload(() => {});
+            }
         }
     }
 }
