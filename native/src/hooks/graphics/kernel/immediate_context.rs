@@ -97,12 +97,12 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 }
 
                 if let Some(xr) = XR::get_mut() {
-                    xr.prepare_buffer()?;
+                    xr.pre_render()?;
                     ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
                     xr.copy_backbuffer_to_buffer(0)?;
                     ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
                     xr.copy_backbuffer_to_buffer(1)?;
-                    xr.copy_buffers_to_swapchain()?;
+                    xr.post_render()?;
                 } else {
                     ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
                 }
