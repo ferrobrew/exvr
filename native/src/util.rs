@@ -37,7 +37,7 @@ pub fn handle_error<T>(result: anyhow::Result<T>) -> Option<T> {
     match result {
         Ok(val) => Some(val),
         Err(e) => {
-            log!("Top-level uncaught error: {:?} {:?}", e, e.backtrace());
+            log!("Top-level uncaught error: {:?}", e);
             None
         }
     }

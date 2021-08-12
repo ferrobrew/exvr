@@ -13,7 +13,7 @@ crate-type = ["cdylib"]
 anyhow = "1.0"
 bindings = { path = "bindings" }
 cimgui = { path = "cimgui" }
-windows = "0.17.2" # This should match the version you used in the bindings crate
+windows = "0.18.0"
 patternscan = "1.2.0"
 detour = { git = "https://github.com/darfink/detour-rs" }
 once_cell = "1.8.0"

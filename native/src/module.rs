@@ -17,7 +17,7 @@ use bindings::Windows::Win32::System::Threading::GetCurrentProcess;
 #[derive(Debug, Clone)]
 pub struct Module {
     module: HINSTANCE,
-    pub path: Option<String>,
+    path: Option<String>,
     pub base: *mut u8,
     entry_point: *mut u8,
     image_size: u32,
@@ -118,8 +118,12 @@ impl Module {
         )
     }
 
+    pub fn path(&self) -> Option<&Path> {
+        self.path.as_ref().map(|x| Path::new(x))
+    }
+
     pub fn filename(&self) -> Option<String> {
-        Path::new(self.path.as_ref()?)
+        self.path()?
             .file_name()
             .and_then(|s| s.to_str())
             .map(|s| s.to_string())

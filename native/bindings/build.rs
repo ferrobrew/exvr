@@ -9,5 +9,6 @@ fn main() {
         Windows::Win32::Graphics::Dxgi::*,
         Windows::Win32::Graphics::Hlsl::*,
         Windows::Win32::UI::WindowsAndMessaging::*,
+        Windows::Win32::System::Diagnostics::Debug::*,
     };
 }
