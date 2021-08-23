@@ -31,6 +31,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
         util::handle_error_in_block(|| {
             use crate::debugger::Debugger;
             use crate::xr::XR;
+
             if let Some(debugger) = Debugger::get_mut() {
                 debugger.pre_update()?;
             }

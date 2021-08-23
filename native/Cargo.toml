@@ -23,6 +23,8 @@ c_str_macro = "1.0.3"
 backtrace = "0.3.60"
 strum = "0.21"
 strum_macros = "0.21"
+static_assertions = "1.1.0"
+glam = "0.17.3"
 
 [build-dependencies]
 yaml-rust = "0.4"

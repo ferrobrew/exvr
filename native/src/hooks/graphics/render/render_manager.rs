@@ -45,13 +45,13 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 use crate::debugger::Debugger;
                 if let Some(debugger) = Debugger::get_mut() {
                     if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                        command_stream.add_marker("RenderManager::Render pre-call")?;
+                        command_stream.add_marker("RenderManager::Render pre-call".to_owned())?;
                     }
                 }
                 RenderManager_Render_Detour.call(s);
                 if let Some(debugger) = Debugger::get_mut() {
                     if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                        command_stream.add_marker("RenderManager::Render post-call")?;
+                        command_stream.add_marker("RenderManager::Render post-call".to_owned())?;
                     }
                 }
 
@@ -75,13 +75,13 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 use crate::debugger::Debugger;
                 if let Some(debugger) = Debugger::get_mut() {
                     if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                        command_stream.add_marker("RenderManager::RenderUI pre-call")?;
+                        command_stream.add_marker("RenderManager::RenderUI pre-call".to_owned())?;
                     }
                 }
                 let ret = RenderManager_RenderUI_Detour.call(s, a);
                 if let Some(debugger) = Debugger::get_mut() {
                     if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                        command_stream.add_marker("RenderManager::RenderUI post-call")?;
+                        command_stream.add_marker("RenderManager::RenderUI post-call".to_owned())?;
                     }
                 }
 
