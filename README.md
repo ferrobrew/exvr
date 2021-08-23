@@ -32,6 +32,7 @@ Bringing today's Final Fantasy XIV to tomorrow's virtual reality.
     - Basic voice controls
     - Drop to stereo cinema rendering for cutscenes
         - Optional mode to render from your character's perspective if you're in the cutscene?
+    - DecaMove support - independent movement of your waist from your aim
 
 - HUD rendering
     - Capture all HUD output, including Dalamud, and render to a curved cylinder
@@ -48,12 +49,14 @@ Bringing today's Final Fantasy XIV to tomorrow's virtual reality.
     - Figure out how to remap skeletons between characters of different sizes
     - Apply IK data to local character
     - Consider using handtracking data if available?
+        ^- can we do this as our primary option? ballsy, but building around it would create some very interesting challenges...
 
 - (Character IK) Multiplayer
     - Enet probably?
     - Set up "servers" for each realm
         - Could be virtual servers
     - Find out how the game authenticates and use its login token to log into our server
+        - Perhaps Oauth? Is that something we can get in on without accepting a user credential or equivalent?
     - send IK data to the server
     - broadcast IK data to everyone else
     - apply IK data locally
@@ -61,5 +64,6 @@ Bringing today's Final Fantasy XIV to tomorrow's virtual reality.
 - (Multiplayer) Voice chat
     - Figure out how existing voice chat protocols work
     - Localisation of voice chat to position and orientation
+    - Real-time voice conversion. Should be possible, but will need to consult with domain experts to know more.
 
 - (Stereo rendering, Headset rendering, HUD rendering, Multiplayer) Public announcement
