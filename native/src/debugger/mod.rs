@@ -1,6 +1,7 @@
 pub mod d3d_payload;
 pub mod payload;
 pub mod shader_payload;
+pub mod message_payload;
 
 mod util;
 

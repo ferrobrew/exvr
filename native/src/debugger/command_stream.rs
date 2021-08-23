@@ -3,6 +3,7 @@ use crate::ct_config;
 use crate::debugger::d3d_payload::*;
 use crate::debugger::payload::*;
 use crate::debugger::shader_payload::*;
+use crate::debugger::message_payload::*;
 
 use crate::game::graphics::kernel;
 use crate::game::graphics::kernel::ShaderCommandType;
@@ -21,6 +22,15 @@ struct Stream<CommandType> {
     selected_index: Option<usize>,
 }
 
+impl<CommandType> From<Vec<CommandType>> for Stream<CommandType> {
+    fn from(val: Vec<CommandType>) -> Self {
+        Stream {
+            stream: val,
+            selected_index: None,
+        }
+    }
+}
+
 enum CommandStreamState {
     Uncaptured,
     WantToCapture,
@@ -29,12 +39,14 @@ enum CommandStreamState {
         shader_stream: Vec<ShaderCommand>,
         processed_shader_stream: Vec<ShaderCommand>,
         d3d_stream: Vec<D3DCommand>,
+        message_stream: Vec<MessageCommand>,
         frames: u32,
     },
     Captured {
         shader_streams: HashMap<u32, Stream<ShaderCommand>>,
         processed_shader_stream: Stream<ShaderCommand>,
         d3d_stream: Stream<D3DCommand>,
+        message_stream: Stream<MessageCommand>,
     },
 }
 struct CommandStreamUI {
@@ -187,6 +199,7 @@ impl CommandStreamUI {
             shader_streams,
             processed_shader_stream,
             d3d_stream,
+            message_stream,
         } = state
         {
             if ig::begin_tab_bar("xivr_debugger_command_stream_tabs", None)? {
@@ -235,6 +248,7 @@ impl CommandStreamUI {
                 if ct_config::rendering::CAPTURE_D3D_COMMANDS {
                     self.draw_stream("D3D", d3d_stream, false)?;
                 }
+                self.draw_stream("Messages", message_stream, false)?;
                 ig::end_tab_bar();
             }
         }
@@ -292,6 +306,7 @@ impl CommandStream {
             start_instant: Instant::now(),
             shader_stream: vec![],
             processed_shader_stream: vec![],
+            message_stream: vec![],
             d3d_stream: vec![],
             frames: 0,
         };
@@ -304,6 +319,7 @@ impl CommandStream {
             shader_stream,
             processed_shader_stream,
             d3d_stream,
+            message_stream,
             ..
         } = &self.state
         {
@@ -319,16 +335,12 @@ impl CommandStream {
                     .push(cmd.clone());
             }
 
+            // It would be nice to move the Vecs here, but I cbf figuring it out
             self.state = CommandStreamState::Captured {
                 shader_streams,
-                processed_shader_stream: Stream {
-                    stream: processed_shader_stream.clone(),
-                    selected_index: None,
-                },
-                d3d_stream: Stream {
-                    stream: d3d_stream.clone(),
-                    selected_index: None,
-                },
+                processed_shader_stream: processed_shader_stream.clone().into(),
+                d3d_stream: d3d_stream.clone().into(),
+                message_stream: message_stream.clone().into(),
             };
         }
         Ok(())
@@ -418,8 +430,8 @@ impl CommandStream {
         )
     }
 
-    pub fn add_marker(&mut self, msg: &str) -> anyhow::Result<()> {
-        self.push_back_command(None, ShaderPayload::XIVRMarker(msg.to_string()))
+    pub fn add_marker(&mut self, msg: String) -> anyhow::Result<()> {
+        self.push_back_command(None, ShaderPayload::XIVRMarker(msg))
     }
 
     pub fn add_processed_command(
@@ -448,6 +460,17 @@ impl CommandStream {
                 start_instant,
                 ..
             } => Self::push_back_command_to_stream(d3d_stream, None, start_instant, payload),
+            _ => Ok(()),
+        }
+    }
+
+    pub fn add_message(&mut self, msg: String, submsgs: Vec<String>) -> anyhow::Result<()> {
+        match &mut self.state {
+            CommandStreamState::Capturing {
+                message_stream,
+                start_instant,
+                ..
+            } => Self::push_back_command_to_stream(message_stream, None, start_instant, (msg, submsgs)),
             _ => Ok(()),
         }
     }
