@@ -1,14 +1,13 @@
 extern crate bindgen;
 
 use std::env;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 use cc::windows_registry as wr;
 
-fn main() {
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+fn generate_lib_file(out_path: &Path) {
     let target = env::var("TARGET").unwrap();
-    let cimgui_dll_path = "../../external/ImGui.NET/deps/cimgui/win-x64/cimgui.dll";
+    let cimgui_dll_path = "../../external/ImGui.NET/src/ImGui.NET-472/costura64/cimgui.dll";
 
     let mut dumpbin_exe = wr::find(&target, "dumpbin.exe").unwrap();
     let mut lib_exe = wr::find(&target, "lib.exe").unwrap();
@@ -42,34 +41,30 @@ fn main() {
             .unwrap();
         env::set_current_dir(&dir).unwrap();
     }
-    // Tell cargo to tell rustc to link the compiled lib.
     println!("cargo:rustc-link-search={}", out_path.to_string_lossy());
     println!("cargo:rustc-link-lib=cimgui");
+}
 
-    // Tell cargo to invalidate the built crate whenever the wrapper changes
+fn generate_bindings(out_path: &Path) {
     println!("cargo:rerun-if-changed=../../external/cimgui/cimgui.h");
 
-    // The bindgen::Builder is the main entry point
-    // to bindgen, and lets you build up options for
-    // the resulting bindings.
     let bindings = bindgen::Builder::default()
-        // The input header we would like to generate
-        // bindings for.
         .header("../../external/cimgui/cimgui.h")
-        // Tell cargo to invalidate the built crate whenever any of the
-        // included header files changed.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .clang_arg("--language=c++")
         .clang_arg("-DCIMGUI_DEFINE_ENUMS_AND_STRUCTS")
-        // .clang_arg("-DCIMGUI_NO_EXPORT")
         .prepend_enum_name(false)
-        // Finish the builder and generate the bindings.
         .generate()
-        // Unwrap the Result and panic on failure.
         .expect("Unable to generate bindings");
 
-    // Write the bindings to the $OUT_DIR/bindings.rs file.
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
+}
+
+fn main() {
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+
+    generate_lib_file(&out_path);
+    generate_bindings(&out_path);
 }

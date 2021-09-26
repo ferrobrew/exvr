@@ -4,11 +4,11 @@ use anyhow::{Error, Result};
 use std::fs;
 use std::path::Path;
 
-fn generate_offsets_file() -> anyhow::Result<String> {
+fn generate_offsets_file(out_dir: &Path) -> anyhow::Result<()> {
     use quote::{format_ident, quote};
     use yaml_rust::YamlLoader;
 
-    const RELATIVE_PATH: &'static str = "../external/FFXIVClientStructs/ida/data.yml";
+    const RELATIVE_PATH: &'static str = "external/FFXIVClientStructs/ida/data.yml";
     println!("cargo:rerun-if-changed={}", RELATIVE_PATH);
 
     let data = fs::read_to_string(RELATIVE_PATH)?;
@@ -57,7 +57,8 @@ fn generate_offsets_file() -> anyhow::Result<String> {
         }
     };
 
-    Ok(tokens.to_string())
+    let output = tokens.to_string();
+    Ok(fs::write(out_dir.join("offsets.rs"), output)?)
 }
 
 fn compile_shaders(out_dir: &Path) -> anyhow::Result<()> {
@@ -66,7 +67,7 @@ fn compile_shaders(out_dir: &Path) -> anyhow::Result<()> {
     use std::path::PathBuf;
     use std::process::Command;
 
-    const RELATIVE_PATH: &'static str = "shaders/";
+    const RELATIVE_PATH: &'static str = "assets/shaders/";
     println!("cargo:rerun-if-changed={}", RELATIVE_PATH);
 
     for path in fs::read_dir(RELATIVE_PATH)?.filter_map(|res| res.map(|e| e.path()).ok()) {
@@ -124,7 +125,7 @@ fn main() -> Result<()> {
     let out_dir = std::env::var("OUT_DIR")?;
     let out_dir = Path::new(&out_dir);
 
-    fs::write(out_dir.join("offsets.rs"), generate_offsets_file()?)?;
+    generate_offsets_file(out_dir)?;
     compile_shaders(out_dir)?;
 
     Ok(())

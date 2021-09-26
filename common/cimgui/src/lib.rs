@@ -484,11 +484,11 @@ pub enum ColorEditFlags {
     PickerHueWheel = sys::ImGuiColorEditFlags_PickerHueWheel,
     InputRGB = sys::ImGuiColorEditFlags_InputRGB,
     InputHSV = sys::ImGuiColorEditFlags_InputHSV,
-    OptionsDefault = sys::ImGuiColorEditFlags__OptionsDefault,
-    DisplayMask = sys::ImGuiColorEditFlags__DisplayMask,
-    DataTypeMask = sys::ImGuiColorEditFlags__DataTypeMask,
-    PickerMask = sys::ImGuiColorEditFlags__PickerMask,
-    InputMask = sys::ImGuiColorEditFlags__InputMask,
+    DefaultOptions_ = sys::ImGuiColorEditFlags_DefaultOptions_,
+    DisplayMask = sys::ImGuiColorEditFlags_DisplayMask_,
+    DataTypeMask = sys::ImGuiColorEditFlags_DataTypeMask_,
+    PickerMask = sys::ImGuiColorEditFlags_PickerMask_,
+    InputMask = sys::ImGuiColorEditFlags_InputMask_,
 }
 
 #[repr(i32)]
@@ -578,11 +578,10 @@ pub enum NavInput {
     FocusNext = sys::ImGuiNavInput_FocusNext,
     TweakSlow = sys::ImGuiNavInput_TweakSlow,
     TweakFast = sys::ImGuiNavInput_TweakFast,
-    KeyMenu_ = sys::ImGuiNavInput_KeyMenu_,
-    KeyLeft_ = sys::ImGuiNavInput_KeyLeft_,
-    KeyRight_ = sys::ImGuiNavInput_KeyRight_,
-    KeyUp_ = sys::ImGuiNavInput_KeyUp_,
-    KeyDown_ = sys::ImGuiNavInput_KeyDown_,
+    KeyLeft = sys::ImGuiNavInput_KeyLeft_,
+    KeyRight = sys::ImGuiNavInput_KeyRight_,
+    KeyUp = sys::ImGuiNavInput_KeyUp_,
+    KeyDown = sys::ImGuiNavInput_KeyDown_,
     COUNT = sys::ImGuiNavInput_COUNT,
 }
 
@@ -715,7 +714,7 @@ pub fn begin_child(
 ) -> Result<bool, NulError> {
     let str_id = CString::new(str_id)?;
     unsafe {
-        Ok(sys::igBeginChildStr(
+        Ok(sys::igBeginChild_Str(
             str_id.as_ptr(),
             size.unwrap_or(Vec2::ZERO),
             border.unwrap_or(false),
@@ -759,7 +758,7 @@ pub fn collapsing_header(
 ) -> Result<bool, NulError> {
     let label = CString::new(label)?;
     Ok(unsafe {
-        sys::igCollapsingHeaderBoolPtr(
+        sys::igCollapsingHeader_BoolPtr(
             label.as_ptr(),
             bool_opt_to_ptr(visible),
             flags.unwrap_or(TreeNodeFlags::None) as i32,
@@ -775,7 +774,7 @@ pub fn selectable(
 ) -> Result<bool, NulError> {
     let label = CString::new(label)?;
     Ok(unsafe {
-        sys::igSelectableBool(
+        sys::igSelectable_Bool(
             label.as_ptr(),
             selected.unwrap_or(false),
             flags.unwrap_or(SelectableFlags::None) as i32,
@@ -926,7 +925,7 @@ pub fn begin_tab_item(
 }
 
 pub fn push_style_color(idx: Col, col: Color) {
-    unsafe { sys::igPushStyleColorVec4(idx as i32, col.into()) }
+    unsafe { sys::igPushStyleColor_Vec4(idx as i32, col.into()) }
 }
 
 pub fn pop_style_color(count: i32) {

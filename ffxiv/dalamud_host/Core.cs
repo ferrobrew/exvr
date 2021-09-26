@@ -1,4 +1,5 @@
 ﻿using Dalamud.Plugin;
+using Dalamud.Logging;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -39,7 +40,6 @@ namespace XIVR
         public string Name => "XIVR Core";
 
         private DalamudPluginInterface pi;
-
         private FileSystemWatcher watcher;
 
         // When loaded by LivePluginLoader, the executing assembly will be wrong.
@@ -50,7 +50,7 @@ namespace XIVR
 
         private bool ReloadQueued = false;
 
-        private string DirPath { get => Path.GetFullPath(Path.GetDirectoryName(assemblyLocation)); }
+        private string DirPath { get => Path.GetFullPath(Path.GetDirectoryName(assemblyLocation)!); }
         private string ModuleName(string ext) => "xivr_native" + "." + ext;
         private string ModulePath(string ext) => Path.Combine(DirPath, ModuleName(ext));
         private string ModuleLoadedName(string ext) => "xivr_native_loaded" + "." + ext;
@@ -61,7 +61,7 @@ namespace XIVR
 
         // TODO: Use a state machine to handle loading/unloading/waiting instead of the delays
 
-        public void Initialize(DalamudPluginInterface pluginInterface)
+        public Core(DalamudPluginInterface pluginInterface)
         {
             this.pi = pluginInterface;
 
@@ -78,7 +78,7 @@ namespace XIVR
             this.watcher.Changed += this.OnChanged;
             this.watcher.EnableRaisingEvents = true;
 
-            this.pi.UiBuilder.OnBuildUi += this.OnDraw;
+            this.pi.UiBuilder.Draw += this.OnDraw;
 
             Reload();
         }
@@ -166,7 +166,7 @@ namespace XIVR
                 this.module = NativeMethods.LoadLibrary(ModuleLoadedPath("dll"));
                 if (this.module == IntPtr.Zero)
                 {
-                    PluginLog.Error("Failed to load native module: {0}", Marshal.GetLastWin32Error());
+                    throw new Exception(string.Format("Failed to load native module: {0}", Marshal.GetLastWin32Error()));
                 }
 
                 unsafe
@@ -201,14 +201,8 @@ namespace XIVR
 
         private void OnDraw()
         {
-            try
-            {
-                ModuleFunction<DrawType>("xivr_draw_ui")();
-            }
-            finally
-            {
-                this.Unload(() => {});
-            }
+            if (this.module == IntPtr.Zero) return;
+            ModuleFunction<DrawType>("xivr_draw_ui")();
         }
     }
 }
