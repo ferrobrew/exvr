@@ -56,48 +56,22 @@ namespace XIVR
         private string ModuleLoadedName(string ext) => "xivr_native_loaded" + "." + ext;
         private string ModuleLoadedPath(string ext) => Path.Combine(DirPath, ModuleLoadedName(ext));
         private IntPtr module = IntPtr.Zero;
+        private bool visible = true;
 
         private LogDelegate logDelegate = (s) => PluginLog.Information("native: {0:l}", s);
-
-        // TODO: Use a state machine to handle loading/unloading/waiting instead of the delays
 
         public Core(DalamudPluginInterface pluginInterface)
         {
             this.pi = pluginInterface;
 
-            this.watcher = new FileSystemWatcher(this.DirPath);
-            watcher.NotifyFilter = NotifyFilters.Attributes
-                                 | NotifyFilters.CreationTime
-                                 | NotifyFilters.DirectoryName
-                                 | NotifyFilters.FileName
-                                 | NotifyFilters.LastAccess
-                                 | NotifyFilters.LastWrite
-                                 | NotifyFilters.Security
-                                 | NotifyFilters.Size;
-            this.watcher.Filter = ModuleName("dll");
-            this.watcher.Changed += this.OnChanged;
-            this.watcher.EnableRaisingEvents = true;
-
             this.pi.UiBuilder.Draw += this.OnDraw;
-
-            Reload();
         }
 
         public void Dispose()
         {
             Unload(() => { });
 
-            this.watcher.Dispose();
             this.pi.Dispose();
-        }
-
-        private void OnChanged(object sender, FileSystemEventArgs e)
-        {
-            if (this.ReloadQueued) return;
-
-            // Debounce the reload (the file gets changed several times during compilation)
-            this.ReloadQueued = true;
-            Task.Delay(250).ContinueWith(_ => this.Reload());
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
@@ -146,13 +120,8 @@ namespace XIVR
 
             ModuleFunction<UnloadType>("xivr_unload")();
 
-            // todo: less jank. some kind of semaphore system to make sure our hooks are properly unloaded
-            // before we free, maybe?
-            Task.Delay(1000).ContinueWith(_ =>
-            {
-                this.DestroyModule();
-                onUnload();
-            });
+            this.DestroyModule();
+            onUnload();
         }
 
         private void Load()
@@ -201,6 +170,28 @@ namespace XIVR
 
         private void OnDraw()
         {
+            if (ImGui.Begin("XIVR Loader", ref this.visible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+            {
+                if (ImGui.Button("Reload"))
+                {
+                    Reload();
+                }
+                if (this.module == IntPtr.Zero)
+                {
+                    if (ImGui.Button("Load"))
+                    {
+                        Load();
+                    }
+                }
+                else
+                {
+                    if (ImGui.Button("Unload"))
+                    {
+                        Unload(() => { });
+                    }
+                }
+            }
+
             if (this.module == IntPtr.Zero) return;
             ModuleFunction<DrawType>("xivr_draw_ui")();
         }
