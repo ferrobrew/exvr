@@ -10,18 +10,6 @@ using ImGuiNET;
 
 namespace XIVR
 {
-    static class NativeMethods
-    {
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr LoadLibrary(string dllToLoad);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool FreeLibrary(IntPtr hModule);
-    }
-
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     public delegate void LogDelegate(string s);
 
@@ -40,15 +28,12 @@ namespace XIVR
         public string Name => "XIVR Core";
 
         private DalamudPluginInterface pi;
-        private FileSystemWatcher watcher;
 
         // When loaded by LivePluginLoader, the executing assembly will be wrong.
         // Supplying this property allows LivePluginLoader to supply the correct location, so that
         // you have full compatibility when loaded normally and through LPL.
         public string AssemblyLocation { get => assemblyLocation; set => assemblyLocation = value; }
         private string assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
-
-        private bool ReloadQueued = false;
 
         private string DirPath { get => Path.GetFullPath(Path.GetDirectoryName(assemblyLocation)!); }
         private string ModuleName(string ext) => "xivr_native" + "." + ext;
@@ -85,7 +70,7 @@ namespace XIVR
 
         private TDelegate ModuleFunction<TDelegate>(string name)
         {
-            var functionPointer = NativeMethods.GetProcAddress(this.module, name);
+            var functionPointer = NativeLibrary.GetExport(this.module, name);
             return Marshal.GetDelegateForFunctionPointer<TDelegate>(functionPointer);
         }
 
@@ -110,8 +95,10 @@ namespace XIVR
         {
             if (this.module == IntPtr.Zero) return;
 
-            NativeMethods.FreeLibrary(this.module);
+            NativeLibrary.Free(this.module);
             this.module = IntPtr.Zero;
+
+            PluginLog.Information("Destroyed module");
         }
 
         private void Unload(Action onUnload)
@@ -127,44 +114,38 @@ namespace XIVR
         private void Load()
         {
             if (this.module != IntPtr.Zero) return;
-            try
+
+            File.Copy(ModulePath("dll"), ModuleLoadedPath("dll"), true);
+            File.Copy(ModulePath("pdb"), ModuleLoadedPath("pdb"), true);
+
+            this.module = NativeLibrary.Load(ModuleLoadedPath("dll"));
+            if (this.module == IntPtr.Zero)
             {
-                File.Copy(ModulePath("dll"), ModuleLoadedPath("dll"), true);
-                File.Copy(ModulePath("pdb"), ModuleLoadedPath("pdb"), true);
-
-                this.module = NativeMethods.LoadLibrary(ModuleLoadedPath("dll"));
-                if (this.module == IntPtr.Zero)
-                {
-                    throw new Exception(string.Format("Failed to load native module: {0}", Marshal.GetLastWin32Error()));
-                }
-
-                unsafe
-                {
-                    LoadParameters parameters = default;
-                    parameters.logger = this.logDelegate;
-                    parameters.imguiContext = ImGui.GetCurrentContext();
-                    ImGui.GetAllocatorFunctions(
-                        ref parameters.imguiAllocatorAlloc,
-                        ref parameters.imguiAllocatorFree,
-                        ref parameters.imguiAllocatorUserData
-                    );
-
-                    IntPtr ptr = Marshal.AllocHGlobal(Marshal.SizeOf(parameters));
-                    Marshal.StructureToPtr(parameters, ptr, false);
-
-                    try
-                    {
-                        ModuleFunction<LoadType>("xivr_load")(ptr);
-                    }
-                    finally
-                    {
-                        Marshal.FreeHGlobal(ptr);
-                    }
-                }
+                throw new Exception(string.Format("Failed to load native module: {0}", Marshal.GetLastWin32Error()));
             }
-            finally
+
+            unsafe
             {
-                this.ReloadQueued = false;
+                LoadParameters parameters = default;
+                parameters.logger = this.logDelegate;
+                parameters.imguiContext = ImGui.GetCurrentContext();
+                ImGui.GetAllocatorFunctions(
+                    ref parameters.imguiAllocatorAlloc,
+                    ref parameters.imguiAllocatorFree,
+                    ref parameters.imguiAllocatorUserData
+                );
+
+                IntPtr ptr = Marshal.AllocHGlobal(Marshal.SizeOf(parameters));
+                Marshal.StructureToPtr(parameters, ptr, false);
+
+                try
+                {
+                    ModuleFunction<LoadType>("xivr_load")(ptr);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(ptr);
+                }
             }
         }
 
