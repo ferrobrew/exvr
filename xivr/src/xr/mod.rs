@@ -36,11 +36,11 @@ struct BlitParameters {
     _pad: u64,
 }
 impl BlitParameters {
-    const fn new(_view_index: u32) -> BlitParameters {
+    const fn new(view_index: u32) -> BlitParameters {
         // We're only blitting one eye to one image
         BlitParameters {
             total_view_count: 1,
-            view_index: 0,
+            view_index,
             _pad: 0,
         }
     }
@@ -151,15 +151,21 @@ impl Swapchain {
         })
     }
 
-    fn copy_from_buffer(&mut self) -> anyhow::Result<()> {
+    fn acquire_image(&mut self) -> anyhow::Result<()> {
         self.swapchain.acquire_image()?;
-        self.swapchain.wait_image(openxr::Duration::INFINITE)?;
+        Ok(self.swapchain.wait_image(openxr::Duration::INFINITE)?)
+    }
+
+    fn release_image(&mut self) -> anyhow::Result<()> {
+        Ok(self.swapchain.release_image()?)
+    }
+
+    fn copy_from_buffer(&mut self) -> anyhow::Result<()> {
         unsafe {
             let device_context = kernel::Device::get().device_context_ptr();
-
             (*device_context).CopyResource(self.swapchain_image.clone(), self.buffer_image.clone());
         }
-        Ok(self.swapchain.release_image()?)
+        Ok(())
     }
 
     fn render_button(&self, size: cimgui::Vec2, color: cimgui::Color) -> anyhow::Result<()> {
@@ -639,17 +645,21 @@ impl XR {
     }
 
     pub fn post_update(&mut self) -> anyhow::Result<()> {
-        if self.session_running && ct_config::xr::RUN_XR_PER_FRAME {
-            self.frame_state = Some(self.frame_waiter.wait()?);
-        }
-
         Ok(())
     }
 
     pub fn pre_render(&mut self) -> anyhow::Result<()> {
-        if self.session_running && ct_config::xr::RUN_XR_PER_FRAME {
-            self.frame_stream.begin()?;
+        if !(self.session_running && ct_config::xr::RUN_XR_PER_FRAME) {
+            return Ok(());
         }
+
+        self.frame_state = Some(self.frame_waiter.wait()?);
+
+        for swapchain in &mut self.swapchains {
+            swapchain.acquire_image()?;
+        }
+
+        self.frame_stream.begin()?;
 
         Ok(())
     }
@@ -667,6 +677,10 @@ impl XR {
 
         for swapchain in &mut self.swapchains {
             swapchain.copy_from_buffer()?;
+        }
+
+        for swapchain in &mut self.swapchains {
+            swapchain.release_image()?;
         }
 
         let views = self

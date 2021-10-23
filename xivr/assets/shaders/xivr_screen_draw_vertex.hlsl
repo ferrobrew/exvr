@@ -22,10 +22,6 @@ PixelInputType main(VertexInputType input)
     PixelInputType output;
     output.position = input.position;
     output.uv = input.uv;
-
-    float view_size = 1.0/total_view_count;
-    float rescaled_x = (output.position.x + 1.0)/2.0;
-    output.position.x = ((view_index + rescaled_x) * view_size) * 2.0 - 1.0;
     output.view_index = view_index;
 
     return output;
