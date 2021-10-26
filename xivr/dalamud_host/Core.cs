@@ -59,19 +59,9 @@ namespace XIVR
             this.pi.Dispose();
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        delegate bool LoadType(IntPtr loadParams);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        delegate void UnloadType();
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        delegate void DrawType();
-
-        private TDelegate ModuleFunction<TDelegate>(string name)
+        private unsafe IntPtr ModuleFunction(string name)
         {
-            var functionPointer = NativeLibrary.GetExport(this.module, name);
-            return Marshal.GetDelegateForFunctionPointer<TDelegate>(functionPointer);
+            return NativeLibrary.GetExport(this.module, name);
         }
 
         private void Reload()
@@ -105,7 +95,10 @@ namespace XIVR
         {
             if (this.module == IntPtr.Zero) return;
 
-            ModuleFunction<UnloadType>("xivr_unload")();
+            unsafe
+            {
+                ((delegate* unmanaged<void>)ModuleFunction("xivr_unload"))();
+            }
 
             this.DestroyModule();
             onUnload();
@@ -140,7 +133,7 @@ namespace XIVR
 
                 try
                 {
-                    ModuleFunction<LoadType>("xivr_load")(ptr);
+                    ((delegate* unmanaged<IntPtr, bool>)ModuleFunction("xivr_load"))(ptr);
                 }
                 finally
                 {
@@ -174,7 +167,10 @@ namespace XIVR
             }
 
             if (this.module == IntPtr.Zero) return;
-            ModuleFunction<DrawType>("xivr_draw_ui")();
+            unsafe
+            {
+                ((delegate* unmanaged<void>)ModuleFunction("xivr_draw_ui"))();
+            }
         }
     }
 }
