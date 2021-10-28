@@ -20,6 +20,7 @@ use module::{Module, GAME_MODULE};
 
 use anyhow::{Error, Result};
 use bindings::Windows::Win32::Foundation::HINSTANCE;
+use bindings::Windows::Win32::System::LibraryLoader::FreeLibraryAndExitThread;
 use cimgui as ig;
 use std::os::raw::c_void;
 
@@ -162,6 +163,10 @@ pub unsafe extern "system" fn xivr_unload() {
     hooks::Patcher::destroy();
 
     Logger::destroy();
+
+    std::thread::spawn(|| {
+        FreeLibraryAndExitThread(THIS_MODULE, 0);
+    });
 }
 
 #[no_mangle]

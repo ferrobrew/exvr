@@ -81,16 +81,6 @@ namespace XIVR
             }
         }
 
-        private void DestroyModule()
-        {
-            if (this.module == IntPtr.Zero) return;
-
-            NativeLibrary.Free(this.module);
-            this.module = IntPtr.Zero;
-
-            PluginLog.Information("Destroyed module");
-        }
-
         private void Unload(Action onUnload)
         {
             if (this.module == IntPtr.Zero) return;
@@ -99,8 +89,10 @@ namespace XIVR
             {
                 ((delegate* unmanaged<void>)ModuleFunction("xivr_unload"))();
             }
+            NativeLibrary.Free(this.module);
+            this.module = IntPtr.Zero;
 
-            this.DestroyModule();
+            PluginLog.Information("Destroyed module");
             onUnload();
         }
 
