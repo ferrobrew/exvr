@@ -46,6 +46,18 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 xr.post_update()?;
             }
 
+            // yolo
+            if !cfg!(dalamud) {
+                use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_F7};
+                use windows::Win32::UI::WindowsAndMessaging::MessageBoxA;
+                use windows::Win32::Foundation::HWND;
+
+                if (GetAsyncKeyState(VK_F7.0.into()) & 0x01) != 0 {
+                    MessageBoxA(HWND::default(), "unloading", "unloading", Default::default());
+                    crate::xivr_unload();
+                }
+            }
+
             Ok(ret)
         })
     })?;

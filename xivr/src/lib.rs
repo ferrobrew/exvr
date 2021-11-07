@@ -87,7 +87,9 @@ unsafe fn patch_symbol_search_path() -> Result<()> {
 }
 
 unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
-    Logger::create((*parameters).logger)?;
+    if !parameters.is_null() {
+        Logger::create((*parameters).logger)?;
+    }
 
     std::panic::set_hook(Box::new(|info| {
         match (info.payload().downcast_ref::<&str>(), info.location()) {
@@ -101,7 +103,6 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
     }));
 
     let r = std::panic::catch_unwind(|| {
-        let parameters: &LoadParameters = unsafe { &*parameters };
         let mut modules = Module::get_all();
         let ffxiv_module = modules
             .iter_mut()
@@ -122,13 +123,16 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
         HookState::create()?;
         xr::XR::create()?;
 
-        unsafe {
-            ig::set_current_context(parameters.imgui_context);
-            ig::set_allocator_functions(
-                parameters.imgui_allocator_alloc,
-                parameters.imgui_allocator_free,
-                parameters.imgui_allocator_user_data,
-            );
+        if !parameters.is_null() {
+            unsafe {
+                let parameters: &LoadParameters = &*parameters;
+                ig::set_current_context(parameters.imgui_context);
+                ig::set_allocator_functions(
+                    parameters.imgui_allocator_alloc,
+                    parameters.imgui_allocator_free,
+                    parameters.imgui_allocator_user_data,
+                );
+            }
         }
 
         Ok(())
@@ -154,15 +158,15 @@ pub unsafe extern "system" fn xivr_load(parameters: *const LoadParameters) -> bo
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn xivr_unload() {
-    log!("unloading!");
-    xr::XR::destroy();
-    HookState::destroy();
-    debugger::Debugger::destroy();
-    hooks::Patcher::destroy();
-
-    Logger::destroy();
-
     std::thread::spawn(|| {
+        log!("unloading!");
+        xr::XR::destroy();
+        HookState::destroy();
+        debugger::Debugger::destroy();
+        hooks::Patcher::destroy();
+
+        Logger::destroy();
+
         FreeLibraryAndExitThread(THIS_MODULE, 0);
     });
 }
@@ -181,12 +185,30 @@ pub unsafe extern "system" fn xivr_draw_ui() {
 #[no_mangle]
 #[allow(non_snake_case)]
 #[allow(clippy::missing_safety_doc)]
+#[cfg(dalamud)]
 pub unsafe extern "system" fn DllMain(module: HINSTANCE, _reason: u32, _: *mut c_void) -> bool {
     if THIS_MODULE.is_none() {
         THIS_MODULE = Some(module);
     }
     true
 }
+
+#[no_mangle]
+#[allow(non_snake_case)]
+#[allow(clippy::missing_safety_doc)]
+#[cfg(not(dalamud))]
+pub unsafe extern "system" fn DllMain(module: HINSTANCE, reason: u32, _: *mut c_void) -> bool {
+    use windows::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
+
+    if THIS_MODULE.is_none() {
+        THIS_MODULE = Some(module);
+    }
+
+    match reason {
+        DLL_PROCESS_ATTACH => {
+            xivr_load(std::ptr::null());
+        }
+        _ => {}
     }
     true
 }

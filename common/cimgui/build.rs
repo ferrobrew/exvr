@@ -7,7 +7,7 @@ use cc::windows_registry as wr;
 
 fn generate_lib_file(out_path: &Path) {
     let target = env::var("TARGET").unwrap();
-    let cimgui_dll_path = "../../external/ImGui.NET/src/ImGui.NET-472/costura64/cimgui.dll";
+    let cimgui_dll_path = "../../external/ImGui.NET/src/ImGui.NET-472/runtimes/win-x64/native/cimgui.dll";
 
     let mut dumpbin_exe = wr::find(&target, "dumpbin.exe").unwrap();
     let mut lib_exe = wr::find(&target, "lib.exe").unwrap();
