@@ -46,6 +46,7 @@ impl Drop for HookState {
         let res = unsafe { self.0.disable() };
         if let Err(e) = res {
             log!(
+                "error",
                 "error while disabling immediate context detour: {}",
                 e.to_string()
             )
@@ -53,6 +54,7 @@ impl Drop for HookState {
         let res = unsafe { ImmediateContext_ProcessCommands_Detour.disable() };
         if let Err(e) = res {
             log!(
+                "error",
                 "error while disabling process commands detour: {}",
                 e.to_string()
             )

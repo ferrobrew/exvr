@@ -51,7 +51,7 @@ impl Drop for HookState {
     fn drop(&mut self) {
         let res = unsafe { ConstantBuffer_LoadBuffer_Detour.disable() };
         if let Err(e) = res {
-            log!("error while disabling loadbuffer hijack: {}", e.to_string());
+            log!("error", "error while disabling loadbuffer hijack: {}", e.to_string());
         }
     }
 }

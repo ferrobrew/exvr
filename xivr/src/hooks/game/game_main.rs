@@ -15,7 +15,7 @@ impl Drop for HookState {
     fn drop(&mut self) {
         let res = unsafe { GameMain_Update_Detour.disable() };
         if let Err(e) = res {
-            log!("error while disabling game detour: {}", e.to_string())
+            log!("error", "error while disabling game detour: {}", e.to_string())
         }
     }
 }

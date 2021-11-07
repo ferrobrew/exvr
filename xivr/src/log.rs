@@ -18,8 +18,10 @@ impl Logger {
         })
     }
 
-    pub fn log(&self, s: &str) {
-        let s = CString::new(s).unwrap();
+    pub fn log(&self, tag: &str, msg: &str) {
+        let s = format!("[{}] {}", tag, msg);
+
+        let c_str = CString::new(s.as_str()).unwrap();
         let logger = self.logger.lock().unwrap();
         if let Some(logger) = *logger {
             logger(c_str.as_ptr());
@@ -30,8 +32,8 @@ impl Logger {
 
 #[macro_export]
 macro_rules! log {
-    ($($arg:tt)*) => {
-        crate::log::Logger::get_mut().unwrap().log(&format!($($arg)*))
+    ($tag:expr, $($arg:tt)*) => {
+        crate::log::Logger::get_mut().unwrap().log($tag, &format!($($arg)*))
     }
 }
 

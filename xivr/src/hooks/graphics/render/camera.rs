@@ -15,6 +15,7 @@ impl Drop for HookState {
         let res = unsafe { Camera_UpdateConstantBuffers_Detour.disable() };
         if let Err(e) = res {
             log!(
+                "error",
                 "error while disabling constant buffers detour: {}",
                 e.to_string()
             )

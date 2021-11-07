@@ -513,6 +513,7 @@ impl XR {
             &[],
         )?;
         let instance_properties = instance.properties()?;
+        log!("xr", "created instance");
 
         // Request a form factor from the device (HMD, Handheld, etc.)
         let system = instance.system(openxr::FormFactor::HEAD_MOUNTED_DISPLAY)?;
@@ -531,6 +532,7 @@ impl XR {
         let view_configuration_views =
             instance.enumerate_view_configuration_views(system, VIEW_TYPE)?;
         assert_eq!(view_configuration_views[0], view_configuration_views[1]);
+        log!("xr", "enumerated view configuration views");
 
         let old_window_size = unsafe { framework::Framework::get().window().get_size() };
         let new_window_size = if ct_config::xr::CHANGE_WINDOW_SIZE {
@@ -541,6 +543,7 @@ impl XR {
         } else {
             old_window_size
         };
+        log!("xr", "window size: {:?}", new_window_size);
 
         let device = unsafe { kernel::Device::get().device() };
         let (session, frame_waiter, frame_stream) = unsafe {
@@ -551,6 +554,7 @@ impl XR {
                 },
             )?
         };
+        log!("xr", "created session");
 
         let stage = session
             .create_reference_space(openxr::ReferenceSpaceType::STAGE, openxr::Posef::IDENTITY)?;
@@ -560,11 +564,13 @@ impl XR {
             window.set_resizing_enabled(false);
             window.set_size(new_window_size);
         }
+        log!("xr", "resized window");
 
         let swapchains = (0..VIEW_COUNT)
             .map(|index| Swapchain::new(&session, device.clone(), new_window_size, index))
             .collect::<anyhow::Result<Vec<_>>>()?;
         let swapchain_blitter = SwapchainBlitter::new(device.clone())?;
+        log!("xr", "created swapchains");
 
         Ok(XR {
             instance,
@@ -603,7 +609,7 @@ impl XR {
                 SessionStateChanged(e) => {
                     // Session state change is where we can begin and end sessions, as well as
                     // find quit messages!
-                    log!("entered state {:?}", e.state());
+                    log!("xr", "entered state {:?}", e.state());
                     match e.state() {
                         SessionState::READY => {
                             session.begin(VIEW_TYPE)?;
@@ -623,7 +629,7 @@ impl XR {
                     break;
                 }
                 EventsLost(e) => {
-                    log!("lost {} events", e.lost_event_count());
+                    log!("xr", "lost {} events", e.lost_event_count());
                 }
                 _ => {}
             }

@@ -106,13 +106,13 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
 
     std::panic::set_hook(Box::new(|info| {
         match (info.payload().downcast_ref::<&str>(), info.location()) {
-            (Some(msg), Some(loc)) => log!("Panic! {:?} at {}:{}", msg, loc.file(), loc.line()),
-            (Some(msg), None) => log!("Panic! {:?}", msg),
-            (None, Some(loc)) => log!("Panic! at {}:{}", loc.file(), loc.line()),
-            (None, None) => log!("Panic! something at somewhere"),
+            (Some(msg), Some(loc)) => log!("panic", "Panic! {:?} at {}:{}", msg, loc.file(), loc.line()),
+            (Some(msg), None) => log!("panic", "Panic! {:?}", msg),
+            (None, Some(loc)) => log!("panic", "Panic! at {}:{}", loc.file(), loc.line()),
+            (None, None) => log!("panic", "Panic! something at somewhere"),
         };
 
-        log!("{:?}", backtrace::Backtrace::new_unresolved());
+        log!("panic", "{:?}", backtrace::Backtrace::new_unresolved());
     }));
 
     let r = std::panic::catch_unwind(|| {
@@ -172,7 +172,7 @@ pub unsafe extern "system" fn xivr_load(parameters: *const LoadParameters) -> bo
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn xivr_unload() {
     std::thread::spawn(|| {
-        log!("unloading!");
+        log!("xivr", "unloading!");
         xr::XR::destroy();
         HookState::destroy();
         debugger::Debugger::destroy();
@@ -224,7 +224,7 @@ pub unsafe extern "system" fn DllMain(module: HINSTANCE, reason: u32, _: *mut c_
     match reason {
         DLL_PROCESS_ATTACH => {
             std::thread::spawn(|| {
-            xivr_load(std::ptr::null());
+                xivr_load(std::ptr::null());
             });
         }
         _ => {}

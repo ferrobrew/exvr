@@ -15,11 +15,11 @@ impl Drop for HookState {
 
         let res = unsafe { RenderManager_Render_Detour.disable() };
         if let Err(e) = res {
-            log!("error while disabling render detour: {}", e.to_string())
+            log!("error", "error while disabling render detour: {}", e.to_string())
         }
         let res = unsafe { RenderManager_RenderUI_Detour.disable() };
         if let Err(e) = res {
-            log!("error while disabling renderui detour: {}", e.to_string())
+            log!("error", "error while disabling renderui detour: {}", e.to_string())
         }
     }
 }
