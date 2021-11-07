@@ -7,12 +7,12 @@ use crate::singleton;
 pub type LogType = extern "system" fn(s: *const c_char) -> c_void;
 
 pub struct Logger {
-    logger: Mutex<LogType>,
+    logger: Mutex<Option<LogType>>,
 }
-singleton!(Logger, logger: LogType);
+singleton!(Logger, logger: Option<LogType>);
 
 impl Logger {
-    pub fn new(logger: LogType) -> anyhow::Result<Logger> {
+    pub fn new(logger: Option<LogType>) -> anyhow::Result<Logger> {
         Ok(Logger {
             logger: Mutex::new(logger),
         })
@@ -21,7 +21,10 @@ impl Logger {
     pub fn log(&self, s: &str) {
         let s = CString::new(s).unwrap();
         let logger = self.logger.lock().unwrap();
-        (*logger)(s.as_ptr());
+        if let Some(logger) = *logger {
+            logger(c_str.as_ptr());
+        }
+        println!("{}", s);
     }
 }
 

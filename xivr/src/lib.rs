@@ -22,6 +22,7 @@ use anyhow::{Error, Result};
 use cimgui as ig;
 use std::os::raw::c_void;
 use windows::Win32::Foundation::HINSTANCE;
+use windows::Win32::System::Console::{AllocConsole, FreeConsole};
 use windows::Win32::System::LibraryLoader::FreeLibraryAndExitThread;
 
 static mut THIS_MODULE: Option<HINSTANCE> = None;
@@ -87,9 +88,21 @@ unsafe fn patch_symbol_search_path() -> Result<()> {
 }
 
 unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
-    if !parameters.is_null() {
-        Logger::create((*parameters).logger)?;
+    if !cfg!(dalamud) {
+        use c_str_macro::c_str;
+        use libc::{fdopen, freopen};
+
+        AllocConsole();
+
+        let stdout = fdopen(1, c_str!("w").as_ptr());
+        freopen(c_str!("CONOUT$").as_ptr(), c_str!("w").as_ptr(), stdout);
     }
+
+    Logger::create(if !parameters.is_null() {
+        Some((*parameters).logger)
+    } else {
+        None
+    })?;
 
     std::panic::set_hook(Box::new(|info| {
         match (info.payload().downcast_ref::<&str>(), info.location()) {
@@ -167,6 +180,10 @@ pub unsafe extern "system" fn xivr_unload() {
 
         Logger::destroy();
 
+        if !cfg!(dalamud) {
+            FreeConsole();
+        }
+
         FreeLibraryAndExitThread(THIS_MODULE, 0);
     });
 }
@@ -206,7 +223,9 @@ pub unsafe extern "system" fn DllMain(module: HINSTANCE, reason: u32, _: *mut c_
 
     match reason {
         DLL_PROCESS_ATTACH => {
+            std::thread::spawn(|| {
             xivr_load(std::ptr::null());
+            });
         }
         _ => {}
     }
