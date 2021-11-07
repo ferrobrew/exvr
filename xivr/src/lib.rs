@@ -18,14 +18,19 @@ use hooks::HookState;
 use log::Logger;
 use module::{Module, GAME_MODULE};
 
+use std::os::raw::c_void;
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use anyhow::{Error, Result};
 use cimgui as ig;
-use std::os::raw::c_void;
 use windows::Win32::Foundation::HINSTANCE;
 use windows::Win32::System::Console::{AllocConsole, FreeConsole};
 use windows::Win32::System::LibraryLoader::FreeLibraryAndExitThread;
 
 static mut THIS_MODULE: Option<HINSTANCE> = None;
+// should use a state machine for this, but don't want to deal with atomicity yet
+static mut TIER1_LOADED: AtomicBool = AtomicBool::new(false);
+static mut TIER2_LOADED: AtomicBool = AtomicBool::new(false);
 
 #[repr(C, packed)]
 pub struct LoadParameters {
@@ -87,6 +92,59 @@ unsafe fn patch_symbol_search_path() -> Result<()> {
     Ok(())
 }
 
+unsafe fn tier1_load(parameters: Option<&LoadParameters>) -> Result<()> {
+    log!("tier1", "start");
+    let mut modules = Module::get_all();
+    let ffxiv_module = modules
+        .iter_mut()
+        .find(|x| x.filename().as_deref() == Some("ffxiv_dx11.exe"))
+        .ok_or_else(|| Error::msg("failed to find ff14 module"))?;
+    ffxiv_module.backup_image();
+
+    GAME_MODULE
+        .set(ffxiv_module.clone())
+        .map_err(|_| Error::msg("failed to set module"))?;
+    log!("tier1", "located module");
+
+    patch_symbol_search_path()?;
+    log!("tier1", "patched symbol search path");
+
+    hooks::Patcher::create()?;
+    debugger::Debugger::create()?;
+    HookState::create()?;
+    log!("tier1", "installed hooks");
+
+    if let Some(parameters) = parameters {
+        ig::set_current_context(parameters.imgui_context);
+        ig::set_allocator_functions(
+            parameters.imgui_allocator_alloc,
+            parameters.imgui_allocator_free,
+            parameters.imgui_allocator_user_data,
+        );
+        log!("tier1", "initialised imgui");
+    }
+    TIER1_LOADED.store(true, Ordering::SeqCst);
+    log!("tier1", "complete");
+
+    Ok(())
+}
+
+fn tier1_loaded() -> bool {
+    unsafe { TIER1_LOADED.load(Ordering::SeqCst) }
+}
+
+unsafe fn tier2_load() -> Result<()> {
+    log!("tier2", "start");
+    xr::XR::create()?;
+    TIER2_LOADED.store(true, Ordering::SeqCst);
+    log!("tier2", "complete");
+    Ok(())
+}
+
+fn tier2_loaded() -> bool {
+    unsafe { TIER2_LOADED.load(Ordering::SeqCst) }
+}
+
 unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
     if !cfg!(dalamud) {
         use c_str_macro::c_str;
@@ -98,11 +156,8 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
         freopen(c_str!("CONOUT$").as_ptr(), c_str!("w").as_ptr(), stdout);
     }
 
-    Logger::create(if !parameters.is_null() {
-        Some((*parameters).logger)
-    } else {
-        None
-    })?;
+    let parameters = parameters.as_ref();
+    Logger::create(parameters.map(|x| x.logger))?;
 
     std::panic::set_hook(Box::new(|info| {
         match (info.payload().downcast_ref::<&str>(), info.location()) {
@@ -115,41 +170,7 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
         log!("panic", "{:?}", backtrace::Backtrace::new_unresolved());
     }));
 
-    let r = std::panic::catch_unwind(|| {
-        let mut modules = Module::get_all();
-        let ffxiv_module = modules
-            .iter_mut()
-            .find(|x| x.filename().as_deref() == Some("ffxiv_dx11.exe"))
-            .ok_or_else(|| Error::msg("failed to find ff14 module"))?;
-        ffxiv_module.backup_image();
-
-        unsafe {
-            GAME_MODULE
-                .set(ffxiv_module.clone())
-                .map_err(|_| Error::msg("failed to set module"))?
-        };
-
-        patch_symbol_search_path()?;
-
-        hooks::Patcher::create()?;
-        debugger::Debugger::create()?;
-        HookState::create()?;
-        xr::XR::create()?;
-
-        if !parameters.is_null() {
-            unsafe {
-                let parameters: &LoadParameters = &*parameters;
-                ig::set_current_context(parameters.imgui_context);
-                ig::set_allocator_functions(
-                    parameters.imgui_allocator_alloc,
-                    parameters.imgui_allocator_free,
-                    parameters.imgui_allocator_user_data,
-                );
-            }
-        }
-
-        Ok(())
-    });
+    let r = std::panic::catch_unwind(|| tier1_load(parameters));
     match r {
         Ok(Ok(())) => Ok(()),
         Ok(Err(err)) => Err(err),

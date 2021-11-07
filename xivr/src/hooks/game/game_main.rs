@@ -46,6 +46,11 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 xr.post_update()?;
             }
 
+            if crate::tier1_loaded() && !crate::tier2_loaded() {
+                crate::tier2_load()?;
+                assert!(crate::tier2_loaded());
+            }
+
             // yolo
             if !cfg!(dalamud) {
                 use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_F7};
