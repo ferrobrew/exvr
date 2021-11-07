@@ -19,12 +19,12 @@ use log::Logger;
 use module::{Module, GAME_MODULE};
 
 use anyhow::{Error, Result};
-use bindings::Windows::Win32::Foundation::HINSTANCE;
-use bindings::Windows::Win32::System::LibraryLoader::FreeLibraryAndExitThread;
 use cimgui as ig;
 use std::os::raw::c_void;
+use windows::Win32::Foundation::HINSTANCE;
+use windows::Win32::System::LibraryLoader::FreeLibraryAndExitThread;
 
-static mut THIS_MODULE: HINSTANCE = HINSTANCE::NULL;
+static mut THIS_MODULE: Option<HINSTANCE> = None;
 
 #[repr(C, packed)]
 pub struct LoadParameters {
@@ -36,14 +36,12 @@ pub struct LoadParameters {
 }
 
 unsafe fn patch_symbol_search_path() -> Result<()> {
-    use bindings::Windows::Win32::Foundation::PWSTR;
-    use bindings::Windows::Win32::System::Diagnostics::Debug::{
-        SymGetSearchPathW, SymSetSearchPathW,
-    };
-    use bindings::Windows::Win32::System::Threading::GetCurrentProcess;
+    use windows::Win32::Foundation::PWSTR;
+    use windows::Win32::System::Diagnostics::Debug::{SymGetSearchPathW, SymSetSearchPathW};
+    use windows::Win32::System::Threading::GetCurrentProcess;
 
     let current_process = GetCurrentProcess();
-    let our_module = Module::from_handle(&THIS_MODULE);
+    let our_module = Module::from_handle(THIS_MODULE.as_ref().expect("module not set"));
     let directory = our_module
         .path()
         .and_then(|p| p.parent())
@@ -184,8 +182,11 @@ pub unsafe extern "system" fn xivr_draw_ui() {
 #[allow(non_snake_case)]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn DllMain(module: HINSTANCE, _reason: u32, _: *mut c_void) -> bool {
-    if THIS_MODULE.is_null() {
-        THIS_MODULE = module;
+    if THIS_MODULE.is_none() {
+        THIS_MODULE = Some(module);
+    }
+    true
+}
     }
     true
 }

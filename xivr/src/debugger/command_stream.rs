@@ -356,7 +356,7 @@ impl CommandStream {
         start_instant: &Instant,
         payload: PayloadType,
     ) -> anyhow::Result<()> {
-        use bindings::Windows::Win32::System::Threading::GetCurrentThreadId;
+        use windows::Win32::System::Threading::GetCurrentThreadId;
         let backtrace = backtrace::Backtrace::new_unresolved();
 
         stream.push(Command::<PayloadType> {

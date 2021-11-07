@@ -1,13 +1,13 @@
 use crate::debugger::payload::*;
 
-use bindings::Windows::Win32::Foundation::{BOOL, HANDLE, PWSTR, RECT};
-use bindings::Windows::Win32::Graphics::Direct3D11::{
+use windows::Win32::Foundation::{BOOL, HANDLE, PWSTR, RECT};
+use windows::Win32::Graphics::Direct3D11::{
     ID3D11Resource, D3D11_BOX, D3D11_CONTEXT_TYPE, D3D11_MAP, D3D11_MAPPED_SUBRESOURCE,
     D3D11_TILED_RESOURCE_COORDINATE, D3D11_TILE_REGION_SIZE, D3D11_VIEWPORT,
     D3D_PRIMITIVE_TOPOLOGY,
 };
-use bindings::Windows::Win32::Graphics::Dxgi::DXGI_FORMAT;
-use windows::{Guid, IUnknown};
+use windows::Win32::Graphics::Dxgi::DXGI_FORMAT;
+use windows::runtime::{GUID, IUnknown};
 
 use std::os::raw::c_void;
 
@@ -20,13 +20,13 @@ use cimgui as ig;
 #[allow(dead_code)]
 #[rustfmt::skip]
 pub enum D3DPayload {
-    QueryInterface(*const Guid, *mut *mut c_void),
+    QueryInterface(*const GUID, *mut *mut c_void),
     AddRef(),
     Release(),
     GetDevice(*mut *mut c_void),
-    GetPrivateData(*const Guid, *mut u32, *mut c_void),
-    SetPrivateData(*const Guid, u32, *mut c_void),
-    SetPrivateDataInterface(*const Guid, *mut IUnknown),
+    GetPrivateData(*const GUID, *mut u32, *mut c_void),
+    SetPrivateData(*const GUID, u32, *mut c_void),
+    SetPrivateDataInterface(*const GUID, *mut IUnknown),
     VSSetConstantBuffers(u32, u32, *mut *const c_void),
     PSSetShaderResources(u32, u32, *mut *const c_void),
     PSSetShader(*mut c_void, *mut *const c_void, u32),
@@ -107,7 +107,7 @@ pub enum D3DPayload {
     VSGetShaderResources(u32, u32, *mut *mut c_void),
     VSGetSamplers(u32, u32, *mut *mut c_void),
     GetPredication(*mut *mut c_void, *mut BOOL),
-    GSGetShaderResources(u32, u32, *mut *mut c_void),   
+    GSGetShaderResources(u32, u32, *mut *mut c_void),
     GSGetSamplers(u32, u32, *mut *mut c_void),
     OMGetRenderTargets(u32, *mut *mut c_void, *mut *mut c_void),
     OMGetRenderTargetsAndUnorderedAccessViews(u32, *mut *mut c_void, *mut *mut c_void, u32, u32, *mut *mut c_void),
@@ -188,7 +188,6 @@ impl Payload for D3DPayload {
     #[rustfmt::skip]
     fn draw(&self) -> anyhow::Result<()> {
         use crate::debugger::Debugger;
-        use windows::Abi;
 
         match self {
             Self::QueryInterface(riid, ppvObject) => {
@@ -348,7 +347,7 @@ impl Payload for D3DPayload {
                 if let Some(debugger) = Debugger::get_mut() {
                     for resource in resources {
                         ig::same_line(None, Some(0.0));
-                        if ig::small_button(&format!("{:X?}", resource.abi()))? {
+                        if ig::small_button(&format!("{:X?}", resource))? {
                             debugger.inspect_d3d_resource(resource.clone())?;
                         }
                     }
@@ -417,6 +416,8 @@ impl Payload for D3DPayload {
             }
             Self::CopyResource(pDstResource, pSrcResource) => unsafe {
                 if let Some(debugger) = Debugger::get_mut() {
+                    use windows::runtime::Abi;
+
                     ig::bulletf!("pDstResource: ");
                     ig::same_line(None, Some(0.0));
                     if ig::small_button(&format!("{:X?}", *pDstResource))? {

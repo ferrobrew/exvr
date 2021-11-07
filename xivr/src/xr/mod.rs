@@ -4,9 +4,8 @@ use crate::game::graphics::kernel;
 use crate::game::system::framework;
 use crate::singleton;
 
-use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
-use bindings::Windows::Win32::Graphics::Dxgi as dxgi;
-use windows::Abi;
+use windows::Win32::Graphics::Direct3D11 as d3d;
+use windows::Win32::Graphics::Dxgi as dxgi;
 
 pub use crate::ct_config::xr::VIEW_COUNT;
 const VIEW_TYPE: openxr::ViewConfigurationType = openxr::ViewConfigurationType::PRIMARY_STEREO;
@@ -62,6 +61,8 @@ impl Swapchain {
         frame_size: (u32, u32),
         index: u32,
     ) -> anyhow::Result<Swapchain> {
+        use windows::runtime::Abi;
+
         let mut swapchain = session.create_swapchain(&openxr::SwapchainCreateInfo {
             create_flags: openxr::SwapchainCreateFlags::EMPTY,
             usage_flags: openxr::SwapchainUsageFlags::COLOR_ATTACHMENT
@@ -170,7 +171,7 @@ impl Swapchain {
 
     fn render_button(&self, size: cimgui::Vec2, color: cimgui::Color) -> anyhow::Result<()> {
         if cimgui::image_button(
-            self.buffer_srv.abi(),
+            unsafe { std::mem::transmute(self.buffer_srv.clone()) },
             size,
             None,
             None,
@@ -431,8 +432,7 @@ impl SwapchainBlitter {
                 let some_struct = *(self.some_global_struct.add(0x60) as *const *const u8);
                 &**(some_struct.add(0x10) as *const *const kernel::Texture)
             };
-            let srv: d3d::ID3D11ShaderResourceView = texture.shader_resource_view().clone().into();
-            let mut srv = Some(srv);
+            let mut srv = texture.shader_resource_view().clone().map(|x| x.into());
             dc.PSSetShaderResources(0, 1, &mut srv);
         }
         {
@@ -547,7 +547,7 @@ impl XR {
             instance.create_session::<openxr::D3D11>(
                 system,
                 &openxr::d3d::SessionCreateInfo {
-                    device: std::mem::transmute(device.abi()),
+                    device: std::mem::transmute(device),
                 },
             )?
         };

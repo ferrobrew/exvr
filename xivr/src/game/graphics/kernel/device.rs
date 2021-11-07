@@ -2,7 +2,7 @@ use crate::game::graphics::kernel::{Context, ImmediateContext, SwapChain};
 use crate::game::offsets;
 use macros::game_class;
 
-use bindings::Windows::Win32::Graphics::Direct3D11::{
+use windows::Win32::Graphics::Direct3D11::{
     ID3D11Device, ID3D11DeviceContext, D3D_FEATURE_LEVEL,
 };
 

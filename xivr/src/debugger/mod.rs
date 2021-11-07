@@ -1,7 +1,7 @@
 pub mod d3d_payload;
+pub mod message_payload;
 pub mod payload;
 pub mod shader_payload;
-pub mod message_payload;
 
 mod util;
 
@@ -16,7 +16,7 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::sync::Mutex;
 
-use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
+use windows::Win32::Graphics::Direct3D11 as d3d;
 
 #[derive(PartialEq, Eq)]
 enum InspectedResource {
@@ -25,9 +25,11 @@ enum InspectedResource {
 
 impl Hash for InspectedResource {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        use windows::Abi;
         match self {
-            InspectedResource::Texture(tex, ..) => tex.abi().hash(state),
+            InspectedResource::Texture(tex, ..) => {
+                let ptr: *mut () = unsafe { std::mem::transmute(tex) };
+                ptr.hash(state)
+            }
         }
     }
 }
@@ -72,7 +74,7 @@ impl Debugger {
     }
 
     pub fn inspect_d3d_resource(&mut self, resource: d3d::ID3D11Resource) -> anyhow::Result<()> {
-        use windows::Interface;
+        use windows::runtime::Interface;
         if let Ok(tex) = resource.cast::<d3d::ID3D11Texture2D>() {
             let device = unsafe { Device::get().device() };
 
@@ -114,7 +116,6 @@ impl Debugger {
         srv: Option<d3d::ID3D11ShaderResourceView>,
     ) -> anyhow::Result<bool> {
         use cimgui as ig;
-        use windows::Abi;
 
         let mut open = true;
         let mut desc: d3d::D3D11_TEXTURE2D_DESC = unsafe { std::mem::zeroed() };
@@ -132,7 +133,7 @@ impl Debugger {
         if ig::begin(
             &format!(
                 "Texture {:X?} ({}x{}, {})",
-                tex.abi(),
+                tex,
                 desc.Width,
                 desc.Height,
                 dxgi_format_to_str(desc.Format)
@@ -143,11 +144,18 @@ impl Debugger {
             let ig::Vec2 { x: width, .. } = ig::get_window_size();
             if let Some(srv) = srv {
                 let size = ig::Vec2::new(width, width * inverse_aspect_ratio);
-                ig::image(srv.abi(), size, None, None, None, None);
+                ig::image(
+                    unsafe { std::mem::transmute(srv) },
+                    size,
+                    None,
+                    None,
+                    None,
+                    None,
+                );
             } else {
                 ig::text("Unable to bind texture to SRV");
             }
-            ig::bulletf!("Texture pointer: {:X?}", tex.abi());
+            ig::bulletf!("Texture pointer: {:X?}", tex);
             ig::bulletf!("Width: {}", desc.Width);
             ig::bulletf!("Height: {}", desc.Height);
             ig::bulletf!("Array Size: {}", desc.ArraySize);
@@ -163,17 +171,16 @@ impl Debugger {
 
     fn draw_inspected_texture(tex: &Texture) -> anyhow::Result<bool> {
         unsafe {
-            use windows::Abi;
             let srv = tex.shader_resource_view();
 
-            Self::draw_inspected_texture_internal(
-                tex.texture().clone().into(),
-                if srv.abi().is_null() {
-                    None
-                } else {
-                    Some(srv.clone().into())
-                },
-            )
+            if let Some(srv) = srv {
+                Self::draw_inspected_texture_internal(
+                    tex.texture().clone().into(),
+                    Some(srv.clone().into()),
+                )
+            } else {
+                Ok(false)
+            }
         }
     }
 
@@ -201,12 +208,11 @@ impl Debugger {
         const PREVIEW_HEIGHT: f32 = 64.0;
         ig::table_next_row(None, None);
         {
-            use windows::Abi;
             let aspect_ratio = desc.Width as f32 / desc.Height as f32;
             let rt_size = ig::Vec2::new(aspect_ratio * PREVIEW_HEIGHT, PREVIEW_HEIGHT);
 
             ig::table_next_column();
-            let img = unsafe { texture.shader_resource_view().abi() };
+            let img = unsafe { std::mem::transmute(texture.shader_resource_view()) };
             if ig::image_button(
                 img,
                 rt_size,

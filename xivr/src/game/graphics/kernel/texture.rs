@@ -1,4 +1,4 @@
-use bindings::Windows::Win32::Graphics::Direct3D11::{ID3D11ShaderResourceView1, ID3D11Texture2D};
+use windows::Win32::Graphics::Direct3D11::{ID3D11ShaderResourceView1, ID3D11Texture2D};
 use macros::game_class;
 
 use std::hash::Hash;
@@ -25,6 +25,6 @@ game_class!(Texture, {
         [0x48] texture_format: TextureFormat,
         [0x4C] flags: u32,
         [0x50] texture: ID3D11Texture2D,
-        [0x58] shader_resource_view: ID3D11ShaderResourceView1,
+        [0x58] shader_resource_view: Option<ID3D11ShaderResourceView1>,
     },
 });

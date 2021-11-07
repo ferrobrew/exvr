@@ -180,9 +180,9 @@ def sanitize_fragment(fragment):
     elif fragment == 'UINT64':
         return 'u64'
     elif fragment == 'REFGUID':
-        return '*const Guid'
+        return '*const GUID'
     elif fragment == 'REFIID':
-        return '*const Guid'
+        return '*const GUID'
     elif fragment == 'LPCWSTR':
         return '*const PWSTR'
     elif fragment == 'FLOAT':
@@ -229,13 +229,13 @@ use crate::debugger::d3d_payload::D3DPayload;
 use crate::hooks::Patcher;
 use crate::ct_config::*;
 
-use bindings::Windows::Win32::Graphics::Direct3D11::{
+use windows::Win32::Graphics::Direct3D11::{
     D3D_PRIMITIVE_TOPOLOGY, D3D11_MAPPED_SUBRESOURCE, D3D11_MAP, D3D11_VIEWPORT, D3D11_BOX,
     D3D11_DEVICE_CONTEXT_TYPE, D3D11_TILED_RESOURCE_COORDINATE, D3D11_TILE_REGION_SIZE,
     D3D11_CONTEXT_TYPE,
 };
-use bindings::Windows::Win32::Graphics::Dxgi::{DXGI_FORMAT};
-use bindings::Windows::Win32::Foundation::{BOOL, RECT, HANDLE, PWSTR};
+use windows::Win32::Graphics::Dxgi::{DXGI_FORMAT};
+use windows::Win32::Foundation::{BOOL, RECT, HANDLE, PWSTR};
 
 use windows::*;
 use std::os::raw::c_void;
@@ -313,7 +313,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
 
     let immediate_context: &mut _ = Device::get().immediate_context_mut();
     let device_context = immediate_context.device_context_mut();
-    let device_context_ptr = device_context.abi() as *mut ID3D11DeviceContext;
+    let device_context_ptr = unsafe { std::mem::transmute(device_context) }, as *mut ID3D11DeviceContext;
     let device_context_vtable_ptr = std::ptr::addr_of_mut!((*device_context_ptr).vtbl);
     ORIGINAL_VTABLE = Some(*device_context_vtable_ptr);
     let device_context_new_vtable_ptr_bytes = (std::ptr::addr_of!(HOOKED_VTABLE) as usize).to_le_bytes();

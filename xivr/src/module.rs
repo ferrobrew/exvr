@@ -7,12 +7,12 @@ use std::slice;
 
 use once_cell::unsync::OnceCell;
 
-use bindings::Windows::Win32::Foundation::{HINSTANCE, PWSTR};
-use bindings::Windows::Win32::System::LibraryLoader::GetModuleFileNameW;
-use bindings::Windows::Win32::System::ProcessStatus::{
+use windows::Win32::Foundation::{HINSTANCE, PWSTR};
+use windows::Win32::System::LibraryLoader::GetModuleFileNameW;
+use windows::Win32::System::ProcessStatus::{
     K32EnumProcessModules, K32GetModuleInformation, MODULEINFO,
 };
-use bindings::Windows::Win32::System::Threading::GetCurrentProcess;
+use windows::Win32::System::Threading::GetCurrentProcess;
 
 #[derive(Debug, Clone)]
 pub struct Module {
@@ -55,12 +55,12 @@ impl Module {
     pub fn get_all() -> Vec<Module> {
         let process = unsafe { GetCurrentProcess() };
         let hinstance_size = mem::size_of::<HINSTANCE>() as u32;
-        let mut temp = HINSTANCE::NULL;
+        let mut temp = HINSTANCE::default();
         let mut needed = 0u32;
         unsafe {
             K32EnumProcessModules(process, &mut temp, hinstance_size, &mut needed);
         }
-        let mut buf = vec![HINSTANCE::NULL; (needed / hinstance_size) as usize];
+        let mut buf = vec![HINSTANCE::default(); (needed / hinstance_size) as usize];
         unsafe {
             K32EnumProcessModules(
                 process,

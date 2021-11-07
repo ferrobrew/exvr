@@ -6,15 +6,15 @@ use crate::debugger::d3d_payload::D3DPayload;
 use crate::hooks::Patcher;
 use crate::ct_config::*;
 
-use bindings::Windows::Win32::Graphics::Direct3D11::{
+use windows::Win32::Graphics::Direct3D11::{
     D3D_PRIMITIVE_TOPOLOGY, D3D11_MAPPED_SUBRESOURCE, D3D11_MAP, D3D11_VIEWPORT, D3D11_BOX,
     D3D11_DEVICE_CONTEXT_TYPE, D3D11_TILED_RESOURCE_COORDINATE, D3D11_TILE_REGION_SIZE,
     D3D11_CONTEXT_TYPE
 };
-use bindings::Windows::Win32::Graphics::Dxgi::{DXGI_FORMAT};
-use bindings::Windows::Win32::Foundation::{BOOL, RECT, HANDLE, PWSTR};
+use windows::Win32::Graphics::Dxgi::{DXGI_FORMAT};
+use windows::Win32::Foundation::{BOOL, RECT, HANDLE, PWSTR};
 
-use windows::*;
+use windows::runtime::*;
 use std::os::raw::c_void;
 
 struct ID3D11DeviceContext {
@@ -22,13 +22,13 @@ struct ID3D11DeviceContext {
 }
 
 struct ID3D11DeviceContextVtbl {
-    QueryInterface: unsafe extern "C" fn(*mut c_void, *const Guid, *mut *mut c_void) -> HRESULT,
+    QueryInterface: unsafe extern "C" fn(*mut c_void, *const GUID, *mut *mut c_void) -> HRESULT,
     AddRef: unsafe extern "C" fn(*mut c_void) -> u32,
     Release: unsafe extern "C" fn(*mut c_void) -> u32,
     GetDevice: unsafe extern "C" fn(*mut c_void, *mut *mut c_void),
-    GetPrivateData: unsafe extern "C" fn(*mut c_void, *const Guid, *mut u32, *mut c_void) -> HRESULT,
-    SetPrivateData: unsafe extern "C" fn(*mut c_void, *const Guid, u32, *mut c_void) -> HRESULT,
-    SetPrivateDataInterface: unsafe extern "C" fn(*mut c_void, *const Guid, *mut IUnknown) -> HRESULT,
+    GetPrivateData: unsafe extern "C" fn(*mut c_void, *const GUID, *mut u32, *mut c_void) -> HRESULT,
+    SetPrivateData: unsafe extern "C" fn(*mut c_void, *const GUID, u32, *mut c_void) -> HRESULT,
+    SetPrivateDataInterface: unsafe extern "C" fn(*mut c_void, *const GUID, *mut IUnknown) -> HRESULT,
     VSSetConstantBuffers: unsafe extern "C" fn(*mut c_void, u32, u32, *mut *const c_void),
     PSSetShaderResources: unsafe extern "C" fn(*mut c_void, u32, u32, *mut *const c_void),
     PSSetShader: unsafe extern "C" fn(*mut c_void, *mut c_void, *mut *const c_void, u32),
@@ -328,7 +328,7 @@ fn push_back_payload(payload: D3DPayload) {
         command_stream.add_d3d_command(payload).unwrap();
     }
 }
-unsafe extern "C" fn QueryInterface_hook(This: *mut c_void, riid: *const Guid, ppvObject: *mut *mut c_void) -> HRESULT {
+unsafe extern "C" fn QueryInterface_hook(This: *mut c_void, riid: *const GUID, ppvObject: *mut *mut c_void) -> HRESULT {
     let ret = ((*ORIGINAL_VTABLE.unwrap()).QueryInterface)(This, riid, ppvObject);
     push_back_payload(D3DPayload::QueryInterface(riid, ppvObject));
     ret
@@ -348,17 +348,17 @@ unsafe extern "C" fn GetDevice_hook(This: *mut c_void, ppDevice: *mut *mut c_voi
     push_back_payload(D3DPayload::GetDevice(ppDevice));
     ret
 }
-unsafe extern "C" fn GetPrivateData_hook(This: *mut c_void, guid: *const Guid, pDataSize: *mut u32, pData: *mut c_void) -> HRESULT {
+unsafe extern "C" fn GetPrivateData_hook(This: *mut c_void, guid: *const GUID, pDataSize: *mut u32, pData: *mut c_void) -> HRESULT {
     let ret = ((*ORIGINAL_VTABLE.unwrap()).GetPrivateData)(This, guid, pDataSize, pData);
     push_back_payload(D3DPayload::GetPrivateData(guid, pDataSize, pData));
     ret
 }
-unsafe extern "C" fn SetPrivateData_hook(This: *mut c_void, guid: *const Guid, DataSize: u32, pData: *mut c_void) -> HRESULT {
+unsafe extern "C" fn SetPrivateData_hook(This: *mut c_void, guid: *const GUID, DataSize: u32, pData: *mut c_void) -> HRESULT {
     let ret = ((*ORIGINAL_VTABLE.unwrap()).SetPrivateData)(This, guid, DataSize, pData);
     push_back_payload(D3DPayload::SetPrivateData(guid, DataSize, pData));
     ret
 }
-unsafe extern "C" fn SetPrivateDataInterface_hook(This: *mut c_void, guid: *const Guid, pData: *mut IUnknown) -> HRESULT {
+unsafe extern "C" fn SetPrivateDataInterface_hook(This: *mut c_void, guid: *const GUID, pData: *mut IUnknown) -> HRESULT {
     let ret = ((*ORIGINAL_VTABLE.unwrap()).SetPrivateDataInterface)(This, guid, pData);
     push_back_payload(D3DPayload::SetPrivateDataInterface(guid, pData));
     ret
@@ -457,7 +457,7 @@ unsafe extern "C" fn VSSetShaderResources_hook(This: *mut c_void, StartSlot: u32
     let ret = ((*ORIGINAL_VTABLE.unwrap()).VSSetShaderResources)(This, StartSlot, NumViews, ppShaderResourceViews);
     push_back_payload(D3DPayload::VSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews));
     ret
-}   
+}
 unsafe extern "C" fn VSSetSamplers_hook(This: *mut c_void, StartSlot: u32, NumSamplers: u32, ppSamplers: *mut *const c_void) {
     let ret = ((*ORIGINAL_VTABLE.unwrap()).VSSetSamplers)(This, StartSlot, NumSamplers, ppSamplers);
     push_back_payload(D3DPayload::VSSetSamplers(StartSlot, NumSamplers, ppSamplers));
@@ -494,21 +494,24 @@ unsafe extern "C" fn GSSetSamplers_hook(This: *mut c_void, StartSlot: u32, NumSa
     ret
 }
 unsafe extern "C" fn OMSetRenderTargets_hook(This: *mut c_void, NumViews: u32, ppRenderTargetViews: *mut *const c_void, pDepthStencilView: *mut c_void) {
-    use bindings::Windows::Win32::Graphics::Direct3D11 as d3d;
-    let ret = ((*ORIGINAL_VTABLE.unwrap()).OMSetRenderTargets)(This, NumViews, ppRenderTargetViews, pDepthStencilView); 
+    use windows::Win32::Graphics::Direct3D11 as d3d;
+    let ret = ((*ORIGINAL_VTABLE.unwrap()).OMSetRenderTargets)(This, NumViews, ppRenderTargetViews, pDepthStencilView);
 
     let resources = {
-        let ppRenderTargetViews = ppRenderTargetViews as *const d3d::ID3D11RenderTargetView;
-        if ppRenderTargetViews.is_null() { 
+        let ppRenderTargetViews = ppRenderTargetViews as *const Option<d3d::ID3D11RenderTargetView>;
+        if ppRenderTargetViews.is_null() {
             vec![]
         } else {
             let rtvs = std::slice::from_raw_parts(ppRenderTargetViews, NumViews as usize);
             rtvs.iter().filter_map(|rtv| {
-                if rtv.abi().is_null() { return None; }
-                
-                let mut resource = None;
-                rtv.GetResource(&mut resource);
-                resource
+                match rtv {
+                    Some(rtv) => {
+                        let mut resource = None;
+                        rtv.GetResource(&mut resource);
+                        resource
+                    }
+                    None => None,
+                }
             }).collect()
         }
     };
@@ -1103,7 +1106,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
 
     let immediate_context: &mut _ = Device::get().immediate_context_mut();
     let device_context = immediate_context.device_context_mut();
-    let device_context_ptr = device_context.abi() as *mut ID3D11DeviceContext;
+    let device_context_ptr: *mut ID3D11DeviceContext = std::mem::transmute(device_context);
     let device_context_vtable_ptr = std::ptr::addr_of_mut!((*device_context_ptr).vtbl);
     ORIGINAL_VTABLE = Some(*device_context_vtable_ptr);
     let device_context_new_vtable_ptr_bytes = (std::ptr::addr_of!(HOOKED_VTABLE) as usize).to_le_bytes();

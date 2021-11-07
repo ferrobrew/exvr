@@ -4,8 +4,8 @@ use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
 
-use bindings::Windows::Win32::System::Memory::PAGE_PROTECTION_FLAGS;
-use bindings::Windows::Win32::System::Memory::{VirtualProtect, PAGE_EXECUTE_READWRITE};
+use windows::Win32::System::Memory::PAGE_PROTECTION_FLAGS;
+use windows::Win32::System::Memory::{VirtualProtect, PAGE_EXECUTE_READWRITE};
 
 struct Patch {
     address: *mut u8,
