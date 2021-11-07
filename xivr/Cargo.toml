@@ -29,7 +29,7 @@ patternscan = "1.2.0"
 detour = { git = "https://github.com/darfink/detour-rs" }
 
 # OpenXR/maths
-openxr = { version = "0.15.2", features = ["static"] }
+openxr = { version = "0.15.4", features = ["static"] }
 glam = "0.17.3"
 
 [dependencies.windows]
@@ -56,3 +56,6 @@ anyhow = "1.0"
 quote = "1.0"
 registry = "1.2.0"
 normpath = "0.3.0"
+
+[features]
+dalamud = []

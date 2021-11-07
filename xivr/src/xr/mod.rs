@@ -546,11 +546,13 @@ impl XR {
         log!("xr", "window size: {:?}", new_window_size);
 
         let device = unsafe { kernel::Device::get().device() };
+        // I should figure out why this is necessary
+        let device_ptr: *mut *mut () = unsafe { std::mem::transmute(device) };
         let (session, frame_waiter, frame_stream) = unsafe {
             instance.create_session::<openxr::D3D11>(
                 system,
                 &openxr::d3d::SessionCreateInfo {
-                    device: std::mem::transmute(device),
+                    device: std::mem::transmute(*device_ptr),
                 },
             )?
         };
