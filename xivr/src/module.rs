@@ -16,10 +16,10 @@ use windows::Win32::System::Threading::GetCurrentProcess;
 
 #[derive(Debug, Clone)]
 pub struct Module {
-    module: HINSTANCE,
+    _module: HINSTANCE,
     path: Option<String>,
     pub base: *mut u8,
-    entry_point: *mut u8,
+    _entry_point: *mut u8,
     image_size: u32,
     image_backup: Vec<u8>,
 }
@@ -36,7 +36,7 @@ impl Module {
             );
         }
         Module {
-            module: *module,
+            _module: *module,
             path: {
                 let mut buf = [0u16; 1024];
                 let size = unsafe {
@@ -46,7 +46,7 @@ impl Module {
                 os.into_string().ok()
             },
             base: mod_info.lpBaseOfDll as *mut u8,
-            entry_point: mod_info.EntryPoint as *mut u8,
+            _entry_point: mod_info.EntryPoint as *mut u8,
             image_size: mod_info.SizeOfImage,
             image_backup: vec![],
         }
