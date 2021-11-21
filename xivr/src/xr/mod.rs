@@ -12,8 +12,14 @@ const VIEW_TYPE: openxr::ViewConfigurationType = openxr::ViewConfigurationType::
 
 const SCREEN_DRAW_VERTEX_DXBC: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/xivr_screen_draw_vertex.dxbc"));
-const SCREEN_DRAW_PIXEL_DXBC: &[u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/xivr_screen_draw_pixel.dxbc"));
+const SCREEN_DRAW_PIXEL_DXBC: &[u8] = if ct_config::xr::USE_RG_DEBUG_SHADER {
+    include_bytes!(concat!(
+        env!("OUT_DIR"),
+        "/xivr_screen_draw_rg_debug_pixel.dxbc"
+    ))
+} else {
+    include_bytes!(concat!(env!("OUT_DIR"), "/xivr_screen_draw_pixel.dxbc"))
+};
 
 #[allow(dead_code)]
 #[repr(C)]
