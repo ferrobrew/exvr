@@ -153,7 +153,9 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
         AllocConsole();
 
         let stdout = fdopen(1, c_str!("w").as_ptr());
+        let stderr = fdopen(2, c_str!("w").as_ptr());
         freopen(c_str!("CONOUT$").as_ptr(), c_str!("w").as_ptr(), stdout);
+        freopen(c_str!("CONOUT$").as_ptr(), c_str!("w").as_ptr(), stderr);
     }
 
     let parameters = parameters.as_ref();
@@ -161,7 +163,9 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
 
     std::panic::set_hook(Box::new(|info| {
         match (info.payload().downcast_ref::<&str>(), info.location()) {
-            (Some(msg), Some(loc)) => log!("panic", "Panic! {:?} at {}:{}", msg, loc.file(), loc.line()),
+            (Some(msg), Some(loc)) => {
+                log!("panic", "Panic! {:?} at {}:{}", msg, loc.file(), loc.line())
+            }
             (Some(msg), None) => log!("panic", "Panic! {:?}", msg),
             (None, Some(loc)) => log!("panic", "Panic! at {}:{}", loc.file(), loc.line()),
             (None, None) => log!("panic", "Panic! something at somewhere"),
