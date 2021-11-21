@@ -467,10 +467,86 @@ impl SwapchainBlitter {
     }
 }
 
+struct DebugState {
+    debug_utils: openxr::raw::DebugUtilsEXT,
+    debug_utils_messenger: openxr::sys::DebugUtilsMessengerEXT,
+}
+
+impl DebugState {
+    fn new(entry: &openxr::Entry, instance: &openxr::Instance) -> anyhow::Result<DebugState> {
+        let debug_utils = unsafe { openxr::raw::DebugUtilsEXT::load(entry, instance.as_raw())? };
+        let mut debug_utils_messenger = openxr::sys::DebugUtilsMessengerEXT::NULL;
+
+        unsafe {
+            use openxr::sys as xrs;
+
+            unsafe extern "system" fn user_callback(
+                message_severity: xrs::DebugUtilsMessageSeverityFlagsEXT,
+                message_types: xrs::DebugUtilsMessageTypeFlagsEXT,
+                callback_data: *const xrs::DebugUtilsMessengerCallbackDataEXT,
+                _: *mut std::ffi::c_void,
+            ) -> xrs::Bool32 {
+                use std::ffi::CStr;
+
+                let cb = &*callback_data;
+                log!(
+                    "xr::debug",
+                    "{} {}: {}",
+                    CStr::from_ptr(cb.message_id).to_string_lossy(),
+                    CStr::from_ptr(cb.function_name).to_string_lossy(),
+                    CStr::from_ptr(cb.message).to_string_lossy()
+                );
+
+                xrs::Bool32::from_raw(0)
+            }
+
+            let create_info = xrs::DebugUtilsMessengerCreateInfoEXT {
+                ty: xrs::DebugUtilsMessengerCreateInfoEXT::TYPE,
+                next: std::ptr::null(),
+                message_severities: xrs::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+                    | xrs::DebugUtilsMessageSeverityFlagsEXT::WARNING
+                    | xrs::DebugUtilsMessageSeverityFlagsEXT::ERROR
+                    | xrs::DebugUtilsMessageSeverityFlagsEXT::INFO,
+                message_types: xrs::DebugUtilsMessageTypeFlagsEXT::GENERAL
+                    | xrs::DebugUtilsMessageTypeFlagsEXT::VALIDATION
+                    | xrs::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE,
+                user_callback: Some(user_callback),
+                user_data: std::ptr::null_mut(),
+            };
+
+            (debug_utils.create_debug_utils_messenger)(
+                instance.as_raw(),
+                &create_info,
+                &mut debug_utils_messenger,
+            );
+        };
+
+        Ok(DebugState {
+            debug_utils,
+            debug_utils_messenger,
+        })
+    }
+}
+
+impl Drop for DebugState {
+    fn drop(&mut self) {
+        unsafe {
+            (self.debug_utils.destroy_debug_utils_messenger)(self.debug_utils_messenger);
+        }
+    }
+}
+
 #[allow(dead_code)]
 pub struct XR {
     instance: openxr::Instance,
     session: openxr::Session<openxr::D3D11>,
+
+    instance_properties: openxr::InstanceProperties,
+    system_properties: openxr::SystemProperties,
+    available_extensions: openxr::ExtensionSet,
+
+    debug_state: Option<DebugState>,
+
     frame_waiter: openxr::FrameWaiter,
     frame_stream: openxr::FrameStream<openxr::D3D11>,
     stage: openxr::Space,
@@ -487,21 +563,26 @@ pub struct XR {
 
     old_window_size: (u32, u32),
     frame_size: (u32, u32),
-
-    instance_properties: openxr::InstanceProperties,
-    system_properties: openxr::SystemProperties,
-    available_extensions: openxr::ExtensionSet,
 }
 singleton!(XR);
 
 impl XR {
     pub fn new() -> anyhow::Result<XR> {
+        let validate = cfg!(debug_validation);
+
         let entry = openxr::Entry::linked();
         let available_extensions = entry.enumerate_extensions()?;
         assert!(available_extensions.khr_d3d11_enable);
 
         let mut enabled_extensions = openxr::ExtensionSet::default();
         enabled_extensions.khr_d3d11_enable = true;
+        enabled_extensions.ext_debug_utils = true;
+
+        let mut layers = vec![];
+        if validate {
+            layers.push("XR_APILAYER_LUNARG_core_validation");
+        }
+
         let instance = entry.create_instance(
             &openxr::ApplicationInfo {
                 application_name: "XIVR",
@@ -510,8 +591,12 @@ impl XR {
                 engine_version: 0,
             },
             &enabled_extensions,
-            &[],
+            &layers,
         )?;
+        let debug_state = validate
+            .then(|| DebugState::new(&entry, &instance))
+            .transpose()?;
+
         let instance_properties = instance.properties()?;
         log!("xr", "created instance");
 
@@ -577,6 +662,13 @@ impl XR {
         Ok(XR {
             instance,
             session,
+
+            instance_properties,
+            system_properties,
+            available_extensions,
+
+            debug_state,
+
             frame_waiter,
             frame_stream,
             stage,
@@ -593,10 +685,6 @@ impl XR {
 
             old_window_size,
             frame_size: new_window_size,
-
-            instance_properties,
-            system_properties,
-            available_extensions,
         })
     }
 
