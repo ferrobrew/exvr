@@ -57,7 +57,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
             }
 
             // yolo
-            if !cfg!(dalamud) {
+            if cfg!(not(feature = "dalamud")) {
                 use windows::Win32::Foundation::HWND;
                 use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_F7};
                 use windows::Win32::UI::WindowsAndMessaging::MessageBoxA;

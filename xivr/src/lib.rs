@@ -146,7 +146,7 @@ fn tier2_loaded() -> bool {
 }
 
 unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
-    if !cfg!(dalamud) {
+    if cfg!(not(feature = "dalamud")) {
         use c_str_macro::c_str;
         use libc::{fdopen, freopen};
 
@@ -205,7 +205,7 @@ pub unsafe extern "system" fn xivr_unload() {
 
         Logger::destroy();
 
-        if !cfg!(dalamud) {
+        if cfg!(not(feature = "dalamud")) {
             FreeConsole();
         }
 

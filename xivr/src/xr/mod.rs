@@ -579,7 +579,7 @@ singleton!(XR);
 
 impl XR {
     pub fn new() -> anyhow::Result<XR> {
-        let validate = cfg!(debug_validation);
+        let validate = cfg!(feature = "debug_validation");
 
         let entry = openxr::Entry::linked();
         let available_extensions = entry.enumerate_extensions()?;
