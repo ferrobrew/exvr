@@ -58,14 +58,12 @@ struct Swapchain {
     pub buffer_srv: d3d::ID3D11ShaderResourceView,
     pub buffer_rtv: d3d::ID3D11RenderTargetView,
     pub frame_size: (u32, u32),
-    pub index: u32,
 }
 impl Swapchain {
     fn new(
         session: &openxr::Session<openxr::D3D11>,
         device: d3d::ID3D11Device,
         frame_size: (u32, u32),
-        index: u32,
     ) -> anyhow::Result<Swapchain> {
         use windows::runtime::Abi;
 
@@ -154,7 +152,6 @@ impl Swapchain {
             buffer_srv,
             buffer_rtv,
             frame_size,
-            index,
         })
     }
 
@@ -405,7 +402,11 @@ impl SwapchainBlitter {
         })
     }
 
-    pub unsafe fn blit_to_buffer(&mut self, swapchain: &Swapchain) -> anyhow::Result<()> {
+    pub unsafe fn blit_to_buffer(
+        &mut self,
+        swapchain: &Swapchain,
+        index: u32,
+    ) -> anyhow::Result<()> {
         let dc = kernel::Device::get().device_context();
 
         // Before we do any rendering, update our constant buffer to have the correct data.
@@ -415,11 +416,11 @@ impl SwapchainBlitter {
             d3d::D3D11_MAP_WRITE_DISCARD,
             0,
         )?;
-        *(mapped_resource.pData as *mut BlitParameters) = BlitParameters::new(swapchain.index);
+        *(mapped_resource.pData as *mut BlitParameters) = BlitParameters::new(index);
         dc.Unmap(self.screen_draw_blit_parameters.clone(), 0);
 
         let mut rtv = Some(swapchain.buffer_rtv.clone());
-        dc.ClearRenderTargetView(rtv.clone(), [0.0, 0.0, 0.0, 0.0].as_ptr());
+        dc.ClearRenderTargetView(rtv.clone(), [1.0, 0.0, 0.0, 0.0].as_ptr());
 
         let vertex_count = std::mem::size_of::<Vertex>() as u32;
         let offset = 0;
@@ -487,8 +488,8 @@ impl DebugState {
             use openxr::sys as xrs;
 
             unsafe extern "system" fn user_callback(
-                message_severity: xrs::DebugUtilsMessageSeverityFlagsEXT,
-                message_types: xrs::DebugUtilsMessageTypeFlagsEXT,
+                _message_severity: xrs::DebugUtilsMessageSeverityFlagsEXT,
+                _message_types: xrs::DebugUtilsMessageTypeFlagsEXT,
                 callback_data: *const xrs::DebugUtilsMessengerCallbackDataEXT,
                 _: *mut std::ffi::c_void,
             ) -> xrs::Bool32 {
@@ -542,6 +543,11 @@ impl Drop for DebugState {
     }
 }
 
+struct FrameState {
+    xr_frame_state: openxr::FrameState,
+    views: Vec<openxr::View>,
+}
+
 #[allow(dead_code)]
 pub struct XR {
     instance: openxr::Instance,
@@ -559,13 +565,12 @@ pub struct XR {
     view_configuration_views: Vec<openxr::ViewConfigurationView>,
     session_running: bool,
 
-    swapchains: Vec<Swapchain>,
+    swapchain: Swapchain,
     swapchain_blitter: SwapchainBlitter,
 
     environment_blend_mode: openxr::EnvironmentBlendMode,
-    frame_state: Option<openxr::FrameState>,
-    view_state_flags: openxr::ViewStateFlags,
-    views: Vec<openxr::View>,
+
+    frame_state: Option<FrameState>,
 
     old_window_size: (u32, u32),
     frame_size: (u32, u32),
@@ -659,11 +664,12 @@ impl XR {
         }
         log!("xr", "resized window");
 
-        let swapchains = (0..VIEW_COUNT)
-            .map(|index| Swapchain::new(&session, device.clone(), new_window_size, index))
-            .collect::<anyhow::Result<Vec<_>>>()?;
+        let swapchain = {
+            let size = (new_window_size.0 * VIEW_COUNT, new_window_size.1);
+            Swapchain::new(&session, device.clone(), size)?
+        };
         let swapchain_blitter = SwapchainBlitter::new(device.clone())?;
-        log!("xr", "created swapchains");
+        log!("xr", "created swapchain");
 
         Ok(XR {
             instance,
@@ -681,13 +687,11 @@ impl XR {
             view_configuration_views,
             session_running: false,
 
-            swapchains,
+            swapchain,
             swapchain_blitter,
 
             environment_blend_mode,
             frame_state: None,
-            view_state_flags: openxr::ViewStateFlags::EMPTY,
-            views: vec![],
 
             old_window_size,
             frame_size: new_window_size,
@@ -731,15 +735,31 @@ impl XR {
             }
         }
 
-        if self.session_running && ct_config::xr::RUN_XR_PER_FRAME {
-            if let Some(frame_state) = self.frame_state {
-                let (view_state_flags, views) = self.session.locate_views(
+        log!("xr", "pre_update");
+        if self.session_running {
+            let xr_frame_state = self.frame_waiter.wait()?;
+            log!("xr", "pre_update waited");
+            if xr_frame_state.should_render {
+                let (_, views) = self.session.locate_views(
                     VIEW_TYPE,
-                    frame_state.predicted_display_time,
+                    xr_frame_state.predicted_display_time,
                     &self.stage,
                 )?;
-                self.view_state_flags = view_state_flags;
-                self.views = views;
+                log!("xr", "pre_update frame_state some");
+
+                self.frame_state = Some(FrameState {
+                    xr_frame_state,
+                    views,
+                });
+            } else {
+                // terminate stream submission immediately
+                self.frame_stream.end(
+                    xr_frame_state.predicted_display_time,
+                    self.environment_blend_mode,
+                    &[],
+                )?;
+                log!("xr", "pre_update frame_state none");
+                self.frame_state = None;
             }
         }
 
@@ -747,75 +767,70 @@ impl XR {
     }
 
     pub fn post_update(&mut self) -> anyhow::Result<()> {
+        log!("xr", "post_update pre");
+        if let Some(frame_state) = &self.frame_state {
+            let swapchain_ref = &self.swapchain.swapchain;
+            let views = frame_state
+                .views
+                .iter()
+                .enumerate()
+                .map(|(index, view)| {
+                    let rect = openxr::Rect2Di {
+                        offset: openxr::Offset2Di {
+                            x: (index * self.frame_size.0 as usize) as _,
+                            y: 0,
+                        },
+                        extent: openxr::Extent2Di {
+                            width: self.frame_size.0 as _,
+                            height: self.frame_size.1 as _,
+                        },
+                    };
+
+                    openxr::CompositionLayerProjectionView::new()
+                        .pose(view.pose)
+                        .fov(view.fov)
+                        .sub_image(
+                            openxr::SwapchainSubImage::new()
+                                .swapchain(swapchain_ref)
+                                .image_rect(rect),
+                        )
+                })
+                .collect::<Vec<_>>();
+
+            log!("xr", "post_render pre-end");
+            self.frame_stream.end(
+                frame_state.xr_frame_state.predicted_display_time,
+                self.environment_blend_mode,
+                &[&openxr::CompositionLayerProjection::new()
+                    .space(&self.stage)
+                    .views(&views)],
+            )?;
+
+            self.frame_state = None;
+            log!("xr", "post_update post");
+        }
+
         Ok(())
     }
 
     pub fn pre_render(&mut self) -> anyhow::Result<()> {
-        if !(self.session_running && ct_config::xr::RUN_XR_PER_FRAME) {
-            return Ok(());
+        log!("xr", "pre_render");
+        if let Some(_) = &self.frame_state {
+            self.frame_stream.begin()?;
         }
-
-        self.frame_state = Some(self.frame_waiter.wait()?);
-
-        for swapchain in &mut self.swapchains {
-            swapchain.acquire_image()?;
-        }
-
-        self.frame_stream.begin()?;
-
         Ok(())
     }
 
     pub fn post_render(&mut self) -> anyhow::Result<()> {
-        if !(self.session_running && ct_config::xr::RUN_XR_PER_FRAME) {
-            return Ok(());
+        if let Some(_) = &self.frame_state {
+            log!("xr", "post_render pre");
+            log!("xr", "post_render copy from buffer");
+            self.swapchain.acquire_image()?;
+            self.swapchain.copy_from_buffer()?;
+            self.swapchain.release_image()?;
+            log!("xr", "post_render release_image");
+            log!("xr", "post_render post");
         }
-
-        if self.frame_state.is_none() {
-            return Ok(());
-        }
-
-        let frame_state = self.frame_state.as_ref().unwrap();
-
-        for swapchain in &mut self.swapchains {
-            swapchain.copy_from_buffer()?;
-        }
-
-        for swapchain in &mut self.swapchains {
-            swapchain.release_image()?;
-        }
-
-        let views = self
-            .views
-            .iter()
-            .zip(&self.swapchains)
-            .map(|(v, s)| {
-                let rect = openxr::Rect2Di {
-                    offset: openxr::Offset2Di { x: 0, y: 0 },
-                    extent: openxr::Extent2Di {
-                        width: self.frame_size.0 as _,
-                        height: self.frame_size.1 as _,
-                    },
-                };
-
-                openxr::CompositionLayerProjectionView::new()
-                    .pose(v.pose)
-                    .fov(v.fov)
-                    .sub_image(
-                        openxr::SwapchainSubImage::new()
-                            .swapchain(&s.swapchain)
-                            .image_rect(rect),
-                    )
-            })
-            .collect::<Vec<_>>();
-
-        self.frame_stream.end(
-            frame_state.predicted_display_time,
-            self.environment_blend_mode,
-            &[&openxr::CompositionLayerProjection::new()
-                .space(&self.stage)
-                .views(&views)],
-        )?;
 
         Ok(())
     }
@@ -830,10 +845,8 @@ impl XR {
         let color = ig::Color::new(0.0, 0.0, 0.0, 1.0);
 
         ig::new_line();
-        for swapchain in &self.swapchains {
-            ig::same_line(None, Some(0.0));
-            swapchain.render_button(size, color)?;
-        }
+        ig::same_line(None, Some(0.0));
+        self.swapchain.render_button(size, color)?;
 
         Ok(())
     }
@@ -883,11 +896,8 @@ impl XR {
 
     pub fn copy_backbuffer_to_buffer(&mut self, index: u32) -> anyhow::Result<()> {
         unsafe {
-            self.swapchain_blitter.blit_to_buffer(
-                self.swapchains
-                    .get(index as usize)
-                    .ok_or_else(|| anyhow::anyhow!("no swapchain for index"))?,
-            )
+            self.swapchain_blitter
+                .blit_to_buffer(&self.swapchain, index)
         }
     }
 }
