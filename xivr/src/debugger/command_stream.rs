@@ -464,6 +464,7 @@ impl CommandStream {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_message(&mut self, msg: String, submsgs: Vec<String>) -> anyhow::Result<()> {
         match &mut self.state {
             CommandStreamState::Capturing {

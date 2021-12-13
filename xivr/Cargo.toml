@@ -60,3 +60,4 @@ normpath = "0.3.0"
 [features]
 dalamud = []
 debug_validation = []
+hook_constantbuffers_for_camera_upload = []
