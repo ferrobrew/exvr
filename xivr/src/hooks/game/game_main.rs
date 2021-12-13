@@ -15,7 +15,11 @@ impl Drop for HookState {
     fn drop(&mut self) {
         let res = unsafe { GameMain_Update_Detour.disable() };
         if let Err(e) = res {
-            log!("error", "error while disabling game detour: {}", e.to_string())
+            log!(
+                "error",
+                "error while disabling game detour: {}",
+                e.to_string()
+            )
         }
     }
 }
@@ -24,8 +28,9 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
     let module = GAME_MODULE
         .get()
         .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
-    let gamemain_update: fn(usize) -> usize =
-        mem::transmute(module.rel_to_abs_addr(offsets::functions::Game_GameMain_Update as isize));
+    let gamemain_update: fn(usize) -> usize = mem::transmute(
+        module.rel_to_abs_addr(offsets::classes::game::GameMain::funcs::Update as isize),
+    );
 
     GameMain_Update_Detour.initialize(gamemain_update, |s| {
         util::handle_error_in_block(|| {
@@ -53,12 +58,17 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
 
             // yolo
             if !cfg!(dalamud) {
+                use windows::Win32::Foundation::HWND;
                 use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_F7};
                 use windows::Win32::UI::WindowsAndMessaging::MessageBoxA;
-                use windows::Win32::Foundation::HWND;
 
                 if (GetAsyncKeyState(VK_F7.0.into()) & 0x01) != 0 {
-                    MessageBoxA(HWND::default(), "unloading", "unloading", Default::default());
+                    MessageBoxA(
+                        HWND::default(),
+                        "unloading",
+                        "unloading",
+                        Default::default(),
+                    );
                     crate::xivr_unload();
                 }
             }
