@@ -215,6 +215,7 @@ pub unsafe extern "system" fn xivr_unload() {
 
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
+#[cfg(feature = "dalamud")]
 pub unsafe extern "system" fn xivr_draw_ui() {
     util::handle_error_in_block(|| {
         if let Some(debugger) = debugger::Debugger::get_mut() {
@@ -227,7 +228,7 @@ pub unsafe extern "system" fn xivr_draw_ui() {
 #[no_mangle]
 #[allow(non_snake_case)]
 #[allow(clippy::missing_safety_doc)]
-#[cfg(dalamud)]
+#[cfg(feature = "dalamud")]
 pub unsafe extern "system" fn DllMain(module: HINSTANCE, _reason: u32, _: *mut c_void) -> bool {
     if THIS_MODULE.is_none() {
         THIS_MODULE = Some(module);
@@ -238,7 +239,7 @@ pub unsafe extern "system" fn DllMain(module: HINSTANCE, _reason: u32, _: *mut c
 #[no_mangle]
 #[allow(non_snake_case)]
 #[allow(clippy::missing_safety_doc)]
-#[cfg(not(dalamud))]
+#[cfg(not(feature = "dalamud"))]
 pub unsafe extern "system" fn DllMain(module: HINSTANCE, reason: u32, _: *mut c_void) -> bool {
     use windows::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
 

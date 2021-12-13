@@ -58,6 +58,7 @@ registry = "1.2.0"
 normpath = "0.3.0"
 
 [features]
+default = ["dalamud"]
 dalamud = []
 debug_validation = []
 hook_constantbuffers_for_camera_upload = []
