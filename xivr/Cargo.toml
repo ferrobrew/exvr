@@ -56,6 +56,8 @@ anyhow = "1.0"
 quote = "1.0"
 registry = "1.2.0"
 normpath = "0.3.0"
+convert_case = "0.4.0"
+proc-macro2 = "1.0.33"
 
 [features]
 default = ["dalamud"]

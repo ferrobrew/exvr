@@ -37,7 +37,7 @@
     <Content Include="xivr.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="../../external/ImGui.NET/deps/cimgui/win-x64/cimgui.dll">
+    <Content Include="../../external/ImGui.NET/src/ImGui.NET-472/natives/cimgui.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

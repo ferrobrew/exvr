@@ -8,7 +8,7 @@ use windows::Win32::Graphics::Direct3D11::{
 
 game_class!(Device, {
     size: 0x210,
-    location: offsets::globals::KernelDevice,
+    location: offsets::classes::graphics::kernel::Device::INSTANCES[0],
     fields: {
         [0x8] contexts: *mut Context,
         [0x10] immediate_context: &'static mut ImmediateContext,

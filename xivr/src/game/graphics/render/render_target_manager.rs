@@ -4,7 +4,7 @@ use macros::game_class;
 
 game_class!(RenderTargetManager, {
     size: 0x3D8,
-    location: offsets::globals::RenderTargetManager,
+    location: offsets::classes::graphics::render::RenderTargetManager::INSTANCES[0],
     fields: {
         [0x58] rendered_game: &'static Texture,
 
