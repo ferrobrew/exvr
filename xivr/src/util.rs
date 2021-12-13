@@ -9,7 +9,7 @@ macro_rules! singleton {
                 unsafe {
                     INSTANCE
                         .set(<$class_name>::new( $($arg_name),* )?)
-                        .map_err(|_| anyhow::Error::msg("failed to set command stream"))?
+                        .map_err(|_| anyhow::Error::msg("failed to set singleton"))?
                 };
 
                 Ok(())

@@ -51,9 +51,11 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 xr.post_update()?;
             }
 
-            if crate::tier1_loaded() && !crate::tier2_loaded() {
-                crate::tier2_load()?;
-                assert!(crate::tier2_loaded());
+            if crate::tier2_loadable() {
+                let load_result = crate::load_tier2();
+                if let Err(err) = load_result {
+                    crate::load_fail(err.to_string());
+                }
             }
 
             // yolo

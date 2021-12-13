@@ -19,7 +19,9 @@ use log::Logger;
 use module::{Module, GAME_MODULE};
 
 use std::os::raw::c_void;
-use std::sync::atomic::{AtomicBool, Ordering};
+
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
 
 use anyhow::{Error, Result};
 use cimgui as ig;
@@ -28,9 +30,15 @@ use windows::Win32::System::Console::{AllocConsole, FreeConsole};
 use windows::Win32::System::LibraryLoader::FreeLibraryAndExitThread;
 
 static mut THIS_MODULE: Option<HINSTANCE> = None;
-// should use a state machine for this, but don't want to deal with atomicity yet
-static mut TIER1_LOADED: AtomicBool = AtomicBool::new(false);
-static mut TIER2_LOADED: AtomicBool = AtomicBool::new(false);
+
+#[derive(PartialEq)]
+enum LoadState {
+    Init,
+    Tier1Loaded,
+    Tier2Loaded,
+    Failure(String)
+}
+static LOAD_STATE: Lazy<Mutex<LoadState>> = Lazy::new(|| Mutex::new(LoadState::Init));
 
 #[repr(C, packed)]
 pub struct LoadParameters {
@@ -92,7 +100,7 @@ unsafe fn patch_symbol_search_path() -> Result<()> {
     Ok(())
 }
 
-unsafe fn tier1_load(parameters: Option<&LoadParameters>) -> Result<()> {
+unsafe fn load_tier1(parameters: Option<&LoadParameters>) -> Result<()> {
     log!("tier1", "start");
     let mut modules = Module::get_all();
     let ffxiv_module = modules
@@ -123,26 +131,27 @@ unsafe fn tier1_load(parameters: Option<&LoadParameters>) -> Result<()> {
         );
         log!("tier1", "initialised imgui");
     }
-    TIER1_LOADED.store(true, Ordering::SeqCst);
+    *LOAD_STATE.lock().unwrap() = LoadState::Tier1Loaded;
     log!("tier1", "complete");
 
     Ok(())
 }
 
-fn tier1_loaded() -> bool {
-    unsafe { TIER1_LOADED.load(Ordering::SeqCst) }
-}
-
-unsafe fn tier2_load() -> Result<()> {
+unsafe fn load_tier2() -> Result<()> {
     log!("tier2", "start");
     xr::XR::create()?;
-    TIER2_LOADED.store(true, Ordering::SeqCst);
+    *LOAD_STATE.lock().unwrap() = LoadState::Tier2Loaded;
     log!("tier2", "complete");
     Ok(())
 }
 
-fn tier2_loaded() -> bool {
-    unsafe { TIER2_LOADED.load(Ordering::SeqCst) }
+fn tier2_loadable() -> bool {
+    *LOAD_STATE.lock().unwrap() == LoadState::Tier1Loaded
+}
+
+fn load_fail(msg: String) {
+    log!("load", "failed: {}", msg);
+    *LOAD_STATE.lock().unwrap() = LoadState::Failure(msg);
 }
 
 unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
@@ -174,7 +183,7 @@ unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
         log!("panic", "{:?}", backtrace::Backtrace::new_unresolved());
     }));
 
-    let r = std::panic::catch_unwind(|| tier1_load(parameters));
+    let r = std::panic::catch_unwind(|| load_tier1(parameters));
     match r {
         Ok(Ok(())) => Ok(()),
         Ok(Err(err)) => Err(err),
