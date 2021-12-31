@@ -62,23 +62,6 @@ namespace XIVR
             return NativeLibrary.GetExport(this.module, name);
         }
 
-        private void Reload()
-        {
-            PluginLog.Information("Reloading...");
-
-            if (this.module != IntPtr.Zero)
-            {
-                // On unload, we resize the window. This causes the D3D device to be invalidated,
-                // and we don't want to start up OpenXR with an invalid device.
-                // Instead, let's use more jank to delay the startup until we can be sure we're good to go.
-                this.Unload(() => Task.Delay(2500).ContinueWith(_ => this.Load()));
-            }
-            else
-            {
-                this.Load();
-            }
-        }
-
         private void Unload(Action onUnload)
         {
             if (this.module == IntPtr.Zero) return;
@@ -131,10 +114,6 @@ namespace XIVR
         {
             if (ImGui.Begin("XIVR Loader", ref this.visible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
             {
-                if (ImGui.Button("Reload"))
-                {
-                    Reload();
-                }
                 if (this.module == IntPtr.Zero)
                 {
                     if (ImGui.Button("Load"))
