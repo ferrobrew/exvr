@@ -18,37 +18,26 @@ impl Logger {
         })
     }
 
-    pub fn log(&self, tag: &str, msg: &str) {
+    pub fn log(&self, tag: &str, msg: &str) -> anyhow::Result<()> {
         let s = format!("[{}] {}", tag, msg);
 
-        let c_str = CString::new(s.as_str()).unwrap();
-        let logger = self.logger.lock().unwrap();
-        if let Some(logger) = *logger {
-            logger(c_str.as_ptr());
+        if let Ok(logger) = self.logger.lock() {
+            if let Some(logger) = *logger {
+                let c_str = CString::new(s.as_str())?;
+                logger(c_str.as_ptr());
+            }
         }
         println!("{}", s);
+
+        Ok(())
     }
 }
 
 #[macro_export]
 macro_rules! log {
     ($tag:expr, $($arg:tt)*) => {
-        crate::log::Logger::get_mut().unwrap().log($tag, &format!($($arg)*))
-    }
-}
-
-#[macro_export]
-macro_rules! dlog {
-    ($e:expr) => {
-        match $e {
-            tmp => {
-                crate::log::Logger::get_mut().unwrap().log(&format!(
-                    "{}: {:?}",
-                    stringify!($e),
-                    tmp
-                ));
-                tmp
-            }
+        if let Some(logger) = crate::log::Logger::get_mut() {
+            let _ = logger.log($tag, &format!($($arg)*));
         }
-    };
+    }
 }

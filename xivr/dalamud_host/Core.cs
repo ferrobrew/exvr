@@ -38,8 +38,6 @@ namespace XIVR
         private string DirPath { get => Path.GetFullPath(Path.GetDirectoryName(assemblyLocation)!); }
         private string ModuleName(string ext) => "xivr_native" + "." + ext;
         private string ModulePath(string ext) => Path.Combine(DirPath, ModuleName(ext));
-        private string ModuleLoadedName(string ext) => "xivr_native_loaded" + "." + ext;
-        private string ModuleLoadedPath(string ext) => Path.Combine(DirPath, ModuleLoadedName(ext));
         private IntPtr module = IntPtr.Zero;
         private bool visible = true;
 
@@ -89,10 +87,8 @@ namespace XIVR
             {
                 ((delegate* unmanaged<void>)ModuleFunction("xivr_unload"))();
             }
-            NativeLibrary.Free(this.module);
             this.module = IntPtr.Zero;
 
-            PluginLog.Information("Destroyed module");
             onUnload();
         }
 
@@ -100,10 +96,7 @@ namespace XIVR
         {
             if (this.module != IntPtr.Zero) return;
 
-            File.Copy(ModulePath("dll"), ModuleLoadedPath("dll"), true);
-            File.Copy(ModulePath("pdb"), ModuleLoadedPath("pdb"), true);
-
-            this.module = NativeLibrary.Load(ModuleLoadedPath("dll"));
+            this.module = NativeLibrary.Load(ModulePath("dll"));
             if (this.module == IntPtr.Zero)
             {
                 throw new Exception(string.Format("Failed to load native module: {0}", Marshal.GetLastWin32Error()));

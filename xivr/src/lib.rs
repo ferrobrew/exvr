@@ -27,7 +27,6 @@ use anyhow::{Error, Result};
 use cimgui as ig;
 use windows::Win32::Foundation::HINSTANCE;
 use windows::Win32::System::Console::{AllocConsole, FreeConsole};
-use windows::Win32::System::LibraryLoader::FreeLibraryAndExitThread;
 
 static mut THIS_MODULE: Option<HINSTANCE> = None;
 
@@ -205,12 +204,16 @@ pub unsafe extern "system" fn xivr_load(parameters: *const LoadParameters) -> bo
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn xivr_unload() {
+    log!("xivr", "unloading!");
+    HookState::destroy();
+    hooks::Patcher::destroy();
+
     std::thread::spawn(|| {
-        log!("xivr", "unloading!");
+        use windows::Win32::System::LibraryLoader::FreeLibraryAndExitThread;
+        std::thread::sleep(std::time::Duration::from_millis(100)); // bodge
+
         xr::XR::destroy();
-        HookState::destroy();
         debugger::Debugger::destroy();
-        hooks::Patcher::destroy();
 
         Logger::destroy();
 
