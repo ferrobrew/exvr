@@ -1,547 +1,14 @@
+mod debug_state;
+mod swapchain;
+mod swapchain_blitter;
+
 use crate::ct_config;
-use crate::debugger::Debugger;
 use crate::game::graphics::kernel;
 use crate::game::system::framework;
 use crate::singleton;
 
-use windows::Win32::Graphics::Direct3D11 as d3d;
-use windows::Win32::Graphics::Dxgi as dxgi;
-
 pub use crate::ct_config::xr::VIEW_COUNT;
 const VIEW_TYPE: openxr::ViewConfigurationType = openxr::ViewConfigurationType::PRIMARY_STEREO;
-
-const SCREEN_DRAW_VERTEX_DXBC: &[u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/xivr_screen_draw_vertex.dxbc"));
-const SCREEN_DRAW_PIXEL_DXBC: &[u8] = if ct_config::xr::USE_RG_DEBUG_SHADER {
-    include_bytes!(concat!(
-        env!("OUT_DIR"),
-        "/xivr_screen_draw_rg_debug_pixel.dxbc"
-    ))
-} else {
-    include_bytes!(concat!(env!("OUT_DIR"), "/xivr_screen_draw_pixel.dxbc"))
-};
-
-#[allow(dead_code)]
-#[repr(C)]
-struct Vertex {
-    position: [f32; 4],
-    uv: [f32; 2],
-}
-impl Vertex {
-    const fn new(position: [f32; 4], uv: [f32; 2]) -> Vertex {
-        Vertex { position, uv }
-    }
-}
-
-#[allow(dead_code)]
-#[repr(C)]
-struct BlitParameters {
-    pub total_view_count: u32,
-    pub view_index: u32,
-    _pad: u64,
-}
-impl BlitParameters {
-    const fn new(view_index: u32) -> BlitParameters {
-        // We're only blitting one eye to one image
-        BlitParameters {
-            total_view_count: 1,
-            view_index,
-            _pad: 0,
-        }
-    }
-}
-
-struct Swapchain {
-    swapchain: openxr::Swapchain<openxr::D3D11>,
-    swapchain_image: d3d::ID3D11Texture2D,
-    buffer_image: d3d::ID3D11Texture2D,
-    pub buffer_srv: d3d::ID3D11ShaderResourceView,
-    pub buffer_rtv: d3d::ID3D11RenderTargetView,
-    pub frame_size: (u32, u32),
-}
-impl Swapchain {
-    fn new(
-        session: &openxr::Session<openxr::D3D11>,
-        device: d3d::ID3D11Device,
-        frame_size: (u32, u32),
-    ) -> anyhow::Result<Swapchain> {
-        use windows::runtime::Abi;
-
-        let mut swapchain = session.create_swapchain(&openxr::SwapchainCreateInfo {
-            create_flags: openxr::SwapchainCreateFlags::EMPTY,
-            usage_flags: openxr::SwapchainUsageFlags::COLOR_ATTACHMENT
-                | openxr::SwapchainUsageFlags::SAMPLED,
-            format: dxgi::DXGI_FORMAT_R8G8B8A8_UNORM.0,
-            sample_count: 1,
-            width: frame_size.0,
-            height: frame_size.1,
-            face_count: 1,
-            array_size: 1,
-            mip_count: 1,
-        })?;
-
-        let swapchain_image: d3d::ID3D11Texture2D = swapchain
-            .enumerate_images()?
-            .iter()
-            .map(|x| unsafe { d3d::ID3D11Texture2D::from_abi(*x as *mut _) })
-            .next()
-            .ok_or_else(|| anyhow::Error::msg("Could not retrieve swapchain image!"))??;
-
-        let mut swapchain_desc: d3d::D3D11_TEXTURE2D_DESC = unsafe { std::mem::zeroed() };
-        {
-            swapchain.acquire_image()?;
-            swapchain.wait_image(openxr::Duration::INFINITE)?;
-            unsafe {
-                swapchain_image.GetDesc(&mut swapchain_desc);
-            }
-            swapchain.release_image()?;
-        }
-
-        let texture_format = dxgi::DXGI_FORMAT_R8G8B8A8_UNORM;
-
-        let buffer_image: d3d::ID3D11Texture2D = unsafe {
-            device.CreateTexture2D(
-                &d3d::D3D11_TEXTURE2D_DESC {
-                    Width: swapchain_desc.Width,
-                    Height: swapchain_desc.Height,
-                    MipLevels: 1,
-                    ArraySize: 1,
-                    Format: texture_format,
-                    SampleDesc: dxgi::DXGI_SAMPLE_DESC {
-                        Count: 1,
-                        Quality: 0,
-                    },
-                    Usage: d3d::D3D11_USAGE_DEFAULT,
-                    BindFlags: d3d::D3D11_BIND_SHADER_RESOURCE | d3d::D3D11_BIND_RENDER_TARGET,
-                    CPUAccessFlags: d3d::D3D11_CPU_ACCESS_FLAG(0),
-                    MiscFlags: d3d::D3D11_RESOURCE_MISC_FLAG(0),
-                },
-                std::ptr::null(),
-            )?
-        };
-
-        let buffer_srv = unsafe {
-            let desc = d3d::D3D11_SHADER_RESOURCE_VIEW_DESC {
-                Format: texture_format,
-                ViewDimension: d3d::D3D_SRV_DIMENSION_TEXTURE2D,
-                Anonymous: d3d::D3D11_SHADER_RESOURCE_VIEW_DESC_0 {
-                    Texture2D: d3d::D3D11_TEX2D_SRV {
-                        MostDetailedMip: 0,
-                        MipLevels: 1,
-                    },
-                },
-            };
-            device.CreateShaderResourceView(buffer_image.clone(), &desc)?
-        };
-
-        let buffer_rtv = unsafe {
-            let desc = d3d::D3D11_RENDER_TARGET_VIEW_DESC {
-                Format: texture_format,
-                ViewDimension: d3d::D3D11_RTV_DIMENSION_TEXTURE2D,
-                Anonymous: d3d::D3D11_RENDER_TARGET_VIEW_DESC_0 {
-                    Texture2D: d3d::D3D11_TEX2D_RTV { MipSlice: 0 },
-                },
-            };
-            device.CreateRenderTargetView(buffer_image.clone(), &desc)?
-        };
-
-        Ok(Swapchain {
-            swapchain,
-            swapchain_image,
-            buffer_image,
-            buffer_srv,
-            buffer_rtv,
-            frame_size,
-        })
-    }
-
-    fn acquire_image(&mut self) -> anyhow::Result<()> {
-        self.swapchain.acquire_image()?;
-        Ok(self.swapchain.wait_image(openxr::Duration::INFINITE)?)
-    }
-
-    fn release_image(&mut self) -> anyhow::Result<()> {
-        Ok(self.swapchain.release_image()?)
-    }
-
-    fn copy_from_buffer(&mut self) -> anyhow::Result<()> {
-        unsafe {
-            let device_context = kernel::Device::get().device_context_ptr();
-            (*device_context).CopyResource(self.swapchain_image.clone(), self.buffer_image.clone());
-        }
-        Ok(())
-    }
-
-    fn render_button(&self, size: cimgui::Vec2, color: cimgui::Color) -> anyhow::Result<()> {
-        if cimgui::image_button(
-            unsafe { std::mem::transmute(self.buffer_srv.clone()) },
-            size,
-            None,
-            None,
-            None,
-            Some(color),
-            None,
-        ) {
-            if let Some(debugger) = Debugger::get_mut() {
-                debugger.inspect_d3d_texture(
-                    self.buffer_image.clone(),
-                    Some(self.buffer_srv.clone()),
-                )?;
-            }
-        }
-
-        Ok(())
-    }
-}
-
-struct SwapchainBlitter {
-    screen_draw_vertex: d3d::ID3D11VertexShader,
-    screen_draw_pixel: d3d::ID3D11PixelShader,
-    screen_draw_blit_parameters: d3d::ID3D11Buffer,
-    input_layout: d3d::ID3D11InputLayout,
-    vertex_buffer: d3d::ID3D11Buffer,
-    sampler_state: d3d::ID3D11SamplerState,
-    blend_state: d3d::ID3D11BlendState,
-    rasterizer_state: d3d::ID3D11RasterizerState,
-    depth_stencil_state: d3d::ID3D11DepthStencilState,
-    some_global_struct: *const u8,
-}
-impl SwapchainBlitter {
-    fn new(device: d3d::ID3D11Device) -> anyhow::Result<SwapchainBlitter> {
-        let (screen_draw_vertex, screen_draw_pixel) = unsafe {
-            use core::ffi::c_void;
-            (
-                device.CreateVertexShader(
-                    SCREEN_DRAW_VERTEX_DXBC.as_ptr() as *const c_void,
-                    SCREEN_DRAW_VERTEX_DXBC.len(),
-                    None,
-                )?,
-                device.CreatePixelShader(
-                    SCREEN_DRAW_PIXEL_DXBC.as_ptr() as *const c_void,
-                    SCREEN_DRAW_PIXEL_DXBC.len(),
-                    None,
-                )?,
-            )
-        };
-
-        let screen_draw_blit_parameters = unsafe {
-            let mut default = BlitParameters::new(0);
-            device.CreateBuffer(
-                &d3d::D3D11_BUFFER_DESC {
-                    ByteWidth: std::mem::size_of::<BlitParameters>() as u32,
-                    Usage: d3d::D3D11_USAGE_DYNAMIC,
-                    BindFlags: d3d::D3D11_BIND_CONSTANT_BUFFER.0,
-                    CPUAccessFlags: d3d::D3D11_CPU_ACCESS_WRITE.0,
-                    MiscFlags: 0,
-                    StructureByteStride: 0,
-                },
-                &d3d::D3D11_SUBRESOURCE_DATA {
-                    pSysMem: &mut default as *mut BlitParameters as *mut _,
-                    SysMemPitch: 0,
-                    SysMemSlicePitch: 0,
-                },
-            )?
-        };
-
-        let input_layout = unsafe {
-            use core::ffi::c_void;
-
-            let input_layout_definition: [d3d::D3D11_INPUT_ELEMENT_DESC; 2] = [
-                d3d::D3D11_INPUT_ELEMENT_DESC {
-                    SemanticName: std::mem::transmute(b"POSITION\0".as_ptr()),
-                    SemanticIndex: 0,
-                    Format: dxgi::DXGI_FORMAT_R32G32B32A32_FLOAT,
-                    InputSlot: 0,
-                    AlignedByteOffset: 0,
-                    InputSlotClass: d3d::D3D11_INPUT_PER_VERTEX_DATA,
-                    InstanceDataStepRate: 0,
-                },
-                d3d::D3D11_INPUT_ELEMENT_DESC {
-                    SemanticName: std::mem::transmute(b"UV\0".as_ptr()),
-                    SemanticIndex: 0,
-                    Format: dxgi::DXGI_FORMAT_R32G32_FLOAT,
-                    InputSlot: 0,
-                    AlignedByteOffset: d3d::D3D11_APPEND_ALIGNED_ELEMENT,
-                    InputSlotClass: d3d::D3D11_INPUT_PER_VERTEX_DATA,
-                    InstanceDataStepRate: 0,
-                },
-            ];
-
-            device.CreateInputLayout(
-                input_layout_definition.as_ptr(),
-                input_layout_definition.len() as u32,
-                SCREEN_DRAW_VERTEX_DXBC.as_ptr() as *const c_void,
-                SCREEN_DRAW_VERTEX_DXBC.len() as usize,
-            )?
-        };
-
-        let vertex_buffer = unsafe {
-            const MIN: f32 = -1.0;
-            const MAX: f32 = 1.0;
-
-            const VERTICES: [Vertex; 6] = [
-                Vertex::new([MAX, MAX, 0.0, 1.0], [1.0, 0.0]),
-                Vertex::new([MIN, MAX, 0.0, 1.0], [0.0, 0.0]),
-                Vertex::new([MIN, MIN, 0.0, 1.0], [0.0, 1.0]),
-                // ---
-                Vertex::new([MAX, MIN, 0.0, 1.0], [1.0, 1.0]),
-                Vertex::new([MAX, MAX, 0.0, 1.0], [1.0, 0.0]),
-                Vertex::new([MIN, MIN, 0.0, 1.0], [0.0, 1.0]),
-            ];
-
-            let vertex_buffer_desc = d3d::D3D11_BUFFER_DESC {
-                Usage: d3d::D3D11_USAGE_DEFAULT,
-                ByteWidth: (std::mem::size_of::<Vertex>() * VERTICES.len()) as u32,
-                BindFlags: d3d::D3D11_BIND_VERTEX_BUFFER.0,
-                CPUAccessFlags: 0,
-                MiscFlags: 0,
-                StructureByteStride: 0,
-            };
-
-            let vertex_data_desc = d3d::D3D11_SUBRESOURCE_DATA {
-                pSysMem: VERTICES.as_ptr() as *const _ as *mut _,
-                SysMemPitch: 0,
-                SysMemSlicePitch: 0,
-            };
-
-            device.CreateBuffer(&vertex_buffer_desc, &vertex_data_desc)?
-        };
-
-        let sampler_state = unsafe {
-            device.CreateSamplerState(&d3d::D3D11_SAMPLER_DESC {
-                Filter: d3d::D3D11_FILTER_MIN_MAG_MIP_LINEAR,
-                AddressU: d3d::D3D11_TEXTURE_ADDRESS_WRAP,
-                AddressV: d3d::D3D11_TEXTURE_ADDRESS_WRAP,
-                AddressW: d3d::D3D11_TEXTURE_ADDRESS_WRAP,
-                MipLODBias: 0.0,
-                MaxAnisotropy: 1,
-                ComparisonFunc: d3d::D3D11_COMPARISON_ALWAYS,
-                BorderColor: [0.0, 0.0, 0.0, 0.0],
-                MinLOD: 0.0,
-                MaxLOD: d3d::D3D11_FLOAT32_MAX,
-            })?
-        };
-
-        let blend_state = unsafe {
-            device.CreateBlendState(&d3d::D3D11_BLEND_DESC {
-                AlphaToCoverageEnable: false.into(),
-                IndependentBlendEnable: false.into(),
-                RenderTarget: [d3d::D3D11_RENDER_TARGET_BLEND_DESC {
-                    BlendEnable: true.into(),
-                    SrcBlend: d3d::D3D11_BLEND_SRC_ALPHA,
-                    DestBlend: d3d::D3D11_BLEND_INV_SRC_ALPHA,
-                    BlendOp: d3d::D3D11_BLEND_OP_ADD,
-                    SrcBlendAlpha: d3d::D3D11_BLEND_ONE,
-                    DestBlendAlpha: d3d::D3D11_BLEND_INV_SRC_ALPHA,
-                    BlendOpAlpha: d3d::D3D11_BLEND_OP_ADD,
-                    RenderTargetWriteMask: d3d::D3D11_COLOR_WRITE_ENABLE_ALL.0 as u8,
-                }; 8],
-            })?
-        };
-
-        let rasterizer_state = unsafe {
-            device.CreateRasterizerState(&d3d::D3D11_RASTERIZER_DESC {
-                FillMode: d3d::D3D11_FILL_SOLID,
-                CullMode: d3d::D3D11_CULL_NONE,
-                FrontCounterClockwise: false.into(),
-                DepthBias: 0,
-                DepthBiasClamp: 0.0,
-                SlopeScaledDepthBias: 0.0,
-                ScissorEnable: true.into(),
-                DepthClipEnable: true.into(),
-                MultisampleEnable: false.into(),
-                AntialiasedLineEnable: false.into(),
-            })?
-        };
-
-        let depth_stencil_state = unsafe {
-            device.CreateDepthStencilState(&d3d::D3D11_DEPTH_STENCIL_DESC {
-                DepthEnable: false.into(),
-                DepthWriteMask: d3d::D3D11_DEPTH_WRITE_MASK_ALL,
-                DepthFunc: d3d::D3D11_COMPARISON_ALWAYS,
-                StencilEnable: false.into(),
-                StencilReadMask: 0,
-                StencilWriteMask: 0,
-                FrontFace: d3d::D3D11_DEPTH_STENCILOP_DESC {
-                    StencilFailOp: d3d::D3D11_STENCIL_OP_KEEP,
-                    StencilDepthFailOp: d3d::D3D11_STENCIL_OP_KEEP,
-                    StencilPassOp: d3d::D3D11_STENCIL_OP_KEEP,
-                    StencilFunc: d3d::D3D11_COMPARISON_ALWAYS,
-                },
-                BackFace: d3d::D3D11_DEPTH_STENCILOP_DESC {
-                    StencilFailOp: d3d::D3D11_STENCIL_OP_KEEP,
-                    StencilDepthFailOp: d3d::D3D11_STENCIL_OP_KEEP,
-                    StencilPassOp: d3d::D3D11_STENCIL_OP_KEEP,
-                    StencilFunc: d3d::D3D11_COMPARISON_ALWAYS,
-                },
-            })?
-        };
-
-        let some_global_struct = unsafe {
-            use crate::module::GAME_MODULE;
-            let module = GAME_MODULE
-                .get()
-                .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
-
-            let mystery_function: fn() -> *const u8 =
-                std::mem::transmute(module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 58 60")?);
-            mystery_function()
-        };
-
-        Ok(SwapchainBlitter {
-            screen_draw_vertex,
-            screen_draw_pixel,
-            screen_draw_blit_parameters,
-            input_layout,
-            vertex_buffer,
-            sampler_state,
-            blend_state,
-            rasterizer_state,
-            depth_stencil_state,
-            some_global_struct,
-        })
-    }
-
-    pub unsafe fn blit_to_buffer(
-        &mut self,
-        swapchain: &Swapchain,
-        index: u32,
-    ) -> anyhow::Result<()> {
-        let dc = kernel::Device::get().device_context();
-
-        // Before we do any rendering, update our constant buffer to have the correct data.
-        let mapped_resource = dc.Map(
-            self.screen_draw_blit_parameters.clone(),
-            0,
-            d3d::D3D11_MAP_WRITE_DISCARD,
-            0,
-        )?;
-        *(mapped_resource.pData as *mut BlitParameters) = BlitParameters::new(index);
-        dc.Unmap(self.screen_draw_blit_parameters.clone(), 0);
-
-        let mut rtv = Some(swapchain.buffer_rtv.clone());
-        dc.ClearRenderTargetView(rtv.clone(), [1.0, 0.0, 0.0, 0.0].as_ptr());
-
-        let vertex_count = std::mem::size_of::<Vertex>() as u32;
-        let offset = 0;
-        let mut vb = Some(self.vertex_buffer.clone());
-        dc.IASetVertexBuffers(0, 1, &mut vb, &vertex_count, &offset);
-        dc.IASetPrimitiveTopology(d3d::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        dc.IASetInputLayout(&self.input_layout);
-
-        let mut cb = Some(self.screen_draw_blit_parameters.clone());
-        dc.VSSetConstantBuffers(0, 1, &mut cb);
-        dc.VSSetShader(&self.screen_draw_vertex, std::ptr::null_mut(), 0);
-
-        dc.PSSetShader(&self.screen_draw_pixel, std::ptr::null_mut(), 0);
-        {
-            let texture: &kernel::Texture = {
-                let some_struct = *(self.some_global_struct.add(0x60) as *const *const u8);
-                &**(some_struct.add(0x10) as *const *const kernel::Texture)
-            };
-            let mut srv = texture.shader_resource_view().clone().map(|x| x.into());
-            dc.PSSetShaderResources(0, 1, &mut srv);
-        }
-        {
-            let mut sampler_state = Some(self.sampler_state.clone());
-            dc.PSSetSamplers(0, 1, &mut sampler_state);
-        }
-
-        dc.OMSetBlendState(
-            self.blend_state.clone(),
-            [0.0, 0.0, 0.0, 0.0].as_ptr(),
-            0xFFFF_FFFF,
-        );
-        dc.OMSetDepthStencilState(self.depth_stencil_state.clone(), 0);
-        dc.OMSetRenderTargets(1, &mut rtv, None);
-
-        dc.RSSetState(self.rasterizer_state.clone());
-        dc.RSSetViewports(
-            1,
-            &d3d::D3D11_VIEWPORT {
-                Width: swapchain.frame_size.0 as f32,
-                Height: swapchain.frame_size.1 as f32,
-                MinDepth: 0.0,
-                MaxDepth: 1.0,
-                TopLeftX: 0.0,
-                TopLeftY: 0.0,
-            },
-        );
-
-        dc.Draw(6, 0);
-
-        Ok(())
-    }
-}
-
-struct DebugState {
-    debug_utils: openxr::raw::DebugUtilsEXT,
-    debug_utils_messenger: openxr::sys::DebugUtilsMessengerEXT,
-}
-
-impl DebugState {
-    fn new(entry: &openxr::Entry, instance: &openxr::Instance) -> anyhow::Result<DebugState> {
-        let debug_utils = unsafe { openxr::raw::DebugUtilsEXT::load(entry, instance.as_raw())? };
-        let mut debug_utils_messenger = openxr::sys::DebugUtilsMessengerEXT::NULL;
-
-        unsafe {
-            use openxr::sys as xrs;
-
-            unsafe extern "system" fn user_callback(
-                _message_severity: xrs::DebugUtilsMessageSeverityFlagsEXT,
-                _message_types: xrs::DebugUtilsMessageTypeFlagsEXT,
-                callback_data: *const xrs::DebugUtilsMessengerCallbackDataEXT,
-                _: *mut std::ffi::c_void,
-            ) -> xrs::Bool32 {
-                use std::ffi::CStr;
-
-                let cb = &*callback_data;
-                log!(
-                    "xr::debug",
-                    "{} {}: {}",
-                    CStr::from_ptr(cb.message_id).to_string_lossy(),
-                    CStr::from_ptr(cb.function_name).to_string_lossy(),
-                    CStr::from_ptr(cb.message).to_string_lossy()
-                );
-
-                xrs::Bool32::from_raw(0)
-            }
-
-            let create_info = xrs::DebugUtilsMessengerCreateInfoEXT {
-                ty: xrs::DebugUtilsMessengerCreateInfoEXT::TYPE,
-                next: std::ptr::null(),
-                message_severities: xrs::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
-                    | xrs::DebugUtilsMessageSeverityFlagsEXT::WARNING
-                    | xrs::DebugUtilsMessageSeverityFlagsEXT::ERROR
-                    | xrs::DebugUtilsMessageSeverityFlagsEXT::INFO,
-                message_types: xrs::DebugUtilsMessageTypeFlagsEXT::GENERAL
-                    | xrs::DebugUtilsMessageTypeFlagsEXT::VALIDATION
-                    | xrs::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE,
-                user_callback: Some(user_callback),
-                user_data: std::ptr::null_mut(),
-            };
-
-            (debug_utils.create_debug_utils_messenger)(
-                instance.as_raw(),
-                &create_info,
-                &mut debug_utils_messenger,
-            );
-        };
-
-        Ok(DebugState {
-            debug_utils,
-            debug_utils_messenger,
-        })
-    }
-}
-
-impl Drop for DebugState {
-    fn drop(&mut self) {
-        unsafe {
-            (self.debug_utils.destroy_debug_utils_messenger)(self.debug_utils_messenger);
-        }
-    }
-}
 
 struct FrameState {
     xr_frame_state: openxr::FrameState,
@@ -557,7 +24,7 @@ pub struct XR {
     system_properties: openxr::SystemProperties,
     available_extensions: openxr::ExtensionSet,
 
-    debug_state: Option<DebugState>,
+    debug_state: Option<debug_state::DebugState>,
 
     frame_waiter: openxr::FrameWaiter,
     frame_stream: openxr::FrameStream<openxr::D3D11>,
@@ -565,8 +32,8 @@ pub struct XR {
     view_configuration_views: Vec<openxr::ViewConfigurationView>,
     session_running: bool,
 
-    swapchain: Swapchain,
-    swapchain_blitter: SwapchainBlitter,
+    swapchain: swapchain::Swapchain,
+    swapchain_blitter: swapchain_blitter::SwapchainBlitter,
 
     environment_blend_mode: openxr::EnvironmentBlendMode,
 
@@ -605,7 +72,7 @@ impl XR {
             &layers,
         )?;
         let debug_state = validate
-            .then(|| DebugState::new(&entry, &instance))
+            .then(|| debug_state::DebugState::new(&entry, &instance))
             .transpose()?;
 
         let instance_properties = instance.properties()?;
@@ -666,9 +133,9 @@ impl XR {
 
         let swapchain = {
             let size = (new_window_size.0 * VIEW_COUNT, new_window_size.1);
-            Swapchain::new(&session, device.clone(), size)?
+            swapchain::Swapchain::new(&session, device.clone(), size)?
         };
-        let swapchain_blitter = SwapchainBlitter::new(device.clone())?;
+        let swapchain_blitter = swapchain_blitter::SwapchainBlitter::new(device.clone())?;
         log!("xr", "created swapchain");
 
         Ok(XR {
@@ -735,17 +202,17 @@ impl XR {
             }
         }
 
-        log!("xr", "pre_update");
+        // log!("xr", "pre_update");
         if self.session_running {
             let xr_frame_state = self.frame_waiter.wait()?;
-            log!("xr", "pre_update waited");
+            // log!("xr", "pre_update waited");
             if xr_frame_state.should_render {
                 let (_, views) = self.session.locate_views(
                     VIEW_TYPE,
                     xr_frame_state.predicted_display_time,
                     &self.stage,
                 )?;
-                log!("xr", "pre_update frame_state some");
+                // log!("xr", "pre_update frame_state some");
 
                 self.frame_state = Some(FrameState {
                     xr_frame_state,
@@ -758,7 +225,7 @@ impl XR {
                     self.environment_blend_mode,
                     &[],
                 )?;
-                log!("xr", "pre_update frame_state none");
+                // log!("xr", "pre_update frame_state none");
                 self.frame_state = None;
             }
         }
@@ -767,9 +234,9 @@ impl XR {
     }
 
     pub fn post_update(&mut self) -> anyhow::Result<()> {
-        log!("xr", "post_update pre");
+        // log!("xr", "post_update pre");
         if let Some(frame_state) = &self.frame_state {
-            let swapchain_ref = &self.swapchain.swapchain;
+            let swapchain_ref = self.swapchain.openxr_swapchain();
             let views = frame_state
                 .views
                 .iter()
@@ -797,7 +264,7 @@ impl XR {
                 })
                 .collect::<Vec<_>>();
 
-            log!("xr", "post_render pre-end");
+            // log!("xr", "post_render pre-end");
             self.frame_stream.end(
                 frame_state.xr_frame_state.predicted_display_time,
                 self.environment_blend_mode,
@@ -807,29 +274,25 @@ impl XR {
             )?;
 
             self.frame_state = None;
-            log!("xr", "post_update post");
+            // log!("xr", "post_update post");
         }
 
         Ok(())
     }
 
     pub fn pre_render(&mut self) -> anyhow::Result<()> {
-        log!("xr", "pre_render");
-        if let Some(_) = &self.frame_state {
+        // log!("xr", "pre_render");
+        if self.frame_state.is_some() {
             self.frame_stream.begin()?;
         }
         Ok(())
     }
 
     pub fn post_render(&mut self) -> anyhow::Result<()> {
-        if let Some(_) = &self.frame_state {
-            log!("xr", "post_render pre");
-            log!("xr", "post_render copy from buffer");
-            self.swapchain.acquire_image()?;
+        if self.frame_state.is_some() {
+            // log!("xr", "post_render pre");
             self.swapchain.copy_from_buffer()?;
-            self.swapchain.release_image()?;
-            log!("xr", "post_render release_image");
-            log!("xr", "post_render post");
+            // log!("xr", "post_render post");
         }
 
         Ok(())
