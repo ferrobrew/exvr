@@ -205,7 +205,7 @@ impl XR {
         // log!("xr", "pre_update");
         if self.session_running {
             let xr_frame_state = self.frame_waiter.wait()?;
-            // log!("xr", "pre_update waited");
+            self.frame_stream.begin()?;
             if xr_frame_state.should_render {
                 let (_, views) = self.session.locate_views(
                     VIEW_TYPE,
@@ -282,9 +282,6 @@ impl XR {
 
     pub fn pre_render(&mut self) -> anyhow::Result<()> {
         // log!("xr", "pre_render");
-        if self.frame_state.is_some() {
-            self.frame_stream.begin()?;
-        }
         Ok(())
     }
 
