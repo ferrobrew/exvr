@@ -1,5 +1,5 @@
-use windows::Win32::Graphics::Direct3D11::{ID3D11ShaderResourceView1, ID3D11Texture2D};
 use macros::game_class;
+use windows::Win32::Graphics::Direct3D11::{ID3D11ShaderResourceView1, ID3D11Texture2D};
 
 use std::hash::Hash;
 

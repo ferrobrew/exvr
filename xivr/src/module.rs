@@ -119,7 +119,7 @@ impl Module {
     }
 
     pub fn path(&self) -> Option<&Path> {
-        self.path.as_ref().map(|x| Path::new(x))
+        self.path.as_ref().map(Path::new)
     }
 
     pub fn filename(&self) -> Option<String> {

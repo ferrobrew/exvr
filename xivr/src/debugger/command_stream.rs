@@ -1,9 +1,9 @@
 use crate::ct_config;
 
 use crate::debugger::d3d_payload::*;
+use crate::debugger::message_payload::*;
 use crate::debugger::payload::*;
 use crate::debugger::shader_payload::*;
-use crate::debugger::message_payload::*;
 
 use crate::game::graphics::kernel;
 use crate::game::graphics::kernel::ShaderCommandType;
@@ -471,7 +471,12 @@ impl CommandStream {
                 message_stream,
                 start_instant,
                 ..
-            } => Self::push_back_command_to_stream(message_stream, None, start_instant, (msg, submsgs)),
+            } => Self::push_back_command_to_stream(
+                message_stream,
+                None,
+                start_instant,
+                (msg, submsgs),
+            ),
             _ => Ok(()),
         }
     }

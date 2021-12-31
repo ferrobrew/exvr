@@ -14,7 +14,11 @@ impl Drop for HookState {
     fn drop(&mut self) {
         let res = unsafe { Context_PushBackCmd_Detour.disable() };
         if let Err(e) = res {
-            log!("error", "error while disabling context detour: {}", e.to_string());
+            log!(
+                "error",
+                "error while disabling context detour: {}",
+                e.to_string()
+            );
         }
     }
 }

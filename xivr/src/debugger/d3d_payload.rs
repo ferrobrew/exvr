@@ -1,5 +1,6 @@
 use crate::debugger::payload::*;
 
+use windows::runtime::{IUnknown, GUID};
 use windows::Win32::Foundation::{BOOL, HANDLE, PWSTR, RECT};
 use windows::Win32::Graphics::Direct3D11::{
     ID3D11Resource, D3D11_BOX, D3D11_CONTEXT_TYPE, D3D11_MAP, D3D11_MAPPED_SUBRESOURCE,
@@ -7,7 +8,6 @@ use windows::Win32::Graphics::Direct3D11::{
     D3D_PRIMITIVE_TOPOLOGY,
 };
 use windows::Win32::Graphics::Dxgi::DXGI_FORMAT;
-use windows::runtime::{GUID, IUnknown};
 
 use std::os::raw::c_void;
 

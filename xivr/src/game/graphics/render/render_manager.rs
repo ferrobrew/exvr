@@ -1,5 +1,5 @@
-use crate::game::offsets;
 use crate::game::graphics::render;
+use crate::game::offsets;
 
 use macros::game_class;
 

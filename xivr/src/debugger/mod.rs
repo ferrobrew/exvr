@@ -23,6 +23,7 @@ enum InspectedResource {
     Texture(d3d::ID3D11Texture2D, Option<d3d::ID3D11ShaderResourceView>),
 }
 
+#[allow(clippy::derive_hash_xor_eq)]
 impl Hash for InspectedResource {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
@@ -175,7 +176,7 @@ impl Debugger {
 
             if let Some(srv) = srv {
                 Self::draw_inspected_texture_internal(
-                    tex.texture().clone().into(),
+                    tex.texture().clone(),
                     Some(srv.clone().into()),
                 )
             } else {
@@ -186,10 +187,9 @@ impl Debugger {
 
     fn draw_inspected_resource(res: &InspectedResource) -> anyhow::Result<bool> {
         match res {
-            InspectedResource::Texture(tex, srv) => Self::draw_inspected_texture_internal(
-                tex.clone().into(),
-                srv.as_ref().map(|x| x.clone().into()),
-            ),
+            InspectedResource::Texture(tex, srv) => {
+                Self::draw_inspected_texture_internal(tex.clone(), srv.as_ref().cloned())
+            }
         }
     }
 

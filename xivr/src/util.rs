@@ -47,5 +47,5 @@ pub fn handle_error_in_block<T: std::default::Default, F>(block: F) -> T
 where
     F: Fn() -> anyhow::Result<T>,
 {
-    handle_error(block()).unwrap_or(Default::default())
+    handle_error(block()).unwrap_or_default()
 }

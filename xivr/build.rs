@@ -93,7 +93,7 @@ fn generate_object_token_stream(obj: &Object) -> proc_macro2::TokenStream {
 fn generate_offsets_file(out_dir: &Path) -> anyhow::Result<()> {
     use yaml_rust::YamlLoader;
 
-    const RELATIVE_PATH: &'static str = "external/FFXIVClientStructs/ida/data.yml";
+    const RELATIVE_PATH: &str = "external/FFXIVClientStructs/ida/data.yml";
     println!("cargo:rerun-if-changed={}", RELATIVE_PATH);
 
     let data = fs::read_to_string(RELATIVE_PATH)?;
@@ -113,7 +113,7 @@ fn generate_offsets_file(out_dir: &Path) -> anyhow::Result<()> {
             .replace("Client::", "");
 
         // yolo we don't support templates
-        if fq_name.contains("<") {
+        if fq_name.contains('<') {
             continue;
         }
 
@@ -140,7 +140,7 @@ fn generate_offsets_file(out_dir: &Path) -> anyhow::Result<()> {
         };
 
         let funcs = match data["funcs"].as_hash() {
-            Some(hm) => hm.iter().map(|kv| addr_name_pair_parse(kv)).collect(),
+            Some(hm) => hm.iter().map(addr_name_pair_parse).collect(),
             None => vec![],
         };
 
@@ -189,7 +189,7 @@ fn compile_shaders(out_dir: &Path) -> anyhow::Result<()> {
     use std::path::PathBuf;
     use std::process::Command;
 
-    const RELATIVE_PATH: &'static str = "assets/shaders/";
+    const RELATIVE_PATH: &str = "assets/shaders/";
     println!("cargo:rerun-if-changed={}", RELATIVE_PATH);
 
     for path in fs::read_dir(RELATIVE_PATH)?.filter_map(|res| res.map(|e| e.path()).ok()) {

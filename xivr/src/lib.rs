@@ -36,7 +36,7 @@ enum LoadState {
     Init,
     Tier1Loaded,
     Tier2Loaded,
-    Failure(String)
+    Failure(String),
 }
 static LOAD_STATE: Lazy<Mutex<LoadState>> = Lazy::new(|| Mutex::new(LoadState::Init));
 
@@ -74,7 +74,7 @@ unsafe fn patch_symbol_search_path() -> Result<()> {
         let mut buf = vec![0u16; 1024];
         if !SymGetSearchPathW(current_process, PWSTR(buf.as_mut_ptr()), buf.len() as u32).as_bool()
         {
-            Err(anyhow::anyhow!("failed to get search path"))?
+            return Err(anyhow::anyhow!("failed to get search path"));
         }
 
         let len = buf
@@ -94,7 +94,7 @@ unsafe fn patch_symbol_search_path() -> Result<()> {
     let mut new_buf: Vec<u16> = new_path.encode_utf16().collect();
     new_buf.push(0);
     if !SymSetSearchPathW(current_process, PWSTR(new_buf.as_mut_ptr())).as_bool() {
-        Err(anyhow::anyhow!("failed to set search path"))?
+        return Err(anyhow::anyhow!("failed to set search path"));
     }
 
     Ok(())

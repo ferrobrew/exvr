@@ -15,11 +15,19 @@ impl Drop for HookState {
 
         let res = unsafe { RenderManager_Render_Detour.disable() };
         if let Err(e) = res {
-            log!("error", "error while disabling render detour: {}", e.to_string())
+            log!(
+                "error",
+                "error while disabling render detour: {}",
+                e.to_string()
+            )
         }
         let res = unsafe { RenderManager_RenderUI_Detour.disable() };
         if let Err(e) = res {
-            log!("error", "error while disabling renderui detour: {}", e.to_string())
+            log!(
+                "error",
+                "error while disabling renderui detour: {}",
+                e.to_string()
+            )
         }
     }
 }
@@ -81,7 +89,8 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 let ret = RenderManager_RenderUI_Detour.call(s, a);
                 if let Some(debugger) = Debugger::get_mut() {
                     if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                        command_stream.add_marker("RenderManager::RenderUI post-call".to_owned())?;
+                        command_stream
+                            .add_marker("RenderManager::RenderUI post-call".to_owned())?;
                     }
                 }
 
