@@ -40,7 +40,7 @@ pub struct XR {
     frame_state: Option<FrameState>,
 
     old_window_size: (u32, u32),
-    frame_size: (u32, u32),
+    view_size: (u32, u32),
 }
 singleton!(XR);
 
@@ -161,7 +161,7 @@ impl XR {
             frame_state: None,
 
             old_window_size,
-            frame_size: new_window_size,
+            view_size: new_window_size,
         })
     }
 
@@ -205,6 +205,7 @@ impl XR {
         // log!("xr", "pre_update");
         if self.session_running {
             let xr_frame_state = self.frame_waiter.wait()?;
+            // log!("xr", "pre_update waited, should render: {}", xr_frame_state.should_render);
             self.frame_stream.begin()?;
             if xr_frame_state.should_render {
                 let (_, views) = self.session.locate_views(
@@ -244,12 +245,12 @@ impl XR {
                 .map(|(index, view)| {
                     let rect = openxr::Rect2Di {
                         offset: openxr::Offset2Di {
-                            x: (index * self.frame_size.0 as usize) as _,
+                            x: (index * self.view_size.0 as usize) as _,
                             y: 0,
                         },
                         extent: openxr::Extent2Di {
-                            width: self.frame_size.0 as _,
-                            height: self.frame_size.1 as _,
+                            width: self.view_size.0 as _,
+                            height: self.view_size.1 as _,
                         },
                     };
 
@@ -299,7 +300,7 @@ impl XR {
         use cimgui as ig;
 
         let ig::Vec2 { x: width, .. } = ig::get_window_size();
-        let inverse_aspect_ratio = self.frame_size.1 as f32 / self.frame_size.0 as f32;
+        let inverse_aspect_ratio = self.view_size.1 as f32 / self.view_size.0 as f32;
         let srv_width = (width - 32.0) / (VIEW_COUNT as f32);
         let size = ig::Vec2::new(srv_width, srv_width * inverse_aspect_ratio);
         let color = ig::Color::new(0.0, 0.0, 0.0, 1.0);
@@ -347,7 +348,7 @@ impl XR {
         }
 
         if ig::collapsing_header("Frame", None, Some(ig::TreeNodeFlags::DefaultOpen))? {
-            ig::bulletf!("Frame size: {}x{}", self.frame_size.0, self.frame_size.1);
+            ig::bulletf!("View size: {}x{}", self.view_size.0, self.view_size.1);
             ig::bulletf!("Original window size: {}x{}", self.old_window_size.0, self.old_window_size.1);
         }
 
