@@ -33,13 +33,9 @@ impl Drop for HookState {
 }
 
 pub unsafe fn install() -> anyhow::Result<HookState> {
-    use crate::module::GAME_MODULE;
     use std::mem;
 
-    let module = GAME_MODULE
-        .get()
-        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
-
+    let module = util::game_module()?;
     let rendermanager_render_addr = module.scan("40 53 55 57 41 56 41 57 48 83 EC 60")?;
 
     RenderManager_Render_Detour.initialize(

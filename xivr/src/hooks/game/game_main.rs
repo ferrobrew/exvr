@@ -1,6 +1,5 @@
 use crate::game::offsets;
 use crate::log;
-use crate::module::GAME_MODULE;
 use crate::util;
 
 use detour::static_detour;
@@ -25,9 +24,7 @@ impl Drop for HookState {
 }
 
 pub unsafe fn install() -> anyhow::Result<HookState> {
-    let module = GAME_MODULE
-        .get()
-        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
+    let module = util::game_module()?;
     let gamemain_update: fn(usize) -> usize = mem::transmute(
         module.rel_to_abs_addr(offsets::classes::game::GameMain::funcs::Update as isize),
     );

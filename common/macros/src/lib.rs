@@ -207,7 +207,7 @@ fn generate_get(name: &proc_macro2::Ident, location: Option<Expr>) -> proc_macro
     match location {
         Some(e) => quote! {
             pub unsafe fn get() -> &'static mut #name {
-                let m = crate::module::GAME_MODULE.get().unwrap();
+                let m = crate::util::game_module().unwrap();
                 let p: *mut #name = *(m.rel_to_abs_addr(#e as isize) as *const *mut #name);
                 &mut *p
             }
@@ -295,7 +295,7 @@ fn generate_functions(
                 pub unsafe fn #name(#(#args, )*) #output {
                     static mut ADDRESS: *mut u8 = ::std::ptr::null_mut();
                     if ADDRESS.is_null() {
-                        let module = crate::module::GAME_MODULE.get().unwrap();
+                        let module = crate::util::game_module().unwrap();
                         ADDRESS = module.scan(#code_signature).unwrap();
                     }
 

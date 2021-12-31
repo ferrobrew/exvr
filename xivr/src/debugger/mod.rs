@@ -45,18 +45,11 @@ singleton!(Debugger);
 
 impl Debugger {
     pub fn new() -> anyhow::Result<Debugger> {
-        use crate::module::GAME_MODULE;
-
         let command_stream = Mutex::new(CommandStream::new());
         let inspected_textures = HashSet::new();
         let inspected_resources = HashSet::new();
 
-        let module = unsafe {
-            GAME_MODULE
-                .get()
-                .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?
-        };
-
+        let module = crate::util::game_module()?;
         let mystery_function: fn() -> *const u8 = unsafe {
             std::mem::transmute(module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 58 60")?)
         };

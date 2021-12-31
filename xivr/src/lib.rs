@@ -16,7 +16,7 @@ mod ct_config;
 
 use hooks::HookState;
 use log::Logger;
-use module::{Module, GAME_MODULE};
+use module::Module;
 
 use std::os::raw::c_void;
 
@@ -27,8 +27,6 @@ use anyhow::{Error, Result};
 use cimgui as ig;
 use windows::Win32::Foundation::HINSTANCE;
 use windows::Win32::System::Console::{AllocConsole, FreeConsole};
-
-static mut THIS_MODULE: Option<HINSTANCE> = None;
 
 #[derive(PartialEq)]
 enum LoadState {
@@ -54,13 +52,10 @@ unsafe fn patch_symbol_search_path() -> Result<()> {
     use windows::Win32::System::Threading::GetCurrentProcess;
 
     let current_process = GetCurrentProcess();
-    let our_module = Module::from_handle(THIS_MODULE.as_ref().expect("module not set"));
-    let directory = our_module
-        .path()
-        .and_then(|p| p.parent())
+    let directory = util::this_module()?
+        .directory()
         .and_then(|p| p.to_str())
-        .map(|s| s.to_string())
-        .ok_or_else(|| anyhow::anyhow!("failed to retrieve module"))?;
+        .ok_or_else(|| anyhow::anyhow!("failed to get path string"))?;
 
     // This is very silly. We would like to mutate the search path of the process
     // to include where our DLLs came from, but we can't do that without being sure
@@ -84,10 +79,10 @@ unsafe fn patch_symbol_search_path() -> Result<()> {
         String::from_utf16(&buf[..len])?
     };
 
-    let new_path = if path.contains(&directory) {
+    let new_path = if path.contains(directory) {
         path
     } else {
-        directory + ";" + &path
+        format!("{};{}", directory, &path)
     };
 
     let mut new_buf: Vec<u16> = new_path.encode_utf16().collect();
@@ -108,9 +103,7 @@ unsafe fn load_tier1(parameters: Option<&LoadParameters>) -> Result<()> {
         .ok_or_else(|| Error::msg("failed to find ff14 module"))?;
     ffxiv_module.backup_image();
 
-    GAME_MODULE
-        .set(ffxiv_module.clone())
-        .map_err(|_| Error::msg("failed to set module"))?;
+    util::set_game_module(ffxiv_module.clone())?;
     log!("tier1", "located module");
 
     patch_symbol_search_path()?;
@@ -221,7 +214,7 @@ pub unsafe extern "system" fn xivr_unload() {
             FreeConsole();
         }
 
-        FreeLibraryAndExitThread(THIS_MODULE, 0);
+        FreeLibraryAndExitThread(util::this_module().unwrap().handle(), 0);
     });
 }
 
@@ -242,8 +235,8 @@ pub unsafe extern "system" fn xivr_draw_ui() {
 #[allow(clippy::missing_safety_doc)]
 #[cfg(feature = "dalamud")]
 pub unsafe extern "system" fn DllMain(module: HINSTANCE, _reason: u32, _: *mut c_void) -> bool {
-    if THIS_MODULE.is_none() {
-        THIS_MODULE = Some(module);
+    if !util::this_module_available() {
+        util::set_this_module(Module::from_handle(module)).unwrap();
     }
     true
 }
@@ -254,9 +247,8 @@ pub unsafe extern "system" fn DllMain(module: HINSTANCE, _reason: u32, _: *mut c
 #[cfg(not(feature = "dalamud"))]
 pub unsafe extern "system" fn DllMain(module: HINSTANCE, reason: u32, _: *mut c_void) -> bool {
     use windows::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
-
-    if THIS_MODULE.is_none() {
-        THIS_MODULE = Some(module);
+    if !util::this_module_available() {
+        util::set_this_module(Module::from_handle(module)).unwrap();
     }
 
     match reason {

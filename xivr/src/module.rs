@@ -5,8 +5,6 @@ use std::os::windows::ffi::OsStringExt;
 use std::path::Path;
 use std::slice;
 
-use once_cell::unsync::OnceCell;
-
 use windows::Win32::Foundation::{HINSTANCE, PWSTR};
 use windows::Win32::System::LibraryLoader::GetModuleFileNameW;
 use windows::Win32::System::ProcessStatus::{
@@ -16,7 +14,7 @@ use windows::Win32::System::Threading::GetCurrentProcess;
 
 #[derive(Debug, Clone)]
 pub struct Module {
-    _module: HINSTANCE,
+    handle: HINSTANCE,
     path: Option<String>,
     pub base: *mut u8,
     _entry_point: *mut u8,
@@ -25,22 +23,22 @@ pub struct Module {
 }
 
 impl Module {
-    pub fn from_handle(module: &HINSTANCE) -> Module {
+    pub fn from_handle(handle: HINSTANCE) -> Module {
         let mut mod_info = unsafe { std::mem::zeroed() };
         unsafe {
             K32GetModuleInformation(
                 GetCurrentProcess(),
-                module,
+                handle,
                 &mut mod_info,
                 mem::size_of::<MODULEINFO>() as u32,
             );
         }
         Module {
-            _module: *module,
+            handle,
             path: {
                 let mut buf = [0u16; 1024];
                 let size = unsafe {
-                    GetModuleFileNameW(module, PWSTR(buf.as_mut_ptr()), buf.len() as u32)
+                    GetModuleFileNameW(handle, PWSTR(buf.as_mut_ptr()), buf.len() as u32)
                 } as usize;
                 let os = OsString::from_wide(&buf[0..size]);
                 os.into_string().ok()
@@ -69,7 +67,7 @@ impl Module {
                 &mut needed,
             );
         }
-        buf.iter().map(Module::from_handle).collect()
+        buf.into_iter().map(Module::from_handle).collect()
     }
 
     pub fn as_bytes_from_memory(&self) -> &[u8] {
@@ -122,6 +120,10 @@ impl Module {
         self.path.as_ref().map(Path::new)
     }
 
+    pub fn directory(&self) -> Option<&Path> {
+        self.path().and_then(Path::parent)
+    }
+
     pub fn filename(&self) -> Option<String> {
         self.path()?
             .file_name()
@@ -136,6 +138,23 @@ impl Module {
     pub fn rel_to_abs_addr(&self, offset: isize) -> *mut u8 {
         unsafe { self.base.offset(offset) }
     }
-}
 
-pub static mut GAME_MODULE: OnceCell<Module> = OnceCell::new();
+    pub fn handle(&self) -> HINSTANCE {
+        self.handle
+    }
+
+    pub fn tls_index(&self) -> u32 {
+        struct TlsDirectory {
+            _tls_start: *const u8,
+            _tls_end: *const u8,
+            tls_index: *const u32,
+            // rest elided
+        }
+
+        unsafe {
+            let dir_offset = self.rel_to_abs_addr(0x240) as *const u32;
+            let dir = self.rel_to_abs_addr((*dir_offset) as isize) as *const TlsDirectory;
+            *((*dir).tls_index)
+        }
+    }
+}

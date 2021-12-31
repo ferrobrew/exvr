@@ -1,6 +1,5 @@
 use crate::ct_config::rendering::SHADER_COMMAND_HIJACKED_TYPE;
 use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand};
-use crate::module::GAME_MODULE;
 use crate::{hooks, log, util};
 use detour::{static_detour, RawDetour};
 
@@ -63,10 +62,7 @@ impl Drop for HookState {
 }
 
 pub unsafe fn install() -> anyhow::Result<HookState> {
-    let module = GAME_MODULE
-        .get()
-        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
-
+    let module = util::game_module()?;
     let process_commands =
         module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 4B 30 FF 15 ? ? ? ?")?;
 

@@ -230,11 +230,7 @@ impl SwapchainBlitter {
         };
 
         let some_global_struct = unsafe {
-            use crate::module::GAME_MODULE;
-            let module = GAME_MODULE
-                .get()
-                .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
-
+            let module = crate::util::game_module()?;
             let mystery_function: fn() -> *const u8 =
                 std::mem::transmute(module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 58 60")?);
             mystery_function()

@@ -1,7 +1,6 @@
 // E8 ? ? ? ? C6 83 ? ? ? ? ? 48 8B 4B 70
 
 use crate::log;
-use crate::module::GAME_MODULE;
 
 use detour::static_detour;
 
@@ -32,9 +31,7 @@ fn swapchain_present_hook(swapchain: usize) {
 pub unsafe fn install() -> anyhow::Result<HookState> {
     use std::mem;
 
-    let module = GAME_MODULE
-        .get()
-        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
+    let module = crate::util::game_module()?;
     let swapchain_present: fn(usize) = mem::transmute(
         module.scan_for_relative_callsite("E8 ? ? ? ? C6 83 ? ? ? ? ? 48 8B 4B 70")?,
     );
