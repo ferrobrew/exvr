@@ -170,6 +170,14 @@ impl XR {
     }
 
     pub fn pre_update(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    pub fn post_update(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    pub fn pre_render(&mut self) -> anyhow::Result<()> {
         let session = &self.session;
         let mut event_storage = openxr::EventDataBuffer::new();
 
@@ -206,10 +214,8 @@ impl XR {
             }
         }
 
-        // log!("xr", "pre_update");
         if self.session_running {
             let xr_frame_state = self.frame_waiter.wait()?;
-            // log!("xr", "pre_update waited, should render: {}", xr_frame_state.should_render);
             self.frame_stream.begin()?;
             if xr_frame_state.should_render {
                 let (_, views) = self.session.locate_views(
@@ -217,7 +223,6 @@ impl XR {
                     xr_frame_state.predicted_display_time,
                     &self.stage,
                 )?;
-                // log!("xr", "pre_update frame_state some");
 
                 self.frame_state = Some(FrameState {
                     xr_frame_state,
@@ -230,17 +235,17 @@ impl XR {
                     self.environment_blend_mode,
                     &[],
                 )?;
-                // log!("xr", "pre_update frame_state none");
                 self.frame_state = None;
             }
         }
-
         Ok(())
     }
 
-    pub fn post_update(&mut self) -> anyhow::Result<()> {
-        // log!("xr", "post_update pre");
+    pub fn post_render(&mut self) -> anyhow::Result<()> {
         if let Some(frame_state) = &self.frame_state {
+            self.swapchain
+                .copy_from_texture(self.framebuffer.texture())?;
+
             let swapchain_ref = self.swapchain.openxr_swapchain();
             let views = frame_state
                 .views
@@ -269,7 +274,6 @@ impl XR {
                 })
                 .collect::<Vec<_>>();
 
-            // log!("xr", "post_render pre-end");
             self.frame_stream.end(
                 frame_state.xr_frame_state.predicted_display_time,
                 self.environment_blend_mode,
@@ -279,23 +283,6 @@ impl XR {
             )?;
 
             self.frame_state = None;
-            // log!("xr", "post_update post");
-        }
-
-        Ok(())
-    }
-
-    pub fn pre_render(&mut self) -> anyhow::Result<()> {
-        // log!("xr", "pre_render");
-        Ok(())
-    }
-
-    pub fn post_render(&mut self) -> anyhow::Result<()> {
-        if self.frame_state.is_some() {
-            // log!("xr", "post_render pre");
-            self.swapchain
-                .copy_from_texture(self.framebuffer.texture())?;
-            // log!("xr", "post_render post");
         }
 
         Ok(())

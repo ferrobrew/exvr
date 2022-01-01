@@ -266,10 +266,10 @@ impl FramebufferBlitter {
         dc.IASetPrimitiveTopology(d3d::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         dc.IASetInputLayout(&self.input_layout);
 
-        let cb = Some(self.screen_draw_blit_parameters.clone());
-        dc.VSSetConstantBuffers(0, 1, &cb);
+        dc.VSSetConstantBuffers(0, 1, &Some(self.screen_draw_blit_parameters.clone()));
         dc.VSSetShader(&self.screen_draw_vertex, std::ptr::null_mut(), 0);
 
+        dc.PSSetConstantBuffers(0, 1, &Some(self.screen_draw_blit_parameters.clone()));
         dc.PSSetShader(&self.screen_draw_pixel, std::ptr::null_mut(), 0);
         {
             let texture: &kernel::Texture = {
