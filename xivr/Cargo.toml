@@ -32,6 +32,10 @@ detour = { git = "https://github.com/darfink/detour-rs" }
 openxr = { version = "0.15.4", features = ["static"] }
 glam = "0.17.3"
 
+# serde
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
 [dependencies.windows]
 version = "0.25.0"
 features = [
