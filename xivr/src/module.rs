@@ -200,7 +200,7 @@ impl Module {
 
         self.cache.insert(
             CacheKey::AfterPtr(pattern.to_owned(), base_offset),
-            offset.try_into()?,
+            offset,
         );
 
         Ok(self.rel_to_abs_addr(offset))

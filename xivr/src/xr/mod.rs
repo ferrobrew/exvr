@@ -300,8 +300,8 @@ impl XR {
         use cimgui as ig;
 
         let ig::Vec2 { x: width, .. } = ig::get_window_size();
-        let inverse_aspect_ratio = self.view_size.1 as f32 / self.view_size.0 as f32;
-        let srv_width = (width - 32.0) / (VIEW_COUNT as f32);
+        let inverse_aspect_ratio = self.view_size.1 as f32 / (VIEW_COUNT * self.view_size.0) as f32;
+        let srv_width = width - 32.0;
         let size = ig::Vec2::new(srv_width, srv_width * inverse_aspect_ratio);
         let color = ig::Color::new(0.0, 0.0, 0.0, 1.0);
 

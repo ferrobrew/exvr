@@ -7,15 +7,15 @@ pub(crate) struct Swapchain {
     swapchain: openxr::Swapchain<openxr::D3D11>,
     swapchain_image: d3d::ID3D11Texture2D,
     buffer_image: d3d::ID3D11Texture2D,
-    pub buffer_srv: d3d::ID3D11ShaderResourceView,
+    buffer_srv: d3d::ID3D11ShaderResourceView,
     pub buffer_rtv: d3d::ID3D11RenderTargetView,
-    pub frame_size: (u32, u32),
+    pub size: (u32, u32),
 }
 impl Swapchain {
     pub(crate) fn new(
         session: &openxr::Session<openxr::D3D11>,
         device: d3d::ID3D11Device,
-        frame_size: (u32, u32),
+        size: (u32, u32),
     ) -> anyhow::Result<Swapchain> {
         use windows::runtime::Abi;
 
@@ -25,8 +25,8 @@ impl Swapchain {
                 | openxr::SwapchainUsageFlags::SAMPLED,
             format: dxgi::DXGI_FORMAT_R8G8B8A8_UNORM.0,
             sample_count: 1,
-            width: frame_size.0,
-            height: frame_size.1,
+            width: size.0,
+            height: size.1,
             face_count: 1,
             array_size: 1,
             mip_count: 1,
@@ -103,7 +103,7 @@ impl Swapchain {
             buffer_image,
             buffer_srv,
             buffer_rtv,
-            frame_size,
+            size,
         })
     }
 

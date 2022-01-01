@@ -307,8 +307,8 @@ impl SwapchainBlitter {
         dc.RSSetViewports(
             1,
             &d3d::D3D11_VIEWPORT {
-                Width: swapchain.frame_size.0 as f32,
-                Height: swapchain.frame_size.1 as f32,
+                Width: swapchain.size.0 as f32,
+                Height: swapchain.size.1 as f32,
                 MinDepth: 0.0,
                 MaxDepth: 1.0,
                 TopLeftX: 0.0,
