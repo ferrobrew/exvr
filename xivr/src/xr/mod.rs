@@ -1,6 +1,7 @@
 mod debug_state;
+mod framebuffer;
+mod framebuffer_blitter;
 mod swapchain;
-mod swapchain_blitter;
 
 use crate::ct_config;
 use crate::game::graphics::kernel;
@@ -33,7 +34,8 @@ pub struct XR {
     session_running: bool,
 
     swapchain: swapchain::Swapchain,
-    swapchain_blitter: swapchain_blitter::SwapchainBlitter,
+    framebuffer: framebuffer::Framebuffer,
+    framebuffer_blitter: framebuffer_blitter::FramebufferBlitter,
 
     environment_blend_mode: openxr::EnvironmentBlendMode,
 
@@ -106,7 +108,9 @@ impl XR {
         } else {
             old_window_size
         };
+        let framebuffer_size = (new_window_size.0 * VIEW_COUNT, new_window_size.1);
         log!("xr", "window size: {:?}", new_window_size);
+        log!("xr", "framebuffer size: {:?}", framebuffer_size);
 
         let device = unsafe { kernel::Device::get().device() };
         // I should figure out why this is necessary
@@ -131,11 +135,10 @@ impl XR {
         }
         log!("xr", "resized window");
 
-        let swapchain = {
-            let size = (new_window_size.0 * VIEW_COUNT, new_window_size.1);
-            swapchain::Swapchain::new(&session, device.clone(), size)?
-        };
-        let swapchain_blitter = swapchain_blitter::SwapchainBlitter::new(device.clone())?;
+        let swapchain = swapchain::Swapchain::new(&session, framebuffer_size)?;
+        let framebuffer = framebuffer::Framebuffer::new(device.clone(), framebuffer_size)?;
+        let framebuffer_blitter = framebuffer_blitter::FramebufferBlitter::new(device.clone())?;
+
         log!("xr", "created swapchain");
 
         Ok(XR {
@@ -155,7 +158,8 @@ impl XR {
             session_running: false,
 
             swapchain,
-            swapchain_blitter,
+            framebuffer,
+            framebuffer_blitter,
 
             environment_blend_mode,
             frame_state: None,
@@ -289,7 +293,8 @@ impl XR {
     pub fn post_render(&mut self) -> anyhow::Result<()> {
         if self.frame_state.is_some() {
             // log!("xr", "post_render pre");
-            self.swapchain.copy_from_buffer()?;
+            self.swapchain
+                .copy_from_texture(self.framebuffer.texture())?;
             // log!("xr", "post_render post");
         }
 
@@ -307,7 +312,7 @@ impl XR {
 
         ig::new_line();
         ig::same_line(None, Some(0.0));
-        self.swapchain.render_button(size, color)?;
+        self.framebuffer.render_button(size, color)?;
 
         Ok(())
     }
@@ -356,10 +361,7 @@ impl XR {
     }
 
     pub fn copy_backbuffer_to_buffer(&mut self, index: u32) -> anyhow::Result<()> {
-        unsafe {
-            self.swapchain_blitter
-                .blit_to_buffer(&self.swapchain, index)
-        }
+        unsafe { self.framebuffer_blitter.blit(&self.framebuffer, index) }
     }
 }
 

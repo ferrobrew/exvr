@@ -198,10 +198,8 @@ impl Module {
             base_offset + offset_from_base
         };
 
-        self.cache.insert(
-            CacheKey::AfterPtr(pattern.to_owned(), base_offset),
-            offset,
-        );
+        self.cache
+            .insert(CacheKey::AfterPtr(pattern.to_owned(), base_offset), offset);
 
         Ok(self.rel_to_abs_addr(offset))
     }

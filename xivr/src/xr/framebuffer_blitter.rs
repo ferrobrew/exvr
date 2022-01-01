@@ -1,4 +1,4 @@
-use super::swapchain;
+use super::framebuffer;
 use crate::ct_config;
 use crate::game::graphics::kernel;
 
@@ -46,7 +46,7 @@ impl BlitParameters {
     }
 }
 
-pub(crate) struct SwapchainBlitter {
+pub(crate) struct FramebufferBlitter {
     screen_draw_vertex: d3d::ID3D11VertexShader,
     screen_draw_pixel: d3d::ID3D11PixelShader,
     screen_draw_blit_parameters: d3d::ID3D11Buffer,
@@ -58,8 +58,8 @@ pub(crate) struct SwapchainBlitter {
     depth_stencil_state: d3d::ID3D11DepthStencilState,
     some_global_struct: *const u8,
 }
-impl SwapchainBlitter {
-    pub fn new(device: d3d::ID3D11Device) -> anyhow::Result<SwapchainBlitter> {
+impl FramebufferBlitter {
+    pub fn new(device: d3d::ID3D11Device) -> anyhow::Result<FramebufferBlitter> {
         let (screen_draw_vertex, screen_draw_pixel) = unsafe {
             use core::ffi::c_void;
             (
@@ -236,7 +236,7 @@ impl SwapchainBlitter {
             mystery_function()
         };
 
-        Ok(SwapchainBlitter {
+        Ok(FramebufferBlitter {
             screen_draw_vertex,
             screen_draw_pixel,
             screen_draw_blit_parameters,
@@ -250,9 +250,9 @@ impl SwapchainBlitter {
         })
     }
 
-    pub unsafe fn blit_to_buffer(
+    pub unsafe fn blit(
         &mut self,
-        swapchain: &swapchain::Swapchain,
+        framebuffer: &framebuffer::Framebuffer,
         index: u32,
     ) -> anyhow::Result<()> {
         let dc = kernel::Device::get().device_context();
@@ -267,7 +267,7 @@ impl SwapchainBlitter {
         *(mapped_resource.pData as *mut BlitParameters) = BlitParameters::new(index);
         dc.Unmap(self.screen_draw_blit_parameters.clone(), 0);
 
-        let rtv = Some(swapchain.buffer_rtv.clone());
+        let rtv = Some(framebuffer.rtv());
         dc.ClearRenderTargetView(rtv.clone(), [1.0, 0.0, 0.0, 0.0].as_ptr());
 
         let vertex_count = std::mem::size_of::<Vertex>() as u32;
@@ -303,12 +303,13 @@ impl SwapchainBlitter {
         dc.OMSetDepthStencilState(self.depth_stencil_state.clone(), 0);
         dc.OMSetRenderTargets(1, &rtv, None);
 
+        let (width, height) = framebuffer.size();
         dc.RSSetState(self.rasterizer_state.clone());
         dc.RSSetViewports(
             1,
             &d3d::D3D11_VIEWPORT {
-                Width: swapchain.size.0 as f32,
-                Height: swapchain.size.1 as f32,
+                Width: width as f32,
+                Height: height as f32,
                 MinDepth: 0.0,
                 MaxDepth: 1.0,
                 TopLeftX: 0.0,
@@ -316,7 +317,7 @@ impl SwapchainBlitter {
             },
         );
 
-        dc.Draw(6, 0);
+        // dc.Draw(6, 0);
 
         Ok(())
     }
