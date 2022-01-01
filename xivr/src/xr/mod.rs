@@ -4,6 +4,7 @@ mod framebuffer_blitter;
 mod swapchain;
 
 use crate::ct_config;
+use crate::debugger::Debugger;
 use crate::game::graphics::kernel;
 use crate::game::system::framework;
 use crate::singleton;
@@ -170,14 +171,31 @@ impl XR {
     }
 
     pub fn pre_update(&mut self) -> anyhow::Result<()> {
+        if let Some(debugger) = Debugger::get_mut() {
+            if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                command_stream.add_message("xr pre-update".to_string(), vec![])?;
+            }
+        }
+
         Ok(())
     }
 
     pub fn post_update(&mut self) -> anyhow::Result<()> {
+        if let Some(debugger) = Debugger::get_mut() {
+            if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                command_stream.add_message("xr post-update".to_string(), vec![])?;
+            }
+        }
         Ok(())
     }
 
     pub fn pre_render(&mut self) -> anyhow::Result<()> {
+        if let Some(debugger) = Debugger::get_mut() {
+            if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                command_stream.add_message("xr pre-render pre-poll".to_string(), vec![])?;
+            }
+        }
+
         let session = &self.session;
         let mut event_storage = openxr::EventDataBuffer::new();
 
@@ -213,6 +231,11 @@ impl XR {
                 _ => {}
             }
         }
+        if let Some(debugger) = Debugger::get_mut() {
+            if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                command_stream.add_message("xr pre-render post-poll".to_string(), vec![])?;
+            }
+        }
 
         if self.session_running {
             let xr_frame_state = self.frame_waiter.wait()?;
@@ -228,6 +251,13 @@ impl XR {
                     xr_frame_state,
                     views,
                 });
+
+                if let Some(debugger) = Debugger::get_mut() {
+                    if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                        command_stream
+                            .add_message("xr pre-render post-should-render".to_string(), vec![])?;
+                    }
+                }
             } else {
                 // terminate stream submission immediately
                 self.frame_stream.end(
@@ -236,12 +266,33 @@ impl XR {
                     &[],
                 )?;
                 self.frame_state = None;
+
+                if let Some(debugger) = Debugger::get_mut() {
+                    if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                        command_stream.add_message(
+                            "xr pre-render post-should-not-render".to_string(),
+                            vec![],
+                        )?;
+                    }
+                }
+            }
+        }
+
+        if let Some(debugger) = Debugger::get_mut() {
+            if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                command_stream.add_message("xr pre-render post-session".to_string(), vec![])?;
             }
         }
         Ok(())
     }
 
     pub fn post_render(&mut self) -> anyhow::Result<()> {
+        if let Some(debugger) = Debugger::get_mut() {
+            if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                command_stream.add_message("xr post-render pre-frame-state".to_string(), vec![])?;
+            }
+        }
+
         if let Some(frame_state) = &self.frame_state {
             self.swapchain
                 .copy_from_texture(self.framebuffer.texture())?;
@@ -283,6 +334,13 @@ impl XR {
             )?;
 
             self.frame_state = None;
+        }
+
+        if let Some(debugger) = Debugger::get_mut() {
+            if let Ok(mut command_stream) = debugger.command_stream.lock() {
+                command_stream
+                    .add_message("xr post-render post-frame-state".to_string(), vec![])?;
+            }
         }
 
         Ok(())
