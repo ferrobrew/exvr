@@ -1,8 +1,9 @@
+use std::convert::TryInto;
 use std::ffi::OsString;
 use std::io;
 use std::mem;
 use std::os::windows::ffi::OsStringExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::slice;
 
 use windows::Win32::Foundation::{HINSTANCE, PWSTR};
@@ -135,7 +136,11 @@ impl Module {
         unsafe { p.offset_from(self.base) }
     }
 
-    pub fn rel_to_abs_addr(&self, offset: isize) -> *mut u8 {
+    pub fn rel_to_abs_addr(&self, offset: usize) -> *mut u8 {
+        self.rel_to_abs_addr_isize(offset as isize)
+    }
+
+    pub fn rel_to_abs_addr_isize(&self, offset: isize) -> *mut u8 {
         unsafe { self.base.offset(offset) }
     }
 
@@ -153,7 +158,7 @@ impl Module {
 
         unsafe {
             let dir_offset = self.rel_to_abs_addr(0x240) as *const u32;
-            let dir = self.rel_to_abs_addr((*dir_offset) as isize) as *const TlsDirectory;
+            let dir = self.rel_to_abs_addr((*dir_offset) as usize) as *const TlsDirectory;
             *((*dir).tls_index)
         }
     }

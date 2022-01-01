@@ -26,8 +26,8 @@ fn addr_name_pair_parse((addr, name): (&yaml::Yaml, &yaml::Yaml)) -> (String, u6
 }
 
 fn parsed_const_pair_to_tokens((name, addr): &(String, u64)) -> proc_macro2::TokenStream {
-    let (name, addr) = (format_ident!("{}", name), addr);
-    quote! { pub const #name: u64 = #addr; }
+    let (name, addr) = (format_ident!("{}", name), *addr as usize);
+    quote! { pub const #name: usize = #addr; }
 }
 
 fn yaml_to_constants_tokens(yaml: &yaml::Yaml) -> Vec<proc_macro2::TokenStream> {

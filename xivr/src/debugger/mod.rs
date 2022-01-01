@@ -49,7 +49,7 @@ impl Debugger {
         let inspected_textures = HashSet::new();
         let inspected_resources = HashSet::new();
 
-        let module = crate::util::game_module()?;
+        let module = crate::util::game_module_mut()?;
         let mystery_function: fn() -> *const u8 = unsafe {
             std::mem::transmute(module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 58 60")?)
         };

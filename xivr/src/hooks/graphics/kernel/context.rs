@@ -37,7 +37,7 @@ fn context_pushbackcmd_hook(ctx: usize, cmd: &'static ShaderCommand) -> usize {
 pub unsafe fn install() -> anyhow::Result<HookState> {
     use std::mem;
 
-    let module = util::game_module()?;
+    let module = util::game_module_mut()?;
     let context_pushbackcmd: fn(usize, &'static ShaderCommand) -> usize =
         mem::transmute(module.scan("83 41 30 FF")?);
 

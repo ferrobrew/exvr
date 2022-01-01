@@ -164,7 +164,7 @@ fn constantbuffer_loadbuffer_hook(this: usize, unk1: usize, unk2: usize, load: *
 pub unsafe fn install() -> anyhow::Result<HookState> {
     use std::mem;
 
-    let module = util::game_module()?;
+    let module = util::game_module_mut()?;
     let constantbuffer_loadbuffer = module.scan("4C 89 44 24 ? 56 57 41 57")?;
 
     ConstantBuffer_LoadBuffer_Detour.initialize(

@@ -31,7 +31,7 @@ fn swapchain_present_hook(swapchain: usize) {
 pub unsafe fn install() -> anyhow::Result<HookState> {
     use std::mem;
 
-    let module = crate::util::game_module()?;
+    let module = crate::util::game_module_mut()?;
     let swapchain_present: fn(usize) = mem::transmute(
         module.scan_for_relative_callsite("E8 ? ? ? ? C6 83 ? ? ? ? ? 48 8B 4B 70")?,
     );

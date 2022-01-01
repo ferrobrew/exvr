@@ -62,7 +62,7 @@ impl Drop for HookState {
 }
 
 pub unsafe fn install() -> anyhow::Result<HookState> {
-    let module = util::game_module()?;
+    let module = util::game_module_mut()?;
     let process_commands =
         module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 4B 30 FF 15 ? ? ? ?")?;
 
@@ -125,8 +125,8 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
         )
     };
 
-    let default_offset = jump_table_slice[SHADER_COMMAND_HIJACKED_TYPE];
-    PROCESS_COMMANDS_DEFAULT_CASE = module.rel_to_abs_addr(default_offset as isize);
+    let default_offset = jump_table_slice[SHADER_COMMAND_HIJACKED_TYPE] as usize;
+    PROCESS_COMMANDS_DEFAULT_CASE = module.rel_to_abs_addr(default_offset);
 
     let padding_rel = module.abs_to_rel_addr(padding) as i32;
     hooks::Patcher::get_mut()

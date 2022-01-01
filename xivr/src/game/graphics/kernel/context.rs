@@ -31,7 +31,7 @@ pub(self) extern "C" fn get_context(_tls_index: u32) -> &'static mut Context {
 
 impl Context {
     pub fn get_for_current_thread() -> anyhow::Result<&'static mut Context> {
-        let module = crate::util::game_module()?;
+        let module = crate::util::game_module_mut()?;
         Ok(get_context(module.tls_index()))
     }
 

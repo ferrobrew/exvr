@@ -24,9 +24,9 @@ impl Drop for HookState {
 }
 
 pub unsafe fn install() -> anyhow::Result<HookState> {
-    let module = util::game_module()?;
+    let module = util::game_module_mut()?;
     let gamemain_update: fn(usize) -> usize = mem::transmute(
-        module.rel_to_abs_addr(offsets::classes::game::GameMain::funcs::Update as isize),
+        module.rel_to_abs_addr(offsets::classes::game::GameMain::funcs::Update),
     );
 
     GameMain_Update_Detour.initialize(gamemain_update, |s| {

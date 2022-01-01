@@ -27,7 +27,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
     use crate::hooks::graphics::kernel::constant_buffer;
     use std::mem;
 
-    let module = util::game_module()?;
+    let module = util::game_module_mut()?;
     let camera_updateconstantbuffers_addr =
         module.scan_for_relative_callsite("E8 ? ? ? ? E9 ? ? ? ? 42 83 64 37 ? ?")?;
     constant_buffer::RENDER_CAMERA_UPDATE_CONSTANT_BUFFERS_PTR =

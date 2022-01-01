@@ -52,9 +52,8 @@ unsafe fn patch_symbol_search_path() -> Result<()> {
     use windows::Win32::System::Threading::GetCurrentProcess;
 
     let current_process = GetCurrentProcess();
-    let directory = util::this_module()?
-        .directory()
-        .and_then(|p| p.to_str())
+    let directory = util::this_module_directory()?
+        .to_str()
         .ok_or_else(|| anyhow::anyhow!("failed to get path string"))?;
 
     // This is very silly. We would like to mutate the search path of the process
