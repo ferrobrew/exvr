@@ -44,7 +44,13 @@ struct Instance {
 
 enum Object {
     Namespace(String, HashMap<String, Object>),
-    Class(String, Vec<(String, u64)>, Vec<Instance>),
+    Class(
+        String,
+        Vec<(String, u64)>,
+        Vec<Instance>,
+        Vec<u64>,
+        Vec<(String, u64)>,
+    ),
 }
 fn generate_object_token_stream(obj: &Object) -> proc_macro2::TokenStream {
     match obj {
@@ -66,9 +72,10 @@ fn generate_object_token_stream(obj: &Object) -> proc_macro2::TokenStream {
                 }
             }
         }
-        Object::Class(name, funcs, instances) => {
+        Object::Class(name, funcs, instances, vtbls, vfuncs) => {
             let name = format_ident!("{}", name);
             let funcs = funcs.iter().map(parsed_const_pair_to_tokens);
+            let vfuncs = vfuncs.iter().map(parsed_const_pair_to_tokens);
 
             // we do not currently support non-pointers
             let instances: Vec<_> = instances
@@ -77,12 +84,19 @@ fn generate_object_token_stream(obj: &Object) -> proc_macro2::TokenStream {
                 .collect();
             let instance_count = instances.len();
 
+            let vtbls_len = vtbls.len();
+
             quote! {
                 pub mod #name {
                     pub const INSTANCES: [u64; #instance_count] = [#(#instances,)*];
+                    pub const VTBLS: [u64; #vtbls_len] = [#(#vtbls,)*];
 
                     pub mod funcs {
                         #(#funcs)*
+                    }
+
+                    pub mod vfuncs {
+                        #(#vfuncs)*
                     }
                 }
             }
@@ -128,6 +142,11 @@ fn generate_offsets_file(out_dir: &Path) -> anyhow::Result<()> {
             (class_name.to_string(), rustified_segments)
         };
 
+        let funcs = match data["funcs"].as_hash() {
+            Some(hm) => hm.iter().map(addr_name_pair_parse).collect(),
+            None => vec![],
+        };
+
         let instances = match data["instances"].as_vec() {
             Some(v) => v
                 .iter()
@@ -139,8 +158,24 @@ fn generate_offsets_file(out_dir: &Path) -> anyhow::Result<()> {
             None => vec![],
         };
 
-        let funcs = match data["funcs"].as_hash() {
-            Some(hm) => hm.iter().map(addr_name_pair_parse).collect(),
+        let vtbls = match data["vtbls"].as_vec() {
+            Some(v) => v
+                .iter()
+                .map(|y| i64_ea_to_offset(y["ea"].as_i64().unwrap()))
+                .collect(),
+            None => vec![],
+        };
+
+        let vfuncs = match data["vfuncs"].as_hash() {
+            Some(hm) => hm
+                .iter()
+                .map(|(index, name)| {
+                    (
+                        name.as_str().unwrap().to_string(),
+                        index.as_i64().unwrap() as u64,
+                    )
+                })
+                .collect(),
             None => vec![],
         };
 
@@ -155,7 +190,7 @@ fn generate_offsets_file(out_dir: &Path) -> anyhow::Result<()> {
         if let Object::Namespace(_, ref mut hm) = namespace {
             hm.insert(
                 class_name.clone(),
-                Object::Class(class_name.clone(), funcs, instances),
+                Object::Class(class_name.clone(), funcs, instances, vtbls, vfuncs),
             );
         }
     }

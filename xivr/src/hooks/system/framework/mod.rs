@@ -1,4 +1,3 @@
-use crate::game::offsets;
 use crate::log;
 use crate::util;
 
@@ -6,13 +5,13 @@ use detour::static_detour;
 use std::mem;
 
 static_detour! {
-    pub static GameMain_Update_Detour: fn(usize) -> usize;
+    pub static Framework_Tick_Detour: fn(usize) -> usize;
 }
 
 pub struct HookState;
 impl Drop for HookState {
     fn drop(&mut self) {
-        let res = unsafe { GameMain_Update_Detour.disable() };
+        let res = unsafe { Framework_Tick_Detour.disable() };
         if let Err(e) = res {
             log!(
                 "error",
@@ -24,11 +23,13 @@ impl Drop for HookState {
 }
 
 pub unsafe fn install() -> anyhow::Result<HookState> {
+    use crate::game::offsets::classes::system::framework::Framework;
     let module = util::game_module_mut()?;
-    let gamemain_update: fn(usize) -> usize =
-        mem::transmute(module.rel_to_abs_addr(offsets::classes::game::GameMain::funcs::Update));
+    let framework_vtbl = module.rel_to_abs_addr(Framework::VTBLS[0] as usize) as *mut usize;
+    let framework_tick_ptr = framework_vtbl.add(Framework::vfuncs::Tick).read();
+    let framework_tick: fn(usize) -> usize = mem::transmute(framework_tick_ptr);
 
-    GameMain_Update_Detour.initialize(gamemain_update, |s| {
+    Framework_Tick_Detour.initialize(framework_tick, |f| {
         util::handle_error_in_block(|| {
             use crate::debugger::Debugger;
             use crate::xr::XR;
@@ -41,7 +42,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 xr.pre_update()?;
             }
 
-            let ret = GameMain_Update_Detour.call(s);
+            let ret = Framework_Tick_Detour.call(f);
 
             if let Some(xr) = XR::get_mut() {
                 xr.post_update()?;
@@ -66,7 +67,7 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
             Ok(ret)
         })
     })?;
-    GameMain_Update_Detour.enable()?;
+    Framework_Tick_Detour.enable()?;
 
     Ok(HookState {})
 }
