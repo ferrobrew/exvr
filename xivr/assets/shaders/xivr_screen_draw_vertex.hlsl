@@ -14,15 +14,16 @@ struct PixelInputType
 {
     float4 position : SV_POSITION;
     float2 uv : UV;
-    uint view_index : VIEW_INDEX;
 };
 
 PixelInputType main(VertexInputType input)
 {
     PixelInputType output;
-    output.position = input.position;
+    float width = 2.0 / float(total_view_count);
+    float4 position = input.position;
+    position.x = (((position.x - 1.0) / 2.0) + view_index) * width;
+    output.position = position;
     output.uv = input.uv;
-    output.view_index = view_index;
 
     return output;
 }

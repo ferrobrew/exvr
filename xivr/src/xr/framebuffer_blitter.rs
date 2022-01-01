@@ -1,5 +1,4 @@
 use super::framebuffer;
-use crate::ct_config;
 use crate::game::graphics::kernel;
 
 use windows::Win32::Graphics::Direct3D11 as d3d;
@@ -7,14 +6,8 @@ use windows::Win32::Graphics::Dxgi as dxgi;
 
 const SCREEN_DRAW_VERTEX_DXBC: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/xivr_screen_draw_vertex.dxbc"));
-const SCREEN_DRAW_PIXEL_DXBC: &[u8] = if ct_config::xr::USE_RG_DEBUG_SHADER {
-    include_bytes!(concat!(
-        env!("OUT_DIR"),
-        "/xivr_screen_draw_rg_debug_pixel.dxbc"
-    ))
-} else {
-    include_bytes!(concat!(env!("OUT_DIR"), "/xivr_screen_draw_pixel.dxbc"))
-};
+const SCREEN_DRAW_PIXEL_DXBC: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/xivr_screen_draw_pixel.dxbc"));
 
 #[allow(dead_code)]
 #[repr(C)]
@@ -37,9 +30,8 @@ struct BlitParameters {
 }
 impl BlitParameters {
     const fn new(view_index: u32) -> BlitParameters {
-        // We're only blitting one eye to one image
         BlitParameters {
-            total_view_count: 1,
+            total_view_count: crate::ct_config::xr::VIEW_COUNT,
             view_index,
             _pad: 0,
         }
@@ -199,7 +191,7 @@ impl FramebufferBlitter {
                 DepthBias: 0,
                 DepthBiasClamp: 0.0,
                 SlopeScaledDepthBias: 0.0,
-                ScissorEnable: true.into(),
+                ScissorEnable: false.into(),
                 DepthClipEnable: true.into(),
                 MultisampleEnable: false.into(),
                 AntialiasedLineEnable: false.into(),
@@ -267,9 +259,6 @@ impl FramebufferBlitter {
         *(mapped_resource.pData as *mut BlitParameters) = BlitParameters::new(index);
         dc.Unmap(self.screen_draw_blit_parameters.clone(), 0);
 
-        let rtv = Some(framebuffer.rtv());
-        dc.ClearRenderTargetView(rtv.clone(), [1.0, 0.0, 0.0, 0.0].as_ptr());
-
         let vertex_count = std::mem::size_of::<Vertex>() as u32;
         let offset = 0;
         let vb = Some(self.vertex_buffer.clone());
@@ -301,7 +290,7 @@ impl FramebufferBlitter {
             0xFFFF_FFFF,
         );
         dc.OMSetDepthStencilState(self.depth_stencil_state.clone(), 0);
-        dc.OMSetRenderTargets(1, &rtv, None);
+        dc.OMSetRenderTargets(1, &Some(framebuffer.rtv()), None);
 
         let (width, height) = framebuffer.size();
         dc.RSSetState(self.rasterizer_state.clone());
@@ -317,7 +306,7 @@ impl FramebufferBlitter {
             },
         );
 
-        // dc.Draw(6, 0);
+        dc.Draw(6, 0);
 
         Ok(())
     }
