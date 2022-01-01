@@ -145,9 +145,8 @@ impl Module {
         let offset = if let Some(offset) = self.cache.get(&CacheKey::Regular(pattern.to_owned())) {
             *offset
         } else {
-            patternscan::scan_first_match(io::Cursor::new(self.as_bytes()), pattern)
-                .transpose()
-                .ok_or_else(|| anyhow!("failed to scan"))??
+            patternscan::scan_first_match(io::Cursor::new(self.as_bytes()), pattern)?
+                .ok_or_else(|| anyhow!("failed to scan"))?
         };
 
         self.cache
@@ -163,10 +162,9 @@ impl Module {
         {
             *offset
         } else {
-            let base = patternscan::scan_first_match(io::Cursor::new(self.as_bytes()), pattern)
-                .transpose()
-                .ok_or_else(|| anyhow!("failed to scan"))?
-                .map(|o| unsafe { self.base.add(o) })?;
+            let offset = patternscan::scan_first_match(io::Cursor::new(self.as_bytes()), pattern)?
+                .ok_or_else(|| anyhow!("failed to scan"))?;
+            let base = self.rel_to_abs_addr(offset);
             let call = unsafe { slice::from_raw_parts(base as *const u8, 5) };
             let offset = i32::from_ne_bytes(call[1..].try_into()?) + 5;
             let ptr = unsafe { base.offset(offset as isize) };
@@ -191,9 +189,8 @@ impl Module {
         } else {
             let slice = &self.as_bytes()[base_offset..];
 
-            let offset_from_base = patternscan::scan_first_match(io::Cursor::new(slice), pattern)
-                .transpose()
-                .ok_or_else(|| anyhow!("failed to scan"))??;
+            let offset_from_base = patternscan::scan_first_match(io::Cursor::new(slice), pattern)?
+                .ok_or_else(|| anyhow!("failed to scan"))?;
 
             base_offset + offset_from_base
         };
