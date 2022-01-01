@@ -1,7 +1,6 @@
 pub mod rendering {
     pub const DISABLE_GAME: bool = false;
     pub const DISABLE_UI: bool = true;
-    pub const DISABLE_SWAPCHAIN_PRESENT: bool = false;
 
     pub const CAPTURE_D3D_COMMANDS: bool = false;
 

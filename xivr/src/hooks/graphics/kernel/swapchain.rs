@@ -23,9 +23,15 @@ impl Drop for HookState {
 }
 
 fn swapchain_present_hook(swapchain: usize) {
-    if !crate::ct_config::rendering::DISABLE_SWAPCHAIN_PRESENT {
-        Swapchain_Present_Detour.call(swapchain);
-    }
+    crate::util::handle_error_in_block(|| {
+        use crate::xr::XR;
+        if let Some(xr) = XR::get_mut() {
+            xr.swapchain_present()?;
+        }
+        Ok(())
+    });
+
+    Swapchain_Present_Detour.call(swapchain);
 }
 
 pub unsafe fn install() -> anyhow::Result<HookState> {

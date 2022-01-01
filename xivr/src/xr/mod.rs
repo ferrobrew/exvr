@@ -47,6 +47,15 @@ pub struct XR {
 }
 singleton!(XR);
 
+fn add_command_stream_msg(msg: &str) -> anyhow::Result<()> {
+    if let Some(debugger) = Debugger::get_mut() {
+        if let Ok(mut command_stream) = debugger.command_stream.lock() {
+            command_stream.add_message(msg.to_string(), vec![])?;
+        }
+    }
+    Ok(())
+}
+
 impl XR {
     pub fn new() -> anyhow::Result<XR> {
         let validate = cfg!(feature = "debug_validation");
@@ -170,32 +179,7 @@ impl XR {
         })
     }
 
-    pub fn pre_update(&mut self) -> anyhow::Result<()> {
-        if let Some(debugger) = Debugger::get_mut() {
-            if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                command_stream.add_message("xr pre-update".to_string(), vec![])?;
-            }
-        }
-
-        Ok(())
-    }
-
-    pub fn post_update(&mut self) -> anyhow::Result<()> {
-        if let Some(debugger) = Debugger::get_mut() {
-            if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                command_stream.add_message("xr post-update".to_string(), vec![])?;
-            }
-        }
-        Ok(())
-    }
-
-    pub fn pre_render(&mut self) -> anyhow::Result<()> {
-        if let Some(debugger) = Debugger::get_mut() {
-            if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                command_stream.add_message("xr pre-render pre-poll".to_string(), vec![])?;
-            }
-        }
-
+    fn openxr_poll_sessions(&mut self) -> anyhow::Result<()> {
         let session = &self.session;
         let mut event_storage = openxr::EventDataBuffer::new();
 
@@ -231,118 +215,120 @@ impl XR {
                 _ => {}
             }
         }
-        if let Some(debugger) = Debugger::get_mut() {
-            if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                command_stream.add_message("xr pre-render post-poll".to_string(), vec![])?;
-            }
-        }
+        Ok(())
+    }
 
-        if self.session_running {
-            let xr_frame_state = self.frame_waiter.wait()?;
-            self.frame_stream.begin()?;
-            if xr_frame_state.should_render {
-                let (_, views) = self.session.locate_views(
-                    VIEW_TYPE,
-                    xr_frame_state.predicted_display_time,
-                    &self.stage,
-                )?;
+    fn openxr_start_frame(&mut self) -> anyhow::Result<()> {
+        let xr_frame_state = self.frame_waiter.wait()?;
+        self.frame_stream.begin()?;
 
-                self.frame_state = Some(FrameState {
-                    xr_frame_state,
-                    views,
-                });
+        if xr_frame_state.should_render {
+            let (_, views) = self.session.locate_views(
+                VIEW_TYPE,
+                xr_frame_state.predicted_display_time,
+                &self.stage,
+            )?;
 
-                if let Some(debugger) = Debugger::get_mut() {
-                    if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                        command_stream
-                            .add_message("xr pre-render post-should-render".to_string(), vec![])?;
-                    }
-                }
-            } else {
-                // terminate stream submission immediately
-                self.frame_stream.end(
-                    xr_frame_state.predicted_display_time,
-                    self.environment_blend_mode,
-                    &[],
-                )?;
-                self.frame_state = None;
-
-                if let Some(debugger) = Debugger::get_mut() {
-                    if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                        command_stream.add_message(
-                            "xr pre-render post-should-not-render".to_string(),
-                            vec![],
-                        )?;
-                    }
-                }
-            }
-        }
-
-        if let Some(debugger) = Debugger::get_mut() {
-            if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                command_stream.add_message("xr pre-render post-session".to_string(), vec![])?;
-            }
+            self.frame_state = Some(FrameState {
+                xr_frame_state,
+                views,
+            });
+        } else {
+            // terminate stream submission immediately
+            self.frame_stream.end(
+                xr_frame_state.predicted_display_time,
+                self.environment_blend_mode,
+                &[],
+            )?;
+            self.frame_state = None;
         }
         Ok(())
     }
 
-    pub fn post_render(&mut self) -> anyhow::Result<()> {
-        if let Some(debugger) = Debugger::get_mut() {
-            if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                command_stream.add_message("xr post-render pre-frame-state".to_string(), vec![])?;
-            }
-        }
-
-        if let Some(frame_state) = &self.frame_state {
+    fn populate_swapchain_from_framebuffer(&mut self) -> anyhow::Result<()> {
+        if self.frame_state.is_some() {
             self.swapchain
                 .copy_from_texture(self.framebuffer.texture())?;
+        }
+        Ok(())
+    }
 
-            let swapchain_ref = self.swapchain.openxr_swapchain();
-            let views = frame_state
-                .views
-                .iter()
-                .enumerate()
-                .map(|(index, view)| {
-                    let rect = openxr::Rect2Di {
-                        offset: openxr::Offset2Di {
-                            x: (index * self.view_size.0 as usize) as _,
-                            y: 0,
-                        },
-                        extent: openxr::Extent2Di {
-                            width: self.view_size.0 as _,
-                            height: self.view_size.1 as _,
-                        },
-                    };
+    fn openxr_end_frame(&mut self) -> anyhow::Result<()> {
+        if self.frame_state.is_none() {
+            return Ok(());
+        }
+        let frame_state = self.frame_state.as_ref().unwrap();
+        let swapchain_ref = self.swapchain.openxr_swapchain();
+        let views = frame_state
+            .views
+            .iter()
+            .enumerate()
+            .map(|(index, view)| {
+                let rect = openxr::Rect2Di {
+                    offset: openxr::Offset2Di {
+                        x: (index * self.view_size.0 as usize) as _,
+                        y: 0,
+                    },
+                    extent: openxr::Extent2Di {
+                        width: self.view_size.0 as _,
+                        height: self.view_size.1 as _,
+                    },
+                };
 
-                    openxr::CompositionLayerProjectionView::new()
-                        .pose(view.pose)
-                        .fov(view.fov)
-                        .sub_image(
-                            openxr::SwapchainSubImage::new()
-                                .swapchain(swapchain_ref)
-                                .image_rect(rect),
-                        )
-                })
-                .collect::<Vec<_>>();
+                openxr::CompositionLayerProjectionView::new()
+                    .pose(view.pose)
+                    .fov(view.fov)
+                    .sub_image(
+                        openxr::SwapchainSubImage::new()
+                            .swapchain(swapchain_ref)
+                            .image_rect(rect),
+                    )
+            })
+            .collect::<Vec<_>>();
 
-            self.frame_stream.end(
-                frame_state.xr_frame_state.predicted_display_time,
-                self.environment_blend_mode,
-                &[&openxr::CompositionLayerProjection::new()
-                    .space(&self.stage)
-                    .views(&views)],
-            )?;
+        self.frame_stream.end(
+            frame_state.xr_frame_state.predicted_display_time,
+            self.environment_blend_mode,
+            &[&openxr::CompositionLayerProjection::new()
+                .space(&self.stage)
+                .views(&views)],
+        )?;
 
-            self.frame_state = None;
+        self.frame_state = None;
+        Ok(())
+    }
+
+    pub fn pre_update(&mut self) -> anyhow::Result<()> {
+        add_command_stream_msg("pre_update")?;
+        Ok(())
+    }
+
+    pub fn post_update(&mut self) -> anyhow::Result<()> {
+        add_command_stream_msg("post_update")?;
+        Ok(())
+    }
+
+    pub fn pre_render(&mut self) -> anyhow::Result<()> {
+        add_command_stream_msg("pre_render")?;
+        self.openxr_poll_sessions()?;
+
+        if self.session_running {
+            self.openxr_start_frame()?;
         }
 
-        if let Some(debugger) = Debugger::get_mut() {
-            if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                command_stream
-                    .add_message("xr post-render post-frame-state".to_string(), vec![])?;
-            }
-        }
+        Ok(())
+    }
 
+    pub fn post_render(&mut self) -> anyhow::Result<()> {
+        add_command_stream_msg("post_render")?;
+        self.populate_swapchain_from_framebuffer()?;
+        self.openxr_end_frame()?;
+
+        Ok(())
+    }
+
+    pub fn swapchain_present(&mut self) -> anyhow::Result<()> {
+        add_command_stream_msg("swapchain_present")?;
         Ok(())
     }
 
