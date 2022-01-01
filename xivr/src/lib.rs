@@ -101,6 +101,7 @@ unsafe fn load_tier1(parameters: Option<&LoadParameters>) -> Result<()> {
         .find(|x| x.filename().as_deref() == Some("ffxiv_dx11.exe"))
         .ok_or_else(|| Error::msg("failed to find ff14 module"))?;
     ffxiv_module.backup_image();
+    ffxiv_module.load_cache()?;
 
     util::set_game_module(ffxiv_module.clone())?;
     log!("tier1", "located module");
@@ -112,6 +113,8 @@ unsafe fn load_tier1(parameters: Option<&LoadParameters>) -> Result<()> {
     debugger::Debugger::create()?;
     HookState::create()?;
     log!("tier1", "installed hooks");
+
+    util::game_module_mut()?.save_cache()?;
 
     if let Some(parameters) = parameters {
         ig::set_current_context(parameters.imgui_context);
