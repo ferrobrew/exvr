@@ -230,9 +230,11 @@ fn generate_getters(fields: &[(u32, Ident, Type)]) -> Vec<proc_macro2::TokenStre
                 let name_mut = format_ident!("{}_mut", name);
 
                 quote! {
+                    #[allow(non_snake_case)]
                     pub unsafe fn #name(&self) -> &'static #field_type {
                         &*self.#name_ptr()
                     }
+                    #[allow(non_snake_case)]
                     pub unsafe fn #name_mut(&mut self) -> &'static mut #field_type {
                         &mut *self.#name_ptr_mut()
                     }
@@ -242,10 +244,12 @@ fn generate_getters(fields: &[(u32, Ident, Type)]) -> Vec<proc_macro2::TokenStre
             };
 
             quote! {
+                #[allow(non_snake_case)]
                 pub unsafe fn #name_ptr(&self) -> *const #field_type {
                     let u8_self = self as *const _ as *const u8;
                     (self as *const _ as *const u8).add(#offset) as *const #field_type
                 }
+                #[allow(non_snake_case)]
                 pub unsafe fn #name_ptr_mut(&mut self) -> *mut #field_type {
                     let u8_self = self as *mut _ as *mut u8;
                     (self as *mut _ as *mut u8).add(#offset) as *mut #field_type
