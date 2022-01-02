@@ -17,7 +17,7 @@ float4 main(PixelInputType input) : SV_TARGET
 {
     float4 multiplier = float4(1.0, 1.0, 1.0, 1.0);
     // christmas debugging mode
-    if (true)
+    if (false)
     {
         multiplier = lerp(float4(1.0, 0.0, 0.0, 1.0), float4(0.0, 1.0, 0.0, 1.0), view_index / float(total_view_count - 1));
     }
