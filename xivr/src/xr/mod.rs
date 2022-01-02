@@ -316,6 +316,8 @@ impl XR {
             self.openxr_start_frame()?;
         }
 
+        self.framebuffer.clear()?;
+
         Ok(())
     }
 

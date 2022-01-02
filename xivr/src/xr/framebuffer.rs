@@ -66,6 +66,17 @@ impl Framebuffer {
         })
     }
 
+    pub fn clear(&mut self) -> anyhow::Result<()> {
+        use crate::game::graphics::kernel;
+
+        unsafe {
+            let dc = kernel::Device::get().device_context();
+            dc.ClearRenderTargetView(self.rtv(), [0.0, 0.0, 0.0, 0.0].as_ptr());
+        }
+
+        Ok(())
+    }
+
     pub fn render_button(&self, size: cimgui::Vec2, color: cimgui::Color) -> anyhow::Result<()> {
         if cimgui::image_button(
             unsafe { std::mem::transmute(self.srv.clone()) },
