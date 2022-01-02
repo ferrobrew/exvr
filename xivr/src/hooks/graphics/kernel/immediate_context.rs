@@ -96,10 +96,10 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
 
                 if let Some(xr) = XR::get_mut() {
                     xr.pre_render()?;
-                    ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
-                    xr.copy_backbuffer_to_buffer(0)?;
-                    ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
-                    xr.copy_backbuffer_to_buffer(1)?;
+                    for i in 0..2 {
+                        ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
+                        xr.copy_backbuffer_to_buffer(i)?;
+                    }
                     xr.post_render()?;
                 } else {
                     ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
