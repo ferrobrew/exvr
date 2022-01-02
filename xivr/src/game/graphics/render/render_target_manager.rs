@@ -36,3 +36,30 @@ game_class!(RenderTargetManager, {
         [0x358] some_rgb8_buffer: &'static Texture,
     }
 });
+
+impl RenderTargetManager {
+    pub fn get_render_targets(&self) -> Vec<(u32, *const Texture)> {
+        let offsets = [
+            0x20, 0x58, 0x60, 0x68, 0xB0, 0xB8, 0xC0, 0xC8, 0xD0, 0xF8, 0x160, 0x170, 0x1C8, 0x1D8,
+            0x210, 0x218, 0x220, 0x2D0, 0x358, 0x368, 0x370, 0x378, 0x380, 0x388, 0x390, 0x398,
+            0x3A0, 0x3A8, 0x3B0, 0x3B8, 0x3C0, 0x3C8, 0x3D0,
+        ];
+
+        let mut ret = vec![];
+        unsafe {
+            let self_ptr = self as *const RenderTargetManager;
+            let self_ptr = self_ptr as *const u8;
+
+            for offset in offsets {
+                let rt_ptr = self_ptr.add(offset) as *const *const Texture;
+                let rt = *rt_ptr;
+                if rt.is_null() {
+                    continue;
+                }
+                ret.push((offset as u32, rt));
+            }
+        }
+
+        ret
+    }
+}

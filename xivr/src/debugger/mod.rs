@@ -243,7 +243,7 @@ impl Debugger {
     }
 
     pub fn draw_render_targets(&mut self) -> anyhow::Result<()> {
-        use crate::game::graphics::kernel;
+        use crate::game::graphics::{kernel, render};
         use cimgui as ig;
 
         let setup_columns = |headers| -> anyhow::Result<()> {
@@ -278,6 +278,19 @@ impl Debugger {
                     self.draw_render_target("Backbuffer", unsafe {
                         &*(*swapchain.back_buffer() as *const _)
                     })?;
+
+                    ig::end_table();
+                }
+            }
+
+            if ig::collapsing_header("Render Target Manager", None, None)? {
+                let textures = unsafe { render::RenderTargetManager::get().get_render_targets() };
+                if ig::begin_table("xivr_debug_tab_rts_rtm", 6, None, None, None)? {
+                    setup_columns(["Preview", "Address", "Offset", "Width", "Height", "Format"])?;
+
+                    for (offset, texture) in textures.into_iter() {
+                        self.draw_render_target(&format!("0x{:X}", offset), unsafe { &*texture })?;
+                    }
 
                     ig::end_table();
                 }
