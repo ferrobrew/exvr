@@ -2,6 +2,7 @@ use crate::ct_config::rendering::SHADER_COMMAND_HIJACKED_TYPE;
 use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand};
 use crate::{hooks, log, util};
 use detour::{static_detour, RawDetour};
+use std::arch::global_asm;
 
 #[no_mangle]
 static mut PROCESS_COMMANDS_DEFAULT_CASE: *mut u8 = std::ptr::null_mut();

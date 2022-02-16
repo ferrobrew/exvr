@@ -4,6 +4,8 @@ use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand};
 use crate::hooks::graphics::kernel::immediate_context::{XIVRCommand, XIVRCommandPayload};
 use macros::game_class;
 
+use std::arch::asm;
+
 game_class!(Context, {
     size: 0x1158,
     fields: {
@@ -16,23 +18,21 @@ game_class!(Context, {
 });
 
 #[naked]
-pub(self) extern "C" fn get_context(_tls_index: u32) -> &'static mut Context {
-    unsafe {
-        asm! {
-            "MOV rax, gs:58h",
-            "MOV rax, [rax+rcx*8]",
-            "MOV rcx, 250h",
-            "MOV rax, [rax+rcx]",
-            "RET",
-            options(noreturn)
-        }
+pub(self) unsafe extern "C" fn get_context(_tls_index: u32) -> &'static mut Context {
+    asm! {
+        "MOV rax, gs:58h",
+        "MOV rax, [rax+rcx*8]",
+        "MOV rcx, 250h",
+        "MOV rax, [rax+rcx]",
+        "RET",
+        options(noreturn)
     }
 }
 
 impl Context {
     pub fn get_for_current_thread() -> anyhow::Result<&'static mut Context> {
         let module = crate::util::game_module_mut()?;
-        Ok(get_context(module.tls_index()))
+        Ok(unsafe { get_context(module.tls_index()) })
     }
 
     pub fn push_back_xivr_command(
