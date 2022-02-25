@@ -2,8 +2,9 @@
 
 use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand};
 use crate::hooks::graphics::kernel::immediate_context::{XIVRCommand, XIVRCommandPayload};
-use crate::module::{Module, GAME_MODULE};
 use macros::game_class;
+
+use std::arch::asm;
 
 game_class!(Context, {
     size: 0x1158,
@@ -16,43 +17,22 @@ game_class!(Context, {
     }
 });
 
-fn get_tls_index(module: &Module) -> u32 {
-    struct TlsDirectory {
-        _tls_start: *const u8,
-        _tls_end: *const u8,
-        tls_index: *const u32,
-        // rest elided
-    }
-
-    unsafe {
-        let dir_offset = module.rel_to_abs_addr(0x240) as *const u32;
-        let dir = module.rel_to_abs_addr((*dir_offset) as isize) as *const TlsDirectory;
-        *((*dir).tls_index)
-    }
-}
-
 #[naked]
-pub(self) extern "C" fn get_context(_tls_index: u32) -> &'static mut Context {
-    unsafe {
-        asm! {
-            "MOV rax, gs:58h",
-            "MOV rax, [rax+rcx*8]",
-            "MOV rcx, 250h",
-            "MOV rax, [rax+rcx]",
-            "RET",
-            options(noreturn)
-        }
+pub(self) unsafe extern "C" fn get_context(_tls_index: u32) -> &'static mut Context {
+    asm! {
+        "MOV rax, gs:58h",
+        "MOV rax, [rax+rcx*8]",
+        "MOV rcx, 250h",
+        "MOV rax, [rax+rcx]",
+        "RET",
+        options(noreturn)
     }
 }
 
 impl Context {
-    pub fn get_for_current_thread() -> Option<&'static mut Context> {
-        unsafe {
-            let module = GAME_MODULE.get()?;
-            let tls_index = get_tls_index(module);
-
-            Some(get_context(tls_index))
-        }
+    pub fn get_for_current_thread() -> anyhow::Result<&'static mut Context> {
+        let module = crate::util::game_module_mut()?;
+        Ok(unsafe { get_context(module.tls_index()) })
     }
 
     pub fn push_back_xivr_command(

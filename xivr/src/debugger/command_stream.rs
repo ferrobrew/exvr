@@ -1,9 +1,9 @@
 use crate::ct_config;
 
 use crate::debugger::d3d_payload::*;
+use crate::debugger::message_payload::*;
 use crate::debugger::payload::*;
 use crate::debugger::shader_payload::*;
-use crate::debugger::message_payload::*;
 
 use crate::game::graphics::kernel;
 use crate::game::graphics::kernel::ShaderCommandType;
@@ -356,7 +356,7 @@ impl CommandStream {
         start_instant: &Instant,
         payload: PayloadType,
     ) -> anyhow::Result<()> {
-        use bindings::Windows::Win32::System::Threading::GetCurrentThreadId;
+        use windows::Win32::System::Threading::GetCurrentThreadId;
         let backtrace = backtrace::Backtrace::new_unresolved();
 
         stream.push(Command::<PayloadType> {
@@ -464,13 +464,19 @@ impl CommandStream {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_message(&mut self, msg: String, submsgs: Vec<String>) -> anyhow::Result<()> {
         match &mut self.state {
             CommandStreamState::Capturing {
                 message_stream,
                 start_instant,
                 ..
-            } => Self::push_back_command_to_stream(message_stream, None, start_instant, (msg, submsgs)),
+            } => Self::push_back_command_to_stream(
+                message_stream,
+                None,
+                start_instant,
+                (msg, submsgs),
+            ),
             _ => Ok(()),
         }
     }

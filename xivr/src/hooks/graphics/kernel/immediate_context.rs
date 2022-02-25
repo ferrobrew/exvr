@@ -1,8 +1,8 @@
 use crate::ct_config::rendering::SHADER_COMMAND_HIJACKED_TYPE;
 use crate::game::graphics::kernel::{ImmediateContext, ShaderCommand};
-use crate::module::GAME_MODULE;
 use crate::{hooks, log, util};
 use detour::{static_detour, RawDetour};
+use std::arch::global_asm;
 
 #[no_mangle]
 static mut PROCESS_COMMANDS_DEFAULT_CASE: *mut u8 = std::ptr::null_mut();
@@ -46,6 +46,7 @@ impl Drop for HookState {
         let res = unsafe { self.0.disable() };
         if let Err(e) = res {
             log!(
+                "error",
                 "error while disabling immediate context detour: {}",
                 e.to_string()
             )
@@ -53,6 +54,7 @@ impl Drop for HookState {
         let res = unsafe { ImmediateContext_ProcessCommands_Detour.disable() };
         if let Err(e) = res {
             log!(
+                "error",
                 "error while disabling process commands detour: {}",
                 e.to_string()
             )
@@ -61,10 +63,7 @@ impl Drop for HookState {
 }
 
 pub unsafe fn install() -> anyhow::Result<HookState> {
-    let module = GAME_MODULE
-        .get()
-        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
-
+    let module = util::game_module_mut()?;
     let process_commands =
         module.scan_for_relative_callsite("E8 ? ? ? ? 48 8B 4B 30 FF 15 ? ? ? ?")?;
 
@@ -98,10 +97,10 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
 
                 if let Some(xr) = XR::get_mut() {
                     xr.pre_render()?;
-                    ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
-                    xr.copy_backbuffer_to_buffer(0)?;
-                    ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
-                    xr.copy_backbuffer_to_buffer(1)?;
+                    for i in 0..2 {
+                        ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
+                        xr.copy_backbuffer_to_buffer(i)?;
+                    }
                     xr.post_render()?;
                 } else {
                     ImmediateContext_ProcessCommands_Detour.call(ic, a2, command_count);
@@ -127,8 +126,8 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
         )
     };
 
-    let default_offset = jump_table_slice[SHADER_COMMAND_HIJACKED_TYPE];
-    PROCESS_COMMANDS_DEFAULT_CASE = module.rel_to_abs_addr(default_offset as isize);
+    let default_offset = jump_table_slice[SHADER_COMMAND_HIJACKED_TYPE] as usize;
+    PROCESS_COMMANDS_DEFAULT_CASE = module.rel_to_abs_addr(default_offset);
 
     let padding_rel = module.abs_to_rel_addr(padding) as i32;
     hooks::Patcher::get_mut()

@@ -9,7 +9,6 @@ crate-type = ["cdylib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 # Local deps
-bindings = { path = "../common/bindings" }
 cimgui = { path = "../common/cimgui" }
 macros = { path = "../common/macros" }
 
@@ -22,16 +21,38 @@ strum_macros = "0.21"
 static_assertions = "1.1.0"
 
 # OS interaction
-windows = "0.18.0"
 backtrace = "0.3.60"
+libc = "0.2"
 
 # Detouring libraries
 patternscan = "1.2.0"
 detour = { git = "https://github.com/darfink/detour-rs" }
 
 # OpenXR/maths
-openxr = { version = "0.15.2", features = ["static"] }
+openxr = { version = "0.15.4", features = ["static"] }
 glam = "0.17.3"
+
+# serde
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dependencies.windows]
+version = "0.25.0"
+features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_System_ProcessStatus",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
+    "Win32_System_SystemServices",
+    "Win32_System_Console",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Hlsl",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+]
 
 [build-dependencies]
 yaml-rust = "0.4"
@@ -39,3 +60,11 @@ anyhow = "1.0"
 quote = "1.0"
 registry = "1.2.0"
 normpath = "0.3.0"
+convert_case = "0.4.0"
+proc-macro2 = "1.0.33"
+
+[features]
+default = ["dalamud"]
+dalamud = []
+debug_validation = []
+hook_constantbuffers_for_camera_upload = []

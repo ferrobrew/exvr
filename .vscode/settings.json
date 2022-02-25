@@ -2,5 +2,6 @@
     "python.formatting.provider": "black",
     "files.associations": {
         "type_traits": "cpp"
-    }
+    },
+    "cmake.configureOnOpen": false
 }

@@ -9,7 +9,7 @@ macro_rules! singleton {
                 unsafe {
                     INSTANCE
                         .set(<$class_name>::new( $($arg_name),* )?)
-                        .map_err(|_| anyhow::Error::msg("failed to set command stream"))?
+                        .map_err(|_| anyhow::Error::msg("failed to set singleton"))?
                 };
 
                 Ok(())
@@ -31,21 +31,4 @@ macro_rules! singleton {
             }
         }
     };
-}
-
-pub fn handle_error<T>(result: anyhow::Result<T>) -> Option<T> {
-    match result {
-        Ok(val) => Some(val),
-        Err(e) => {
-            log!("Top-level uncaught error: {:?}", e);
-            None
-        }
-    }
-}
-
-pub fn handle_error_in_block<T: std::default::Default, F>(block: F) -> T
-where
-    F: Fn() -> anyhow::Result<T>,
-{
-    handle_error(block()).unwrap_or(Default::default())
 }

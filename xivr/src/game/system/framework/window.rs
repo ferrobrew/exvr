@@ -1,7 +1,7 @@
 use macros::game_class;
 
-use bindings::Windows::Win32::Foundation::{HWND, LPARAM, RECT, WPARAM};
-use bindings::Windows::Win32::UI::WindowsAndMessaging::*;
+use windows::Win32::Foundation::{HWND, LPARAM, RECT, WPARAM};
+use windows::Win32::UI::WindowsAndMessaging::*;
 
 game_class!(Window, {
     fields: {
@@ -35,7 +35,7 @@ impl Window {
         unsafe {
             SetWindowPos(
                 self.handle(),
-                HWND::NULL,
+                HWND::default(),
                 0,
                 0,
                 r.right,

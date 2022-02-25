@@ -1,6 +1,4 @@
-#![feature(global_asm)]
 #![feature(naked_functions)]
-#![feature(asm)]
 #![feature(core_intrinsics)]
 
 mod game;
@@ -16,15 +14,26 @@ mod ct_config;
 
 use hooks::HookState;
 use log::Logger;
-use module::{Module, GAME_MODULE};
+use module::Module;
 
-use anyhow::{Error, Result};
-use bindings::Windows::Win32::Foundation::HINSTANCE;
-use bindings::Windows::Win32::System::LibraryLoader::FreeLibraryAndExitThread;
-use cimgui as ig;
 use std::os::raw::c_void;
 
-static mut THIS_MODULE: HINSTANCE = HINSTANCE::NULL;
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
+
+use anyhow::{Error, Result};
+use cimgui as ig;
+use windows::Win32::Foundation::HINSTANCE;
+use windows::Win32::System::Console::{AllocConsole, FreeConsole};
+
+#[derive(PartialEq)]
+enum LoadState {
+    Init,
+    Tier1Loaded,
+    Tier2Loaded,
+    Failure(String),
+}
+static LOAD_STATE: Lazy<Mutex<LoadState>> = Lazy::new(|| Mutex::new(LoadState::Init));
 
 #[repr(C, packed)]
 pub struct LoadParameters {
@@ -36,20 +45,14 @@ pub struct LoadParameters {
 }
 
 unsafe fn patch_symbol_search_path() -> Result<()> {
-    use bindings::Windows::Win32::Foundation::PWSTR;
-    use bindings::Windows::Win32::System::Diagnostics::Debug::{
-        SymGetSearchPathW, SymSetSearchPathW,
-    };
-    use bindings::Windows::Win32::System::Threading::GetCurrentProcess;
+    use windows::Win32::Foundation::PWSTR;
+    use windows::Win32::System::Diagnostics::Debug::{SymGetSearchPathW, SymSetSearchPathW};
+    use windows::Win32::System::Threading::GetCurrentProcess;
 
     let current_process = GetCurrentProcess();
-    let our_module = Module::from_handle(&THIS_MODULE);
-    let directory = our_module
-        .path()
-        .and_then(|p| p.parent())
-        .and_then(|p| p.to_str())
-        .map(|s| s.to_string())
-        .ok_or_else(|| anyhow::anyhow!("failed to retrieve module"))?;
+    let directory = util::this_module_directory()?
+        .to_str()
+        .ok_or_else(|| anyhow::anyhow!("failed to get path string"))?;
 
     // This is very silly. We would like to mutate the search path of the process
     // to include where our DLLs came from, but we can't do that without being sure
@@ -62,7 +65,7 @@ unsafe fn patch_symbol_search_path() -> Result<()> {
         let mut buf = vec![0u16; 1024];
         if !SymGetSearchPathW(current_process, PWSTR(buf.as_mut_ptr()), buf.len() as u32).as_bool()
         {
-            Err(anyhow::anyhow!("failed to get search path"))?
+            return Err(anyhow::anyhow!("failed to get search path"));
         }
 
         let len = buf
@@ -73,68 +76,106 @@ unsafe fn patch_symbol_search_path() -> Result<()> {
         String::from_utf16(&buf[..len])?
     };
 
-    let new_path = if path.contains(&directory) {
+    let new_path = if path.contains(directory) {
         path
     } else {
-        directory + ";" + &path
+        format!("{};{}", directory, &path)
     };
 
     let mut new_buf: Vec<u16> = new_path.encode_utf16().collect();
     new_buf.push(0);
     if !SymSetSearchPathW(current_process, PWSTR(new_buf.as_mut_ptr())).as_bool() {
-        Err(anyhow::anyhow!("failed to set search path"))?
+        return Err(anyhow::anyhow!("failed to set search path"));
     }
 
     Ok(())
 }
 
+unsafe fn load_tier1(parameters: Option<&LoadParameters>) -> Result<()> {
+    log!("tier1", "start");
+    let mut modules = Module::get_all();
+    let ffxiv_module = modules
+        .iter_mut()
+        .find(|x| x.filename().as_deref() == Some("ffxiv_dx11.exe"))
+        .ok_or_else(|| Error::msg("failed to find ff14 module"))?;
+    ffxiv_module.backup_image();
+    ffxiv_module.load_cache()?;
+
+    util::set_game_module(ffxiv_module.clone())?;
+    log!("tier1", "located module");
+
+    patch_symbol_search_path()?;
+    log!("tier1", "patched symbol search path");
+
+    hooks::Patcher::create()?;
+    debugger::Debugger::create()?;
+    HookState::create()?;
+    log!("tier1", "installed hooks");
+
+    util::game_module_mut()?.save_cache()?;
+
+    if let Some(parameters) = parameters {
+        ig::set_current_context(parameters.imgui_context);
+        ig::set_allocator_functions(
+            parameters.imgui_allocator_alloc,
+            parameters.imgui_allocator_free,
+            parameters.imgui_allocator_user_data,
+        );
+        log!("tier1", "initialised imgui");
+    }
+    *LOAD_STATE.lock().unwrap() = LoadState::Tier1Loaded;
+    log!("tier1", "complete");
+
+    Ok(())
+}
+
+unsafe fn load_tier2() -> Result<()> {
+    log!("tier2", "start");
+    xr::XR::create()?;
+    *LOAD_STATE.lock().unwrap() = LoadState::Tier2Loaded;
+    log!("tier2", "complete");
+    Ok(())
+}
+
+fn tier2_loadable() -> bool {
+    *LOAD_STATE.lock().unwrap() == LoadState::Tier1Loaded
+}
+
+fn load_fail(msg: String) {
+    log!("load", "failed: {}", msg);
+    *LOAD_STATE.lock().unwrap() = LoadState::Failure(msg);
+}
+
 unsafe fn xivr_load_impl(parameters: *const LoadParameters) -> Result<()> {
-    Logger::create((*parameters).logger)?;
+    if cfg!(not(feature = "dalamud")) {
+        use c_str_macro::c_str;
+        use libc::{fdopen, freopen};
+
+        AllocConsole();
+
+        let stdout = fdopen(1, c_str!("w").as_ptr());
+        let stderr = fdopen(2, c_str!("w").as_ptr());
+        freopen(c_str!("CONOUT$").as_ptr(), c_str!("w").as_ptr(), stdout);
+        freopen(c_str!("CONOUT$").as_ptr(), c_str!("w").as_ptr(), stderr);
+    }
+
+    let parameters = parameters.as_ref();
+    Logger::create(parameters.map(|x| x.logger))?;
 
     std::panic::set_hook(Box::new(|info| {
         match (info.payload().downcast_ref::<&str>(), info.location()) {
-            (Some(msg), Some(loc)) => log!("Panic! {:?} at {}:{}", msg, loc.file(), loc.line()),
-            (Some(msg), None) => log!("Panic! {:?}", msg),
-            (None, Some(loc)) => log!("Panic! at {}:{}", loc.file(), loc.line()),
-            (None, None) => log!("Panic! something at somewhere"),
+            (Some(msg), Some(loc)) => {
+                log!("panic", "Panic! {:?} at {}:{}", msg, loc.file(), loc.line())
+            }
+            (Some(msg), None) => log!("panic", "Panic! {:?}", msg),
+            (None, Some(loc)) => log!("panic", "Panic! at {}:{}", loc.file(), loc.line()),
+            (None, None) => log!("panic", "Panic! something at somewhere"),
         };
 
-        log!("{:?}", backtrace::Backtrace::new_unresolved());
+        log!("panic", "{:?}", backtrace::Backtrace::new_unresolved());
     }));
 
-    let r = std::panic::catch_unwind(|| {
-        let parameters: &LoadParameters = unsafe { &*parameters };
-        let mut modules = Module::get_all();
-        let ffxiv_module = modules
-            .iter_mut()
-            .find(|x| x.filename().as_deref() == Some("ffxiv_dx11.exe"))
-            .ok_or_else(|| Error::msg("failed to find ff14 module"))?;
-        ffxiv_module.backup_image();
-
-        unsafe {
-            GAME_MODULE
-                .set(ffxiv_module.clone())
-                .map_err(|_| Error::msg("failed to set module"))?
-        };
-
-        patch_symbol_search_path()?;
-
-        hooks::Patcher::create()?;
-        debugger::Debugger::create()?;
-        HookState::create()?;
-        xr::XR::create()?;
-
-        unsafe {
-            ig::set_current_context(parameters.imgui_context);
-            ig::set_allocator_functions(
-                parameters.imgui_allocator_alloc,
-                parameters.imgui_allocator_free,
-                parameters.imgui_allocator_user_data,
-            );
-        }
-
-        Ok(())
-    });
+    let r = std::panic::catch_unwind(|| load_tier1(parameters));
     match r {
         Ok(Ok(())) => Ok(()),
         Ok(Err(err)) => Err(err),
@@ -156,21 +197,30 @@ pub unsafe extern "system" fn xivr_load(parameters: *const LoadParameters) -> bo
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "system" fn xivr_unload() {
-    log!("unloading!");
-    xr::XR::destroy();
+    log!("xivr", "unloading!");
     HookState::destroy();
-    debugger::Debugger::destroy();
     hooks::Patcher::destroy();
 
-    Logger::destroy();
-
     std::thread::spawn(|| {
-        FreeLibraryAndExitThread(THIS_MODULE, 0);
+        use windows::Win32::System::LibraryLoader::FreeLibraryAndExitThread;
+        std::thread::sleep(std::time::Duration::from_millis(100)); // bodge
+
+        xr::XR::destroy();
+        debugger::Debugger::destroy();
+
+        Logger::destroy();
+
+        if cfg!(not(feature = "dalamud")) {
+            FreeConsole();
+        }
+
+        FreeLibraryAndExitThread(util::this_module().unwrap().handle(), 0);
     });
 }
 
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
+#[cfg(feature = "dalamud")]
 pub unsafe extern "system" fn xivr_draw_ui() {
     util::handle_error_in_block(|| {
         if let Some(debugger) = debugger::Debugger::get_mut() {
@@ -183,9 +233,31 @@ pub unsafe extern "system" fn xivr_draw_ui() {
 #[no_mangle]
 #[allow(non_snake_case)]
 #[allow(clippy::missing_safety_doc)]
+#[cfg(feature = "dalamud")]
 pub unsafe extern "system" fn DllMain(module: HINSTANCE, _reason: u32, _: *mut c_void) -> bool {
-    if THIS_MODULE.is_null() {
-        THIS_MODULE = module;
+    if !util::this_module_available() {
+        util::set_this_module(Module::from_handle(module)).unwrap();
+    }
+    true
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+#[allow(clippy::missing_safety_doc)]
+#[cfg(not(feature = "dalamud"))]
+pub unsafe extern "system" fn DllMain(module: HINSTANCE, reason: u32, _: *mut c_void) -> bool {
+    use windows::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
+    if !util::this_module_available() {
+        util::set_this_module(Module::from_handle(module)).unwrap();
+    }
+
+    match reason {
+        DLL_PROCESS_ATTACH => {
+            std::thread::spawn(|| {
+                xivr_load(std::ptr::null());
+            });
+        }
+        _ => {}
     }
     true
 }

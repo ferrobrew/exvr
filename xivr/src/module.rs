@@ -1,66 +1,85 @@
+use std::collections;
+use std::convert::TryInto;
 use std::ffi::OsString;
 use std::io;
 use std::mem;
 use std::os::windows::ffi::OsStringExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::slice;
 
-use once_cell::unsync::OnceCell;
-
-use bindings::Windows::Win32::Foundation::{HINSTANCE, PWSTR};
-use bindings::Windows::Win32::System::LibraryLoader::GetModuleFileNameW;
-use bindings::Windows::Win32::System::ProcessStatus::{
+use windows::Win32::Foundation::{HINSTANCE, PWSTR};
+use windows::Win32::System::LibraryLoader::GetModuleFileNameW;
+use windows::Win32::System::ProcessStatus::{
     K32EnumProcessModules, K32GetModuleInformation, MODULEINFO,
 };
-use bindings::Windows::Win32::System::Threading::GetCurrentProcess;
+use windows::Win32::System::Threading::GetCurrentProcess;
+
+use anyhow::anyhow;
+
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+enum CacheKey {
+    Regular(String),
+    RelativeCallsite(String),
+    AfterPtr(String, usize),
+}
+
+#[derive(Serialize, Deserialize)]
+struct SerializedCache {
+    hash: u64,
+    entries: Vec<(CacheKey, usize)>,
+}
 
 #[derive(Debug, Clone)]
 pub struct Module {
-    module: HINSTANCE,
+    handle: HINSTANCE,
     path: Option<String>,
     pub base: *mut u8,
-    entry_point: *mut u8,
+    _entry_point: *mut u8,
     image_size: u32,
     image_backup: Vec<u8>,
+    cache: collections::HashMap<CacheKey, usize>,
 }
 
 impl Module {
-    pub fn from_handle(module: &HINSTANCE) -> Module {
+    pub fn from_handle(handle: HINSTANCE) -> Module {
         let mut mod_info = unsafe { std::mem::zeroed() };
         unsafe {
             K32GetModuleInformation(
                 GetCurrentProcess(),
-                module,
+                handle,
                 &mut mod_info,
                 mem::size_of::<MODULEINFO>() as u32,
             );
         }
         Module {
-            module: *module,
+            handle,
             path: {
                 let mut buf = [0u16; 1024];
                 let size = unsafe {
-                    GetModuleFileNameW(module, PWSTR(buf.as_mut_ptr()), buf.len() as u32)
+                    GetModuleFileNameW(handle, PWSTR(buf.as_mut_ptr()), buf.len() as u32)
                 } as usize;
                 let os = OsString::from_wide(&buf[0..size]);
                 os.into_string().ok()
             },
             base: mod_info.lpBaseOfDll as *mut u8,
-            entry_point: mod_info.EntryPoint as *mut u8,
+            _entry_point: mod_info.EntryPoint as *mut u8,
             image_size: mod_info.SizeOfImage,
             image_backup: vec![],
+            cache: collections::HashMap::new(),
         }
     }
 
     pub fn get_all() -> Vec<Module> {
         let process = unsafe { GetCurrentProcess() };
         let hinstance_size = mem::size_of::<HINSTANCE>() as u32;
-        let mut temp = HINSTANCE::NULL;
+        let mut temp = HINSTANCE::default();
         let mut needed = 0u32;
         unsafe {
             K32EnumProcessModules(process, &mut temp, hinstance_size, &mut needed);
         }
-        let mut buf = vec![HINSTANCE::NULL; (needed / hinstance_size) as usize];
+        let mut buf = vec![HINSTANCE::default(); (needed / hinstance_size) as usize];
         unsafe {
             K32EnumProcessModules(
                 process,
@@ -69,7 +88,7 @@ impl Module {
                 &mut needed,
             );
         }
-        buf.iter().map(Module::from_handle).collect()
+        buf.into_iter().map(Module::from_handle).collect()
     }
 
     pub fn as_bytes_from_memory(&self) -> &[u8] {
@@ -88,38 +107,106 @@ impl Module {
         }
     }
 
-    pub fn scan(&self, pattern: &str) -> anyhow::Result<*mut u8> {
-        Ok(
-            patternscan::scan_first_match(io::Cursor::new(self.as_bytes()), pattern)
-                .transpose()
-                .ok_or_else(|| anyhow::Error::msg("failed to scan"))?
-                .map(|o| unsafe { self.base.add(o) })?,
-        )
+    pub fn hash(&self) -> anyhow::Result<u64> {
+        use std::collections::hash_map::DefaultHasher;
+        use std::fs::File;
+        use std::hash::Hasher;
+
+        struct HashWriter<T: Hasher>(T);
+
+        impl<T: Hasher> io::Write for HashWriter<T> {
+            fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+                self.0.write(buf);
+                Ok(buf.len())
+            }
+
+            fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+                self.write(buf).map(|_| ())
+            }
+
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
+        }
+
+        let input = File::open(
+            self.path()
+                .ok_or_else(|| anyhow!("can't open module for hashing"))?,
+        )?;
+        let mut reader = io::BufReader::new(input);
+
+        let mut hw = HashWriter(DefaultHasher::new());
+        io::copy(&mut reader, &mut hw)?;
+
+        Ok(hw.0.finish())
     }
 
-    pub fn scan_for_relative_callsite(&self, pattern: &str) -> anyhow::Result<*mut u8> {
-        use std::convert::TryInto;
+    pub fn scan(&mut self, pattern: &str) -> anyhow::Result<*mut u8> {
+        let offset = if let Some(offset) = self.cache.get(&CacheKey::Regular(pattern.to_owned())) {
+            *offset
+        } else {
+            patternscan::scan_first_match(io::Cursor::new(self.as_bytes()), pattern)?
+                .ok_or_else(|| anyhow!("failed to scan"))?
+        };
 
-        let p = self.scan(pattern)?;
-        let call = unsafe { slice::from_raw_parts(p as *const u8, 5) };
-        let offset = i32::from_ne_bytes(call[1..].try_into()?) + 5;
-        Ok(unsafe { p.offset(offset as isize) })
+        self.cache
+            .insert(CacheKey::Regular(pattern.to_owned()), offset);
+
+        Ok(self.rel_to_abs_addr(offset))
     }
 
-    pub fn scan_after_ptr(&self, base: *const u8, pattern: &str) -> anyhow::Result<*mut u8> {
-        let index = self.abs_to_rel_addr(base) as usize;
-        let slice = &self.as_bytes()[index..];
+    pub fn scan_for_relative_callsite(&mut self, pattern: &str) -> anyhow::Result<*mut u8> {
+        let offset = if let Some(offset) = self
+            .cache
+            .get(&CacheKey::RelativeCallsite(pattern.to_owned()))
+        {
+            *offset
+        } else {
+            let offset = patternscan::scan_first_match(io::Cursor::new(self.as_bytes()), pattern)?
+                .ok_or_else(|| anyhow!("failed to scan"))?;
+            let base = self.rel_to_abs_addr(offset);
+            let call = unsafe { slice::from_raw_parts(base as *const u8, 5) };
+            let offset = i32::from_ne_bytes(call[1..].try_into()?) + 5;
+            let ptr = unsafe { base.offset(offset as isize) };
 
-        Ok(
-            patternscan::scan_first_match(io::Cursor::new(slice), pattern)
-                .transpose()
-                .ok_or_else(|| anyhow::Error::msg("failed to scan"))?
-                .map(|o| self.rel_to_abs_addr((index + o) as isize))?,
-        )
+            self.abs_to_rel_addr(ptr).try_into()?
+        };
+
+        self.cache
+            .insert(CacheKey::RelativeCallsite(pattern.to_owned()), offset);
+
+        Ok(self.rel_to_abs_addr(offset))
+    }
+
+    pub fn scan_after_ptr(&mut self, base: *const u8, pattern: &str) -> anyhow::Result<*mut u8> {
+        let base_offset = self.abs_to_rel_addr(base) as usize;
+
+        let offset = if let Some(offset) = self
+            .cache
+            .get(&CacheKey::AfterPtr(pattern.to_owned(), base_offset))
+        {
+            *offset
+        } else {
+            let slice = &self.as_bytes()[base_offset..];
+
+            let offset_from_base = patternscan::scan_first_match(io::Cursor::new(slice), pattern)?
+                .ok_or_else(|| anyhow!("failed to scan"))?;
+
+            base_offset + offset_from_base
+        };
+
+        self.cache
+            .insert(CacheKey::AfterPtr(pattern.to_owned(), base_offset), offset);
+
+        Ok(self.rel_to_abs_addr(offset))
     }
 
     pub fn path(&self) -> Option<&Path> {
-        self.path.as_ref().map(|x| Path::new(x))
+        self.path.as_ref().map(Path::new)
+    }
+
+    pub fn directory(&self) -> Option<&Path> {
+        self.path().and_then(Path::parent)
     }
 
     pub fn filename(&self) -> Option<String> {
@@ -133,9 +220,91 @@ impl Module {
         unsafe { p.offset_from(self.base) }
     }
 
-    pub fn rel_to_abs_addr(&self, offset: isize) -> *mut u8 {
+    pub fn rel_to_abs_addr(&self, offset: usize) -> *mut u8 {
+        self.rel_to_abs_addr_isize(offset as isize)
+    }
+
+    pub fn rel_to_abs_addr_isize(&self, offset: isize) -> *mut u8 {
         unsafe { self.base.offset(offset) }
+    }
+
+    pub fn handle(&self) -> HINSTANCE {
+        self.handle
+    }
+
+    pub fn tls_index(&self) -> u32 {
+        struct TlsDirectory {
+            _tls_start: *const u8,
+            _tls_end: *const u8,
+            tls_index: *const u32,
+            // rest elided
+        }
+
+        unsafe {
+            let dir_offset = self.rel_to_abs_addr(0x240) as *const u32;
+            let dir = self.rel_to_abs_addr((*dir_offset) as usize) as *const TlsDirectory;
+            *((*dir).tls_index)
+        }
+    }
+
+    fn cache_path(&self) -> anyhow::Result<PathBuf> {
+        let this_dir = crate::util::this_module_directory()?;
+        let cache_dir = this_dir.join("cache");
+        std::fs::create_dir_all(&cache_dir)?;
+
+        let filename = self
+            .path()
+            .map(|p| p.with_extension("json"))
+            .and_then(|p| {
+                p.file_name()
+                    .and_then(|f| f.to_str())
+                    .map(|f| f.to_string())
+            })
+            .ok_or_else(|| anyhow!("failed to get filename"))?;
+
+        Ok(cache_dir.join(filename))
+    }
+
+    pub fn load_cache(&mut self) -> anyhow::Result<()> {
+        let path = self.cache_path()?;
+        if !path.is_file() {
+            return Ok(());
+        }
+
+        let buf = std::fs::read(&path)?;
+        let buf = std::str::from_utf8(&buf)?;
+        let serialized_cache: SerializedCache = serde_json::from_str(buf)?;
+
+        if serialized_cache.hash != self.hash()? {
+            std::fs::remove_file(&path)?;
+            return Ok(());
+        }
+
+        self.cache = serialized_cache.entries.into_iter().collect();
+
+        Ok(())
+    }
+
+    pub fn save_cache(&self) -> anyhow::Result<()> {
+        if self.cache.is_empty() {
+            return Ok(());
+        }
+
+        let serialized_cache = SerializedCache {
+            hash: self.hash()?,
+            entries: self.cache.clone().into_iter().collect(),
+        };
+        std::fs::write(
+            self.cache_path()?,
+            serde_json::to_string_pretty(&serialized_cache)?,
+        )?;
+
+        Ok(())
     }
 }
 
-pub static mut GAME_MODULE: OnceCell<Module> = OnceCell::new();
+impl Drop for Module {
+    fn drop(&mut self) {
+        let _ = self.save_cache();
+    }
+}

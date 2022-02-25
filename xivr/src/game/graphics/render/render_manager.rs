@@ -1,11 +1,11 @@
-use crate::game::offsets;
 use crate::game::graphics::render;
+use crate::game::offsets;
 
 use macros::game_class;
 
 game_class!(RenderManager, {
     size: 0x2D6BD,
-    location: offsets::globals::RenderManager,
+    location: offsets::classes::graphics::render::Manager::INSTANCES[0],
     fields: {
         [0xAD28] render_camera: *mut render::Camera,
     }

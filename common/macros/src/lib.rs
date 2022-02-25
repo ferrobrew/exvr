@@ -207,8 +207,8 @@ fn generate_get(name: &proc_macro2::Ident, location: Option<Expr>) -> proc_macro
     match location {
         Some(e) => quote! {
             pub unsafe fn get() -> &'static mut #name {
-                let m = crate::module::GAME_MODULE.get().unwrap();
-                let p: *mut #name = *(m.rel_to_abs_addr(#e as isize) as *const *mut #name);
+                let m = crate::util::game_module_mut().unwrap();
+                let p: *mut #name = *(m.rel_to_abs_addr(#e as usize) as *const *mut #name);
                 &mut *p
             }
         },
@@ -230,9 +230,11 @@ fn generate_getters(fields: &[(u32, Ident, Type)]) -> Vec<proc_macro2::TokenStre
                 let name_mut = format_ident!("{}_mut", name);
 
                 quote! {
+                    #[allow(non_snake_case)]
                     pub unsafe fn #name(&self) -> &'static #field_type {
                         &*self.#name_ptr()
                     }
+                    #[allow(non_snake_case)]
                     pub unsafe fn #name_mut(&mut self) -> &'static mut #field_type {
                         &mut *self.#name_ptr_mut()
                     }
@@ -242,10 +244,12 @@ fn generate_getters(fields: &[(u32, Ident, Type)]) -> Vec<proc_macro2::TokenStre
             };
 
             quote! {
+                #[allow(non_snake_case)]
                 pub unsafe fn #name_ptr(&self) -> *const #field_type {
                     let u8_self = self as *const _ as *const u8;
                     (self as *const _ as *const u8).add(#offset) as *const #field_type
                 }
+                #[allow(non_snake_case)]
                 pub unsafe fn #name_ptr_mut(&mut self) -> *mut #field_type {
                     let u8_self = self as *mut _ as *mut u8;
                     (self as *mut _ as *mut u8).add(#offset) as *mut #field_type
@@ -295,7 +299,7 @@ fn generate_functions(
                 pub unsafe fn #name(#(#args, )*) #output {
                     static mut ADDRESS: *mut u8 = ::std::ptr::null_mut();
                     if ADDRESS.is_null() {
-                        let module = crate::module::GAME_MODULE.get().unwrap();
+                        let module = crate::util::game_module_mut().unwrap();
                         ADDRESS = module.scan(#code_signature).unwrap();
                     }
 

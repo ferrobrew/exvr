@@ -15,23 +15,27 @@ impl Drop for HookState {
 
         let res = unsafe { RenderManager_Render_Detour.disable() };
         if let Err(e) = res {
-            log!("error while disabling render detour: {}", e.to_string())
+            log!(
+                "error",
+                "error while disabling render detour: {}",
+                e.to_string()
+            )
         }
         let res = unsafe { RenderManager_RenderUI_Detour.disable() };
         if let Err(e) = res {
-            log!("error while disabling renderui detour: {}", e.to_string())
+            log!(
+                "error",
+                "error while disabling renderui detour: {}",
+                e.to_string()
+            )
         }
     }
 }
 
 pub unsafe fn install() -> anyhow::Result<HookState> {
-    use crate::module::GAME_MODULE;
     use std::mem;
 
-    let module = GAME_MODULE
-        .get()
-        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
-
+    let module = util::game_module_mut()?;
     let rendermanager_render_addr = module.scan("40 53 55 57 41 56 41 57 48 83 EC 60")?;
 
     RenderManager_Render_Detour.initialize(
@@ -81,7 +85,8 @@ pub unsafe fn install() -> anyhow::Result<HookState> {
                 let ret = RenderManager_RenderUI_Detour.call(s, a);
                 if let Some(debugger) = Debugger::get_mut() {
                     if let Ok(mut command_stream) = debugger.command_stream.lock() {
-                        command_stream.add_marker("RenderManager::RenderUI post-call".to_owned())?;
+                        command_stream
+                            .add_marker("RenderManager::RenderUI post-call".to_owned())?;
                     }
                 }
 

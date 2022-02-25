@@ -15,6 +15,7 @@ impl Drop for HookState {
         let res = unsafe { Camera_UpdateConstantBuffers_Detour.disable() };
         if let Err(e) = res {
             log!(
+                "error",
                 "error while disabling constant buffers detour: {}",
                 e.to_string()
             )
@@ -24,13 +25,9 @@ impl Drop for HookState {
 
 pub unsafe fn install() -> anyhow::Result<HookState> {
     use crate::hooks::graphics::kernel::constant_buffer;
-    use crate::module::GAME_MODULE;
     use std::mem;
 
-    let module = GAME_MODULE
-        .get()
-        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
-
+    let module = util::game_module_mut()?;
     let camera_updateconstantbuffers_addr =
         module.scan_for_relative_callsite("E8 ? ? ? ? E9 ? ? ? ? 42 83 64 37 ? ?")?;
     constant_buffer::RENDER_CAMERA_UPDATE_CONSTANT_BUFFERS_PTR =

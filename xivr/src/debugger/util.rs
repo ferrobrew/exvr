@@ -1,4 +1,4 @@
-use bindings::Windows::Win32::Graphics::Dxgi as dxgi;
+use windows::Win32::Graphics::Dxgi as dxgi;
 
 pub fn dxgi_format_to_str(dxgi_format: dxgi::DXGI_FORMAT) -> &'static str {
     match dxgi_format {

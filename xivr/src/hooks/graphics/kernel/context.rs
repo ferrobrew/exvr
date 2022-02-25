@@ -1,6 +1,5 @@
 use crate::debugger::Debugger;
 use crate::game::graphics::kernel::ShaderCommand;
-use crate::module::GAME_MODULE;
 use crate::{log, util};
 
 use detour::static_detour;
@@ -14,7 +13,11 @@ impl Drop for HookState {
     fn drop(&mut self) {
         let res = unsafe { Context_PushBackCmd_Detour.disable() };
         if let Err(e) = res {
-            log!("error while disabling context detour: {}", e.to_string());
+            log!(
+                "error",
+                "error while disabling context detour: {}",
+                e.to_string()
+            );
         }
     }
 }
@@ -34,9 +37,7 @@ fn context_pushbackcmd_hook(ctx: usize, cmd: &'static ShaderCommand) -> usize {
 pub unsafe fn install() -> anyhow::Result<HookState> {
     use std::mem;
 
-    let module = GAME_MODULE
-        .get()
-        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
+    let module = util::game_module_mut()?;
     let context_pushbackcmd: fn(usize, &'static ShaderCommand) -> usize =
         mem::transmute(module.scan("83 41 30 FF")?);
 

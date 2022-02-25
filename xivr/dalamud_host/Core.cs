@@ -38,8 +38,6 @@ namespace XIVR
         private string DirPath { get => Path.GetFullPath(Path.GetDirectoryName(assemblyLocation)!); }
         private string ModuleName(string ext) => "xivr_native" + "." + ext;
         private string ModulePath(string ext) => Path.Combine(DirPath, ModuleName(ext));
-        private string ModuleLoadedName(string ext) => "xivr_native_loaded" + "." + ext;
-        private string ModuleLoadedPath(string ext) => Path.Combine(DirPath, ModuleLoadedName(ext));
         private IntPtr module = IntPtr.Zero;
         private bool visible = true;
 
@@ -64,23 +62,6 @@ namespace XIVR
             return NativeLibrary.GetExport(this.module, name);
         }
 
-        private void Reload()
-        {
-            PluginLog.Information("Reloading...");
-
-            if (this.module != IntPtr.Zero)
-            {
-                // On unload, we resize the window. This causes the D3D device to be invalidated,
-                // and we don't want to start up OpenXR with an invalid device.
-                // Instead, let's use more jank to delay the startup until we can be sure we're good to go.
-                this.Unload(() => Task.Delay(2500).ContinueWith(_ => this.Load()));
-            }
-            else
-            {
-                this.Load();
-            }
-        }
-
         private void Unload(Action onUnload)
         {
             if (this.module == IntPtr.Zero) return;
@@ -89,10 +70,8 @@ namespace XIVR
             {
                 ((delegate* unmanaged<void>)ModuleFunction("xivr_unload"))();
             }
-            NativeLibrary.Free(this.module);
             this.module = IntPtr.Zero;
 
-            PluginLog.Information("Destroyed module");
             onUnload();
         }
 
@@ -100,10 +79,7 @@ namespace XIVR
         {
             if (this.module != IntPtr.Zero) return;
 
-            File.Copy(ModulePath("dll"), ModuleLoadedPath("dll"), true);
-            File.Copy(ModulePath("pdb"), ModuleLoadedPath("pdb"), true);
-
-            this.module = NativeLibrary.Load(ModuleLoadedPath("dll"));
+            this.module = NativeLibrary.Load(ModulePath("dll"));
             if (this.module == IntPtr.Zero)
             {
                 throw new Exception(string.Format("Failed to load native module: {0}", Marshal.GetLastWin32Error()));
@@ -138,10 +114,6 @@ namespace XIVR
         {
             if (ImGui.Begin("XIVR Loader", ref this.visible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
             {
-                if (ImGui.Button("Reload"))
-                {
-                    Reload();
-                }
                 if (this.module == IntPtr.Zero)
                 {
                     if (ImGui.Button("Load"))

@@ -1,13 +1,13 @@
-pub mod game_main;
+pub mod framework;
 
 pub struct HookState {
-    _game_main: game_main::HookState,
+    _framework: framework::HookState,
 }
 
 impl HookState {
     pub fn new() -> anyhow::Result<HookState> {
         Ok(HookState {
-            _game_main: unsafe { game_main::install()? },
+            _framework: unsafe { framework::install()? },
         })
     }
 }

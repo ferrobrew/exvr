@@ -1,6 +1,5 @@
 use crate::game::graphics::render;
 use crate::game::math;
-use crate::module::GAME_MODULE;
 use crate::{log, util};
 
 use detour::static_detour;
@@ -51,7 +50,11 @@ impl Drop for HookState {
     fn drop(&mut self) {
         let res = unsafe { ConstantBuffer_LoadBuffer_Detour.disable() };
         if let Err(e) = res {
-            log!("error while disabling loadbuffer hijack: {}", e.to_string());
+            log!(
+                "error",
+                "error while disabling loadbuffer hijack: {}",
+                e.to_string()
+            );
         }
     }
 }
@@ -161,9 +164,7 @@ fn constantbuffer_loadbuffer_hook(this: usize, unk1: usize, unk2: usize, load: *
 pub unsafe fn install() -> anyhow::Result<HookState> {
     use std::mem;
 
-    let module = GAME_MODULE
-        .get()
-        .ok_or_else(|| anyhow::Error::msg("Failed to retrieve game module"))?;
+    let module = util::game_module_mut()?;
     let constantbuffer_loadbuffer = module.scan("4C 89 44 24 ? 56 57 41 57")?;
 
     ConstantBuffer_LoadBuffer_Detour.initialize(

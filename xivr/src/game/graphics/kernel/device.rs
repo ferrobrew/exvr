@@ -2,13 +2,11 @@ use crate::game::graphics::kernel::{Context, ImmediateContext, SwapChain};
 use crate::game::offsets;
 use macros::game_class;
 
-use bindings::Windows::Win32::Graphics::Direct3D11::{
-    ID3D11Device, ID3D11DeviceContext, D3D_FEATURE_LEVEL,
-};
+use windows::Win32::Graphics::Direct3D11::{ID3D11Device, ID3D11DeviceContext, D3D_FEATURE_LEVEL};
 
 game_class!(Device, {
     size: 0x210,
-    location: offsets::globals::KernelDevice,
+    location: offsets::classes::graphics::kernel::Device::INSTANCES[0],
     fields: {
         [0x8] contexts: *mut Context,
         [0x10] immediate_context: &'static mut ImmediateContext,
