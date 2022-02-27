@@ -1,0 +1,4 @@
+[toolchain]
+channel = "stable"
+targets = [ "i686-pc-windows-msvc" ]
+profile = "default"
