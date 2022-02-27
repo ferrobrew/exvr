@@ -1,6 +1,3 @@
-#![feature(command_access)]
-
-use anyhow::Result;
 use std::fs;
 use std::path::Path;
 
@@ -10,7 +7,7 @@ fn compile_shaders(out_dir: &Path) -> anyhow::Result<()> {
     use std::path::PathBuf;
     use std::process::Command;
 
-    const RELATIVE_PATH: &'static str = "assets/shaders/";
+    const RELATIVE_PATH: &str = "assets/shaders/";
     println!("cargo:rerun-if-changed={}", RELATIVE_PATH);
 
     for path in fs::read_dir(RELATIVE_PATH)?.filter_map(|res| res.map(|e| e.path()).ok()) {
@@ -63,8 +60,7 @@ fn compile_shaders(out_dir: &Path) -> anyhow::Result<()> {
 
     Ok(())
 }
-
-fn main() -> Result<()> {
+fn main() -> anyhow::Result<()> {
     let out_dir = std::env::var("OUT_DIR")?;
     let out_dir = Path::new(&out_dir);
 
