@@ -250,7 +250,7 @@ extern "C"
 		return D3D10CreateDeviceAndSwapChain1(pAdapter, DriverType, Software, Flags, D3D10_FEATURE_LEVEL_10_0, SDKVersion, pSwapChainDesc, ppSwapChain, (ID3D10Device1**)ppDevice);
 	}
 
-	HRESULT D3DX10CreateDevice(
+	HRESULT STDMETHODCALLTYPE D3DX10CreateDevice(
 		IDXGIAdapter      *pAdapter,
 		D3D10_DRIVER_TYPE DriverType,
 		HMODULE           Software,
@@ -261,7 +261,7 @@ extern "C"
 		return D3D10CreateDevice1(pAdapter, DriverType, Software, Flags, D3D10_FEATURE_LEVEL_10_1, D3D10_1_SDK_VERSION, (ID3D10Device1**)ppDevice);
 	}
 
-	HRESULT D3DX10GetFeatureLevel1(
+	HRESULT STDMETHODCALLTYPE D3DX10GetFeatureLevel1(
 		ID3D10Device      *pDevice,
 		ID3D10Device1     **ppDevice
 	)

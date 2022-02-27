@@ -28,6 +28,7 @@ fn main() -> anyhow::Result<()> {
         .flag("/wd4100") // unreferenced formal parameter
         .flag("/wd4459") // hides global declaration
         .flag("/wd4267") // possible loss of data
+        .flag("/wd5205") // delete of an abstract class
         // linker
         .compile("libdxup");
 

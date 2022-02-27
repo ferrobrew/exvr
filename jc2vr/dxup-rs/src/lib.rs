@@ -43,13 +43,8 @@ extern "system" {
 pub unsafe extern "system" fn DllMain(_module: HINSTANCE, reason: u32, _: *mut c_void) -> bool {
     use windows_sys::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
 
-    D3DX10GetFeatureLevel1(std::ptr::null_mut(), std::ptr::null_mut());
-
-    match reason {
-        DLL_PROCESS_ATTACH => {
-            // iat patch
-        }
-        _ => {}
+    if reason == DLL_PROCESS_ATTACH {
+        // iat patch
     }
     true
 }

@@ -1,0 +1,31 @@
+[package]
+edition = "2018"
+name = "jc2vr"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+# Local deps
+cimgui = {path = "../../common/cimgui"}
+macros = {path = "../../common/macros"}
+
+# Rust improvements
+
+# OS interaction
+[dependencies.windows]
+version = "0.25.0"
+features = [
+  "Win32_Foundation",
+]
+# Detouring libraries
+
+# OpenXR/maths
+
+[build-dependencies]
+anyhow = "1.0"
+normpath = "0.3.0"
+quote = "1.0"
+registry = "1.2.0"
