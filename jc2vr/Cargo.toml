@@ -2,4 +2,5 @@
 members = [
     "payload",
     "dxup-rs",
+    "launcher",
 ]
