@@ -1,0 +1,12 @@
+build
+build32
+build.w32
+build.w64
+*.vcxproj
+*.filters
+*.vpc_crc
+*.sentinel
+Release
+Debug
+.vscode
+target
