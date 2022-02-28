@@ -74,11 +74,15 @@ fn inject(process: &OwnedProcess) -> anyhow::Result<()> {
 }
 
 fn main() -> anyhow::Result<()> {
+    let keep_suspended = std::env::args().any(|a| a == "--keep-suspended");
+
     let (process, main_thread) = spawn_process()?;
     let result = inject(&process);
     match result {
         Ok(_) => unsafe {
-            Threading::ResumeThread(main_thread);
+            if !keep_suspended {
+                Threading::ResumeThread(main_thread);
+            }
         },
         Err(_) => {
             let _ = process.kill();
