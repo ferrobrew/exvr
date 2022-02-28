@@ -38,3 +38,26 @@ extern "system" {
     ) -> HRESULT;
     fn D3DX10GetFeatureLevel1(pdevice: *mut c_void, ppdevice: *mut *mut c_void) -> HRESULT;
 }
+
+pub const IAT_HOOKS: [((&str, &str), *const ()); 5] = [
+    (
+        ("dxgi.dll", "CreateDXGIFactory"),
+        CreateDXGIFactory as *const (),
+    ),
+    (
+        ("d3d9.dll", "D3DPERF_SetOptions"),
+        D3DPERF_SetOptions as *const (),
+    ),
+    (
+        ("d3d10.dll", "D3D10CompileShader"),
+        D3D10CompileShader as *const (),
+    ),
+    (
+        ("d3dx10_42.dll", "D3DX10CreateDevice"),
+        D3DX10CreateDevice as *const (),
+    ),
+    (
+        ("d3dx10_42.dll", "D3DX10GetFeatureLevel1"),
+        D3DX10GetFeatureLevel1 as *const (),
+    ),
+];

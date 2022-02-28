@@ -2,72 +2,73 @@ mod bindings;
 mod delay_load_modules;
 mod image_thunks;
 mod import_modules;
+mod import_tables;
 mod util;
 
-use std::{
-    ffi::OsString,
-    fs::File,
-    io::Write,
-    os::{raw::c_void, windows::prelude::OsStringExt},
-    path::PathBuf,
-};
-
-use delay_load_modules::delay_load_modules;
-use import_modules::import_modules;
+use std::{fs::File, io::Write, os::raw::c_void, path::PathBuf};
 
 use anyhow::Context;
-use windows_sys::Win32::{
-    Foundation::HINSTANCE,
-    System::{
-        Diagnostics::Debug::IMAGE_NT_HEADERS32,
-        LibraryLoader::{GetModuleFileNameW, GetModuleHandleA},
-        SystemServices::IMAGE_DOS_HEADER,
-    },
-};
+use windows_sys::Win32::Foundation::HINSTANCE;
 
 static mut THIS_MODULE: HINSTANCE = 0;
+fn this_module_path() -> PathBuf {
+    use std::{ffi::OsString, os::windows::prelude::OsStringExt};
+    use windows_sys::Win32::System::LibraryLoader::GetModuleFileNameW;
 
-fn load_impl() -> anyhow::Result<()> {
-    let parent_path = unsafe {
-        let mut buf = [0u16; 1024];
+    let mut buf = [0u16; 1024];
+    unsafe {
         GetModuleFileNameW(THIS_MODULE, buf.as_mut_ptr(), buf.len() as _);
-
-        PathBuf::from(OsString::from_wide(&buf))
-            .parent()
-            .map(|p| p.to_path_buf())
-            .context("failed to get parent path")?
-    };
-
-    let mut file = File::create(parent_path.join("dxup-rs.log"))?;
-
-    const DLLS: &[&str] = &["dxgi.dll", "d3d9.dll", "d3d10.dll", "d3dx10_42.dll"];
-    let (image_base, nt_headers) = unsafe {
-        let image_base = GetModuleHandleA(std::ptr::null());
-        let dos_headers = image_base as *const IMAGE_DOS_HEADER;
-        let nt_headers =
-            (image_base + (*dos_headers).e_lfanew as isize) as *const IMAGE_NT_HEADERS32;
-
-        (image_base, nt_headers)
-    };
-
-    for (library_name, image_thunks) in import_modules(image_base, nt_headers)
-        .chain(delay_load_modules(image_base, nt_headers))
-        .filter(|(library_name, _)| DLLS.iter().any(|f| *f == library_name))
-    {
-        writeln!(file, " {}", library_name)?;
-        for (function_name, ptr_to_function) in image_thunks {
-            writeln!(file, "  {}: {:X?}", function_name, unsafe {
-                *ptr_to_function
-            })?;
-        }
     }
 
-    // IAT replacements
-    // dxgi.dll:CreateDXGIFactory
-    // d3d9.dll:D3DPERF_SetOptions
-    // d3d10.dll:D3D10CompileShader
-    // d3dx10_42.dll:D3DX10CreateDevice
-    // d3dx10_42.dll:D3DX10GetFeatureLevel1
+    PathBuf::from(OsString::from_wide(&buf))
+}
+
+fn safe_patch(patch_address: *mut *const (), new_address: *const ()) {
+    use windows_sys::Win32::System::Memory::{
+        VirtualProtect, PAGE_PROTECTION_FLAGS, PAGE_READWRITE,
+    };
+    let mut old: PAGE_PROTECTION_FLAGS = 0;
+    let size = std::mem::size_of_val(&new_address) as usize;
+    unsafe {
+        VirtualProtect(patch_address as *const _, size, PAGE_READWRITE, &mut old);
+        *patch_address = new_address;
+        VirtualProtect(patch_address as *const _, size, old, &mut old);
+    }
+}
+
+fn load_impl() -> anyhow::Result<()> {
+    use import_tables::import_tables;
+    use std::collections::{HashMap, HashSet};
+    let dlls: HashSet<&str> =
+        HashSet::from_iter(bindings::IAT_HOOKS.into_iter().map(|((dll, _), ..)| dll));
+    let addresses: HashMap<_, _> = bindings::IAT_HOOKS.into_iter().collect();
+
+    let mut log = {
+        let log_path = this_module_path()
+            .parent()
+            .context("failed to get parent path")?
+            .join("dxup-rs.log");
+
+        File::create(log_path)?
+    };
+
+    for (library_name, functions) in import_tables().filter(|(l, _)| dlls.contains(l.as_str())) {
+        writeln!(log, "{}", library_name)?;
+
+        for (function_name, ptr_to_function) in functions {
+            write!(log, "  {}: {:X?}", function_name, unsafe {
+                *ptr_to_function
+            })?;
+
+            if let Some(address) = addresses.get(&(&library_name, &function_name)) {
+                write!(log, " -> {:X?}", address)?;
+
+                safe_patch(ptr_to_function, *address);
+            }
+
+            writeln!(log)?;
+        }
+    }
 
     Ok(())
 }

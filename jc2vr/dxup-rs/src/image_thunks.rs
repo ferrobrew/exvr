@@ -1,5 +1,3 @@
-use std::os::raw::c_void;
-
 use windows_sys::Win32::System::WindowsProgramming::IMAGE_THUNK_DATA32;
 
 pub(crate) struct ImageThunks {
@@ -9,7 +7,7 @@ pub(crate) struct ImageThunks {
 }
 
 impl Iterator for ImageThunks {
-    type Item = (String, *mut *mut c_void);
+    type Item = (String, *mut *const ());
 
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
@@ -21,7 +19,7 @@ impl Iterator for ImageThunks {
             let function_name = crate::util::cstr_ptr_to_string(
                 (self.image_base + address_of_data as isize + 2) as _,
             );
-            let function = &mut (*self.address_thunk).u1.Function as *mut _ as *mut *mut c_void;
+            let function = &mut (*self.address_thunk).u1.Function as *mut _ as *mut *const ();
 
             self.name_thunk = self.name_thunk.add(1);
             self.address_thunk = self.address_thunk.add(1);
