@@ -58,26 +58,31 @@ fn spawn_process() -> anyhow::Result<(OwnedProcess, HANDLE)> {
 }
 
 fn inject(process: &OwnedProcess) -> anyhow::Result<()> {
-    let syringe = dll_syringe::Syringe::for_process(process.try_clone()?);
     let payload_path = std::env::current_exe()?
         .parent()
         .context("unable to find parent path")?
         .join(DXUP_NAME);
-    syringe.inject(payload_path)?;
+
+    let syringe = dll_syringe::Syringe::for_process(process.try_clone()?);
+    let module = syringe.inject(payload_path)?;
+    let load_procedure = syringe
+        .get_procedure(module, "load")?
+        .context("failed to find load function")?;
+    load_procedure.call(&0_u64)?;
 
     Ok(())
 }
 
 fn main() -> anyhow::Result<()> {
     let (process, main_thread) = spawn_process()?;
-    match inject(&process) {
+    let result = inject(&process);
+    match result {
         Ok(_) => unsafe {
             Threading::ResumeThread(main_thread);
-            Ok(())
         },
-        Err(err) => {
-            process.kill()?;
-            Err(err)
+        Err(_) => {
+            let _ = process.kill();
         }
     }
+    result
 }
