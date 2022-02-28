@@ -39,7 +39,7 @@ extern "system" {
     fn D3DX10GetFeatureLevel1(pdevice: *mut c_void, ppdevice: *mut *mut c_void) -> HRESULT;
 }
 
-pub const IAT_HOOKS: [((&str, &str), *const ()); 5] = [
+pub const FUNCTIONS_BY_NAME: [((&str, &str), *const ()); 5] = [
     (
         ("dxgi.dll", "CreateDXGIFactory"),
         CreateDXGIFactory as *const (),

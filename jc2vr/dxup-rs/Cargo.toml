@@ -8,6 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1.0.55"
+detour = "0.8.1"
 
 [dependencies.windows-sys]
 features = [
