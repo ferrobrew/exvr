@@ -6,6 +6,7 @@ fn main() -> anyhow::Result<()> {
         println!("cargo:rustc-link-lib={}", dependency);
     }
 
+    println!("cargo:rerun-if-changed=src-cpp");
     let paths: Vec<_> = std::iter::once("src-cpp/dxup_guids.cpp".into())
         .chain(glob("src-cpp/d3d10_1/*.cpp")?.filter_map(Result::ok))
         .chain(glob("src-cpp/dxgi/*.cpp")?.filter_map(Result::ok))

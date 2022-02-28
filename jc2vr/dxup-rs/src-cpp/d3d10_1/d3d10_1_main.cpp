@@ -269,4 +269,8 @@ extern "C"
 		*ppDevice = (ID3D10Device1*)pDevice;
 		return S_OK;
 	}
+
+	void STDMETHODCALLTYPE D3DPERF_SetOptions(DWORD dwOptions)
+	{
+	}
 }
